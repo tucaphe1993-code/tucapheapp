@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tú Cà Phê - Đặt hàng online</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="logo">☕ Tú Cà Phê</div>
+  <div class="header-actions">
+    <div class="cart-toggle" id="stockToggle">📦 Kho hàng</div>
+    <div class="cart-toggle" id="cartToggle">
+      🛒 Giỏ hàng <span class="cart-count" id="cartCount">0</span>
+    </div>
+  </div>
+</header>
+
+<!-- WORKFLOW STEPPER -->
+<div class="stepper" id="stepper">
+  <div class="step active" data-step="1"><span class="step-num">1</span>Chọn món</div>
+  <div class="step" data-step="2"><span class="step-num">2</span>Giỏ hàng</div>
+  <div class="step" data-step="3"><span class="step-num">3</span>Thông tin giao hàng</div>
+  <div class="step" data-step="4"><span class="step-num">4</span>Xác nhận</div>
+</div>
+
+<main>
+
+  <!-- STEP 1: PRODUCT MENU -->
+  <section id="menuSection" class="panel active">
+    <div class="category-tabs" id="categoryTabs"></div>
+    <div class="product-grid" id="productGrid"></div>
+  </section>
+
+  <!-- STEP 2: CART -->
+  <section id="cartSection" class="panel">
+    <h2>Giỏ hàng của bạn</h2>
+    <div id="cartItems" class="cart-items"></div>
+    <div class="cart-summary">
+      <div class="row"><span>Tạm tính</span><span id="cartSubtotal">0₫</span></div>
+      <div class="row total"><span>Tổng cộng</span><span id="cartTotal">0₫</span></div>
+    </div>
+    <div class="panel-actions">
+      <button class="btn secondary" data-goto="1">← Chọn thêm món</button>
+      <button class="btn primary" id="toCheckoutBtn">Tiếp tục →</button>
+    </div>
+  </section>
+
+  <!-- STEP 3: CHECKOUT FORM -->
+  <section id="checkoutSection" class="panel">
+    <h2>Thông tin giao hàng</h2>
+    <form id="checkoutForm" class="checkout-form">
+      <label>Họ và tên
+        <input type="text" id="custName" required placeholder="Nguyễn Văn A">
+      </label>
+      <label>Số điện thoại
+        <input type="tel" id="custPhone" required pattern="[0-9]{9,11}" placeholder="0901234567">
+      </label>
+      <label>Địa chỉ giao hàng
+        <input type="text" id="custAddress" required placeholder="Số nhà, đường, phường/xã, quận/huyện">
+      </label>
+      <label>Ghi chú (tuỳ chọn)
+        <textarea id="custNote" placeholder="Ít đá, ít đường..."></textarea>
+      </label>
+      <fieldset class="payment-methods">
+        <legend>Phương thức thanh toán</legend>
+        <label class="radio"><input type="radio" name="payment" value="cod" checked> Thanh toán khi nhận hàng (COD)</label>
+        <label class="radio"><input type="radio" name="payment" value="transfer"> Chuyển khoản ngân hàng</label>
+        <label class="radio"><input type="radio" name="payment" value="momo"> Ví MoMo</label>
+      </fieldset>
+      <div class="order-mini-summary">
+        <span>Tổng thanh toán</span>
+        <strong id="checkoutTotal">0₫</strong>
+      </div>
+      <div class="panel-actions">
+        <button type="button" class="btn secondary" data-goto="2">← Quay lại giỏ hàng</button>
+        <button type="submit" class="btn primary">Đặt hàng</button>
+      </div>
+    </form>
+  </section>
+
+  <!-- STEP 4: CONFIRMATION -->
+  <section id="confirmSection" class="panel">
+    <div class="confirm-box">
+      <div class="confirm-icon">✅</div>
+      <h2>Đặt hàng thành công!</h2>
+      <p>Mã đơn hàng: <strong id="orderId"></strong></p>
+
+      <div class="order-status-track" id="orderStatusTrack">
+        <div class="status-step done" data-status="placed">
+          <span class="dot"></span>Đã đặt hàng
+        </div>
+        <div class="status-step" data-status="confirmed">
+          <span class="dot"></span>Đã xác nhận
+        </div>
+        <div class="status-step" data-status="brewing">
+          <span class="dot"></span>Đang pha chế
+        </div>
+        <div class="status-step" data-status="delivering">
+          <span class="dot"></span>Đang giao hàng
+        </div>
+        <div class="status-step" data-status="done">
+          <span class="dot"></span>Hoàn thành
+        </div>
+      </div>
+
+      <div id="orderReceipt" class="order-receipt"></div>
+
+      <button class="btn primary" id="newOrderBtn">Đặt đơn mới</button>
+    </div>
+  </section>
+
+  <!-- ORDER HISTORY -->
+  <section id="historySection">
+    <h2>Lịch sử đơn hàng</h2>
+    <div id="historyList" class="history-list"></div>
+  </section>
+
+</main>
+
+<!-- SLIDE-OUT CART DRAWER -->
+<div class="cart-drawer" id="cartDrawer">
+  <div class="drawer-header">
+    <h3>Giỏ hàng</h3>
+    <button id="closeDrawer">✕</button>
+  </div>
+  <div id="drawerItems" class="cart-items"></div>
+  <div class="cart-summary">
+    <div class="row total"><span>Tổng cộng</span><span id="drawerTotal">0₫</span></div>
+  </div>
+  <button class="btn primary full" id="drawerCheckoutBtn">Xem giỏ hàng & đặt hàng</button>
+</div>
+<div class="overlay" id="overlay"></div>
+
+<!-- STOCK / INVENTORY MODAL -->
+<div class="modal" id="stockModal">
+  <div class="modal-box">
+    <div class="drawer-header">
+      <h3>📦 Quản lý tồn kho</h3>
+      <button id="closeStockModal">✕</button>
+    </div>
+    <div class="stock-table-wrap">
+      <table class="stock-table">
+        <thead>
+          <tr><th>Sản phẩm</th><th>Loại</th><th>Giá</th><th>Tồn kho</th><th>Nhập thêm</th></tr>
+        </thead>
+        <tbody id="stockTableBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>

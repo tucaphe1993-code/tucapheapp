@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quản trị - Tú Cà Phê</title>
+<link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+
+<!-- ⚠️ KHU VỰC QUẢN TRỊ — TÁCH RIÊNG, KHÔNG LINK TỪ GIAO DIỆN KHÁCH HÀNG.
+     Mật khẩu bên dưới CHỈ là rào chắn demo (session-based), KHÔNG PHẢI bảo mật
+     production. Khi có backend thật, thay bằng đăng nhập admin thật (tài khoản
+     nhân viên + xác thực phía server), không giữ mật khẩu trong mã nguồn frontend. -->
+
+<div id="adminLoginScreen">
+  <div class="admin-login-box">
+    <h2 style="margin-top:0;color:var(--coffee-dark);">🔒 Quản trị Tú Cà Phê</h2>
+    <p style="color:var(--muted);font-size:0.88rem;">Khu vực nội bộ — không dành cho khách hàng.</p>
+    <input type="password" id="adminPassword" placeholder="Mật khẩu quản trị" style="width:100%;padding:11px 14px;border:1px solid var(--cream-dark);border-radius:10px;margin:14px 0;font-size:0.95rem;">
+    <div id="adminLoginError" style="color:var(--danger);font-size:0.85rem;display:none;margin-bottom:10px;"></div>
+    <button class="btn primary full" id="adminLoginBtn">Đăng nhập</button>
+    <p style="color:var(--muted);font-size:0.76rem;margin-top:14px;">⚠️ Demo: mật khẩu là <code>tucaphe2026</code> — đây KHÔNG phải cơ chế bảo mật production.</p>
+  </div>
+</div>
+
+<div id="adminApp" style="display:none;">
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-brand">
+        <div class="sidebar-logo">🔧</div>
+        <div>
+          <div class="sidebar-title">Tú Cà Phê <span>Admin</span></div>
+          <div class="sidebar-subtitle">Khu vực quản trị</div>
+        </div>
+      </div>
+      <nav class="sidebar-nav">
+        <button class="sidebar-link active" data-tab="products">📦 <span>Sản phẩm</span></button>
+        <button class="sidebar-link" data-tab="orders">🧾 <span>Đơn hàng</span></button>
+        <button class="sidebar-link" data-tab="customers">👥 <span>Khách hàng</span></button>
+        <div class="sidebar-divider"></div>
+        <button class="sidebar-link" id="adminLogoutBtn">🚪 <span>Đăng xuất</span></button>
+      </nav>
+    </aside>
+
+    <div class="app-main">
+      <header class="app-header">
+        <div class="breadcrumb" id="adminBreadcrumb">Sản phẩm</div>
+        <div class="app-header-actions">
+          <a href="../index.html" class="pill-btn ghost" target="_blank">🔗 Xem web khách hàng</a>
+        </div>
+      </header>
+
+      <main>
+        <!-- TAB: SẢN PHẨM -->
+        <section id="tab-products">
+          <div class="admin-toolbar">
+            <h2 class="section-title" style="margin:0;">Quản lý sản phẩm</h2>
+            <button class="btn primary" id="addProductBtn">+ Thêm sản phẩm</button>
+          </div>
+          <div class="admin-table-wrap">
+            <table class="admin-table">
+              <thead>
+                <tr><th>Tên</th><th>Giá lẻ</th><th>Giá sỉ</th><th>Ngưỡng sỉ</th><th>Tồn kho</th><th>Trạng thái</th><th>Hành động</th></tr>
+              </thead>
+              <tbody id="productsTableBody"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- TAB: ĐƠN HÀNG -->
+        <section id="tab-orders" style="display:none;">
+          <h2 class="section-title" style="margin-top:0;">Đơn hàng</h2>
+          <div class="admin-table-wrap">
+            <table class="admin-table">
+              <thead>
+                <tr><th>Mã đơn</th><th>Ngày đặt</th><th>Khách hàng</th><th>SĐT</th><th>Tổng kg</th><th>Tổng tiền</th><th>Đồng bộ Lark</th><th>Trạng thái</th></tr>
+              </thead>
+              <tbody id="ordersTableBody"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- TAB: KHÁCH HÀNG -->
+        <section id="tab-customers" style="display:none;">
+          <h2 class="section-title" style="margin-top:0;">Khách hàng đã đặt đơn</h2>
+          <p class="section-sub">Danh sách rút ra từ lịch sử đơn hàng cục bộ (chưa có bảng khách hàng riêng vì mô hình hiện tại không yêu cầu tài khoản).</p>
+          <div class="admin-table-wrap">
+            <table class="admin-table">
+              <thead><tr><th>Tên</th><th>SĐT</th><th>Quán/DN</th><th>Số đơn đã đặt</th></tr></thead>
+              <tbody id="customersTableBody"></tbody>
+            </table>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL THÊM/SỬA SẢN PHẨM -->
+<div class="sidebar-overlay" id="productModalOverlay" style="z-index:60;"></div>
+<div id="productModal" style="display:none;position:fixed;inset:0;align-items:center;justify-content:center;z-index:61;">
+  <form id="productForm" class="checkout-form" style="width:480px;max-width:92vw;max-height:88vh;overflow-y:auto;">
+    <h3 id="productModalTitle" style="margin:0;color:var(--coffee-dark);">Thêm sản phẩm</h3>
+    <input type="hidden" id="pf_id">
+    <label>Tên sản phẩm<input type="text" id="pf_name" required></label>
+    <label>Mô tả ngắn<input type="text" id="pf_short_desc" required></label>
+    <label>Mô tả chi tiết<textarea id="pf_description" required></textarea></label>
+    <label>Hương vị<input type="text" id="pf_flavor" required></label>
+    <label>Mức rang<input type="text" id="pf_roast" required></label>
+    <label>Loại hạt<input type="text" id="pf_origin_type" required></label>
+    <label>Đơn vị<input type="text" id="pf_unit" value="kg" required></label>
+    <label>Giá lẻ (đ)<input type="number" id="pf_retail_price" required min="0"></label>
+    <label>Giá sỉ (đ)<input type="number" id="pf_wholesale_price" required min="0"></label>
+    <label>Ngưỡng áp giá sỉ (kg)<input type="number" id="pf_wholesale_min_kg" required min="1"></label>
+    <label>Tồn kho<input type="number" id="pf_stock" required min="0"></label>
+    <div class="panel-actions" style="display:flex;gap:10px;">
+      <button type="button" class="btn secondary" id="productModalCancel">Huỷ</button>
+      <button type="submit" class="btn primary">Lưu</button>
+    </div>
+  </form>
+</div>
+
+<script src="../js/products-data.js"></script>
+<script src="../js/admin.js"></script>
+</body>
+</html>

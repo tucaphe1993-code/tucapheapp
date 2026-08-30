@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bảng giá - Tú Cà Phê</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body data-page="pricing">
+
+<div class="app-shell">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-brand">
+      <div class="sidebar-logo">☕</div>
+      <div>
+        <div class="sidebar-title">Tú Cà Phê</div>
+        <div class="sidebar-subtitle">Cà phê rang xay nguyên chất</div>
+      </div>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="index.html" class="sidebar-link" data-page="home">🏠 <span>Trang chủ</span></a>
+      <a href="products.html" class="sidebar-link" data-page="products">☕ <span>Cà phê</span></a>
+      <a href="pricing.html" class="sidebar-link" data-page="pricing">💰 <span>Bảng giá</span></a>
+      <a href="guide.html" class="sidebar-link" data-page="guide">📖 <span>Hướng dẫn mua</span></a>
+      <a href="about.html" class="sidebar-link" data-page="about">🏷️ <span>Về Tú Cà Phê</span></a>
+      <a href="contact.html" class="sidebar-link" data-page="contact">📞 <span>Liên hệ</span></a>
+      <div class="sidebar-divider"></div>
+      <a href="checkout.html" class="sidebar-link" data-page="cart">🛒 <span>Giỏ hàng</span></a>
+    </nav>
+  </aside>
+  <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+  <div class="app-main">
+    <header class="app-header">
+      <button type="button" class="menu-toggle" id="menuToggle" aria-label="Mở menu">☰</button>
+      <div class="breadcrumb">Bảng giá</div>
+      <div class="app-header-actions">
+        <a href="checkout.html" class="pill-btn solid">🛒 Giỏ hàng <span class="cart-count" id="cartCount">0</span></a>
+      </div>
+    </header>
+
+    <main>
+      <div class="data-banner">⚠️ Bảng giá dưới đây là <strong>dữ liệu mẫu (demo)</strong>, chưa phải giá chính thức của Tú Cà Phê.</div>
+      <h2 class="section-title">Bảng giá</h2>
+      <p class="section-sub">Mua từ ngưỡng tương ứng (tính theo <strong>tổng khối lượng cả giỏ hàng</strong>) để được áp dụng giá sỉ.</p>
+      <div class="price-table-wrap">
+        <table class="price-table">
+          <thead>
+            <tr><th>Sản phẩm</th><th>Đơn vị</th><th>Giá lẻ</th><th>Giá sỉ</th><th>Ngưỡng áp sỉ</th></tr>
+          </thead>
+          <tbody id="priceTableBody"></tbody>
+        </table>
+      </div>
+    </main>
+
+    <div class="sticky-cart-cta" id="stickyCartCta">
+      <span>🛒 Xem giỏ hàng của bạn</span>
+      <a href="checkout.html">Xem giỏ →</a>
+    </div>
+  </div>
+</div>
+
+<script src="js/products-data.js"></script>
+<script src="js/pricing.js"></script>
+<script src="js/cart.js"></script>
+<script src="js/ui.js"></script>
+<script>
+  document.getElementById("priceTableBody").innerHTML = getVisibleProducts().map(p => `
+    <tr>
+      <td>${p.icon} ${p.name}</td>
+      <td>${p.unit}</td>
+      <td>${money(p.retail_price)}</td>
+      <td class="wholesale-cell">${money(p.wholesale_price)}</td>
+      <td>Từ ${p.wholesale_min_kg}${p.unit} (tổng giỏ hàng)</td>
+    </tr>
+  `).join("");
+</script>
+</body>
+</html>

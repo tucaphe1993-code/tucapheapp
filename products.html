@@ -3,10 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Tú Cà Phê - Cà phê rang xay nguyên chất</title>
+<title>Cà phê - Tú Cà Phê</title>
 <link rel="stylesheet" href="css/style.css">
 </head>
-<body data-page="home">
+<body data-page="products">
 
 <div class="app-shell">
   <aside class="sidebar" id="sidebar">
@@ -33,7 +33,7 @@
   <div class="app-main">
     <header class="app-header">
       <button type="button" class="menu-toggle" id="menuToggle" aria-label="Mở menu">☰</button>
-      <div class="breadcrumb">Trang chủ</div>
+      <div class="breadcrumb">Cà phê</div>
       <div class="app-header-actions">
         <a href="checkout.html" class="pill-btn solid">🛒 Giỏ hàng <span class="cart-count" id="cartCount">0</span></a>
       </div>
@@ -41,25 +41,9 @@
 
     <main>
       <div class="data-banner">⚠️ Giá sản phẩm hiển thị trên trang là <strong>dữ liệu mẫu (demo)</strong>, chưa phải bảng giá chính thức của Tú Cà Phê.</div>
-
-      <section class="hero">
-        <div class="hero-copy">
-          <span class="hero-badge">☕ Cà phê rang mới mỗi tuần</span>
-          <h1>TÚ CÀ PHÊ</h1>
-          <p class="subhead">Cà phê rang xay cho quán và gia đình</p>
-          <p>Cà phê rang mới – giá lẻ minh bạch – mua từ 5kg có giá sỉ. Nguyên liệu chọn lọc, rang theo mẻ nhỏ để giữ trọn hương vị.</p>
-          <div class="hero-actions">
-            <a href="products.html" class="btn primary lg">Xem cà phê</a>
-            <a href="pricing.html" class="btn outline lg">Xem giá sỉ</a>
-          </div>
-        </div>
-        <div class="hero-art" aria-hidden="true">☕</div>
-      </section>
-
-      <h2 class="section-title">Sản phẩm nổi bật</h2>
+      <h2 class="section-title">Tất cả cà phê</h2>
       <p class="section-sub">Mua từ 5kg (tổng đơn) để được áp dụng giá sỉ cho các sản phẩm đủ điều kiện.</p>
-      <div class="product-grid" id="featuredGrid"></div>
-
+      <div class="product-grid" id="productGrid"></div>
     </main>
 
     <div class="sticky-cart-cta" id="stickyCartCta">
@@ -73,28 +57,6 @@
 <script src="js/pricing.js"></script>
 <script src="js/cart.js"></script>
 <script src="js/ui.js"></script>
-<script>
-  function renderFeatured() {
-    const products = getVisibleProducts().slice(0, 4);
-    const cart = loadCart();
-    const totalKg = getCartTotalKg(cart);
-    document.getElementById("featuredGrid").innerHTML = products.map(p => {
-      const wholesaleEligible = totalKg >= p.wholesale_min_kg;
-      return `
-      <a href="product.html?id=${p.id}" class="product-card">
-        <div class="product-thumb">${p.icon}</div>
-        <div class="product-info">
-          <div class="product-name">${p.name}</div>
-          <div class="product-desc">${p.short_desc}</div>
-          <div class="product-price-row">
-            <div class="price-line retail"><span class="label">Giá lẻ</span><span class="value">${money(p.retail_price)}/${p.unit}</span></div>
-            <div class="price-line wholesale"><span class="label">Giá sỉ từ ${p.wholesale_min_kg}kg</span><span class="value">${money(p.wholesale_price)}/${p.unit}</span></div>
-          </div>
-        </div>
-      </a>`;
-    }).join("");
-  }
-  renderFeatured();
-</script>
+<script src="js/products-page.js"></script>
 </body>
 </html>

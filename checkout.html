@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Giỏ hàng - Tú Cà Phê</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body data-page="cart">
+
+<div class="app-shell">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-brand">
+      <div class="sidebar-logo">☕</div>
+      <div>
+        <div class="sidebar-title">Tú Cà Phê</div>
+        <div class="sidebar-subtitle">Cà phê rang xay nguyên chất</div>
+      </div>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="index.html" class="sidebar-link" data-page="home">🏠 <span>Trang chủ</span></a>
+      <a href="products.html" class="sidebar-link" data-page="products">☕ <span>Cà phê</span></a>
+      <a href="pricing.html" class="sidebar-link" data-page="pricing">💰 <span>Bảng giá</span></a>
+      <a href="guide.html" class="sidebar-link" data-page="guide">📖 <span>Hướng dẫn mua</span></a>
+      <a href="about.html" class="sidebar-link" data-page="about">🏷️ <span>Về Tú Cà Phê</span></a>
+      <a href="contact.html" class="sidebar-link" data-page="contact">📞 <span>Liên hệ</span></a>
+      <div class="sidebar-divider"></div>
+      <a href="checkout.html" class="sidebar-link" data-page="cart">🛒 <span>Giỏ hàng</span></a>
+    </nav>
+  </aside>
+  <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+  <div class="app-main">
+    <header class="app-header">
+      <button type="button" class="menu-toggle" id="menuToggle" aria-label="Mở menu">☰</button>
+      <div class="breadcrumb">Giỏ hàng & Đặt hàng</div>
+      <div class="app-header-actions"></div>
+    </header>
+
+    <main>
+      <!-- TRẠNG THÁI GIỎ HÀNG + FORM (ẩn khi đặt hàng thành công) -->
+      <div id="cartView">
+        <div id="cartStatusBanner"></div>
+        <div class="cart-items" id="cartItems"></div>
+        <div class="cart-summary" id="cartSummary" style="display:none;">
+          <div class="row"><span>Tổng khối lượng</span><span id="cartTotalKg">0kg</span></div>
+          <div class="row total"><span>Tạm tính</span><span id="cartTotalMoney">0₫</span></div>
+        </div>
+
+        <div id="formError" class="form-error" style="display:none;"></div>
+
+        <form id="checkoutForm" class="checkout-form" style="display:none;">
+          <h3 style="margin:0;color:var(--coffee-dark);">Thông tin nhận hàng</h3>
+          <label>Họ và tên
+            <input type="text" id="custName" required placeholder="Nguyễn Văn A">
+          </label>
+          <label>Số điện thoại
+            <input type="tel" id="custPhone" required pattern="[0-9]{9,11}" placeholder="0901234567">
+          </label>
+          <label>Tên quán / doanh nghiệp (không bắt buộc)
+            <input type="text" id="custCompany" placeholder="Quán cà phê ABC">
+          </label>
+          <label>Địa chỉ nhận hàng
+            <input type="text" id="custAddress" required placeholder="Số nhà, đường, phường/xã, quận/huyện">
+          </label>
+          <label>Tỉnh / thành
+            <input type="text" id="custProvince" required placeholder="TP. Hồ Chí Minh">
+          </label>
+          <label>Ghi chú đơn hàng (không bắt buộc)
+            <textarea id="custNote" placeholder="Ghi chú cho người giao hàng..."></textarea>
+          </label>
+          <button type="submit" class="btn primary lg full">ĐẶT HÀNG</button>
+        </form>
+      </div>
+
+      <!-- MÀN HÌNH XÁC NHẬN ĐẶT HÀNG THÀNH CÔNG -->
+      <div id="successView" style="display:none;">
+        <div class="success-box">
+          <div class="success-icon">✅</div>
+          <h2>ĐẶT HÀNG THÀNH CÔNG</h2>
+          <div class="order-id-badge" id="successOrderId"></div>
+          <p>Cảm ơn anh/chị. Đơn hàng đã được tiếp nhận.</p>
+          <div class="order-receipt" id="successReceipt"></div>
+          <a href="products.html" class="btn primary lg">Tiếp tục mua cà phê</a>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<script src="js/products-data.js"></script>
+<script src="js/pricing.js"></script>
+<script src="js/cart.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/checkout.js"></script>
+</body>
+</html>

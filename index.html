@@ -3,18 +3,22 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Tú Cà Phê Sỉ - Đặt hàng cà phê hạt cho đối tác</title>
+<title>Tú Cà Phê Sỉ - Cổng đặt hàng đối tác</title>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
 <header class="site-header">
   <div class="logo">🌱 Tú Cà Phê <span>Sỉ</span></div>
-  <nav class="main-nav">
-    <a href="#" class="nav-link active" data-goto="1">Sản phẩm</a>
-    <a href="#" class="nav-link" data-scroll="historySection">Đơn hàng của tôi</a>
+  <nav class="main-nav" id="mainNav">
+    <a href="#" class="nav-link active" data-view="order">☕ Đặt cà phê</a>
+    <a href="#" class="nav-link" data-view="track">📦 Theo dõi đơn</a>
+    <a href="#" class="nav-link" data-view="debt">💰 Công nợ</a>
+    <a href="#" class="nav-link" data-view="history">📋 Lịch sử</a>
+    <a href="#" class="nav-link" data-view="offers">🎁 Ưu đãi</a>
   </nav>
   <div class="header-actions">
+    <button class="pill-btn ghost" id="customerBtn">👤 <span id="customerNameTag">Đăng nhập</span></button>
     <button class="pill-btn ghost" id="stockToggle">📦 Kho hàng</button>
     <button class="pill-btn solid" id="cartToggle">
       🛒 Giỏ hàng <span class="cart-count" id="cartCount">0</span>
@@ -22,156 +26,167 @@
   </div>
 </header>
 
-<!-- WORKFLOW STEPPER -->
-<div class="stepper" id="stepper">
-  <div class="step active" data-step="1"><span class="step-num">1</span>Chọn sản phẩm</div>
-  <div class="step" data-step="2"><span class="step-num">2</span>Giỏ hàng</div>
-  <div class="step" data-step="3"><span class="step-num">3</span>Thông tin đặt sỉ</div>
-  <div class="step" data-step="4"><span class="step-num">4</span>Xác nhận</div>
-</div>
-
 <main>
 
-  <!-- STEP 1: PRODUCT CATALOG -->
-  <section id="menuSection" class="panel active">
+  <!-- ============ VIEW: ĐẶT CÀ PHÊ (luồng 4 bước) ============ -->
+  <div class="view active" id="view-order">
 
-    <!-- HERO -->
-    <div class="hero">
-      <div class="hero-copy">
-        <span class="hero-badge">☕ Dành riêng cho đại lý & doanh nghiệp</span>
-        <h1>Cà Phê Hạt Nguyên Chất<br>Giá Sỉ Tận Vườn</h1>
-        <p>Cung cấp Arabica, Robusta, Culi, Moka số lượng lớn — rang theo đơn, giao tận nơi, giá ưu đãi theo sản lượng.</p>
-        <div class="hero-actions">
-          <button class="pill-btn solid lg" id="heroOrderBtn">Đặt hàng ngay →</button>
-          <button class="pill-btn outline lg" id="stockToggle2">Xem tồn kho</button>
+    <div class="stepper" id="stepper">
+      <div class="step active" data-step="1"><span class="step-num">1</span>Chọn sản phẩm</div>
+      <div class="step" data-step="2"><span class="step-num">2</span>Giỏ hàng</div>
+      <div class="step" data-step="3"><span class="step-num">3</span>Thông tin đặt sỉ</div>
+      <div class="step" data-step="4"><span class="step-num">4</span>Xác nhận</div>
+    </div>
+
+    <!-- STEP 1: PRODUCT CATALOG -->
+    <section id="menuSection" class="panel active">
+      <div class="hero">
+        <div class="hero-copy">
+          <span class="hero-badge">☕ Dành riêng cho đại lý & doanh nghiệp</span>
+          <h1>Cà Phê Hạt Nguyên Chất<br>Giá Sỉ Tận Vườn</h1>
+          <p>Cung cấp Arabica, Robusta, Culi, Moka số lượng lớn cùng phụ kiện, thiết bị pha chế — mỗi đối tác có mức giá sỉ riêng theo hạng thành viên.</p>
+          <div class="hero-actions">
+            <button class="pill-btn solid lg" id="heroOrderBtn">Đặt hàng ngay →</button>
+            <button class="pill-btn outline lg" id="stockToggle2">Xem tồn kho</button>
+          </div>
+          <div class="hero-stats">
+            <div><strong>500+</strong><span>Đại lý tin dùng</span></div>
+            <div><strong>8</strong><span>Vùng nguyên liệu</span></div>
+            <div><strong>24h</strong><span>Xử lý đơn sỉ</span></div>
+          </div>
         </div>
-        <div class="hero-stats">
-          <div><strong>500+</strong><span>Đại lý tin dùng</span></div>
-          <div><strong>8</strong><span>Vùng nguyên liệu</span></div>
-          <div><strong>24h</strong><span>Xử lý đơn sỉ</span></div>
+        <div class="hero-art" aria-hidden="true">
+          <div class="hero-blob"></div>
+          <div class="hero-bean b1">☕</div>
+          <div class="hero-bean b2">🌿</div>
+          <div class="hero-bean b3">🫘</div>
+          <div class="hero-bean b4">🏔️</div>
         </div>
       </div>
-      <div class="hero-art" aria-hidden="true">
-        <div class="hero-blob"></div>
-        <div class="hero-bean b1">☕</div>
-        <div class="hero-bean b2">🌿</div>
-        <div class="hero-bean b3">🫘</div>
-        <div class="hero-bean b4">🏔️</div>
+
+      <div class="quick-bar">
+        <div class="quick-field">
+          <label>Danh mục</label>
+          <select id="quickCat"></select>
+        </div>
+        <div class="quick-field">
+          <label>Sản lượng cần</label>
+          <input type="number" id="quickQty" min="5" step="5" value="50">
+        </div>
+        <button class="pill-btn solid" id="quickFindBtn">🔍 Tìm sản phẩm phù hợp</button>
       </div>
-    </div>
 
-    <!-- QUICK ORDER BAR -->
-    <div class="quick-bar">
-      <div class="quick-field">
-        <label>Loại hạt</label>
-        <select id="quickCat"></select>
+      <div class="category-tabs" id="categoryTabs"></div>
+      <div class="product-grid" id="productGrid"></div>
+
+      <div class="tier-note">
+        💡 <strong>Chiết khấu theo sản lượng:</strong> giảm <strong>5%</strong> cho đơn hàng từ <strong>50 đơn vị/sản phẩm</strong>,
+        giảm <strong>10%</strong> từ <strong>100 đơn vị/sản phẩm</strong> trở lên — cộng thêm <strong>giá sỉ riêng theo hạng đối tác</strong> của bạn.
       </div>
-      <div class="quick-field">
-        <label>Sản lượng cần (kg)</label>
-        <input type="number" id="quickQty" min="5" step="5" value="50">
-      </div>
-      <button class="pill-btn solid" id="quickFindBtn">🔍 Tìm sản phẩm phù hợp</button>
-    </div>
+    </section>
 
-    <div class="category-tabs" id="categoryTabs"></div>
-    <div class="product-grid" id="productGrid"></div>
-
-    <div class="tier-note">
-      💡 <strong>Chiết khấu sỉ:</strong> giảm <strong>5%</strong> cho đơn hàng từ <strong>50kg/sản phẩm</strong>,
-      giảm <strong>10%</strong> từ <strong>100kg/sản phẩm</strong> trở lên.
-    </div>
-  </section>
-
-  <!-- STEP 2: CART -->
-  <section id="cartSection" class="panel">
-    <h2>Giỏ hàng đặt sỉ</h2>
-    <div id="cartItems" class="cart-items"></div>
-    <div class="cart-summary">
-      <div class="row"><span>Tạm tính</span><span id="cartSubtotal">0₫</span></div>
-      <div class="row discount"><span>Chiết khấu sỉ</span><span id="cartDiscount">-0₫</span></div>
-      <div class="row total"><span>Tổng cộng</span><span id="cartTotal">0₫</span></div>
-    </div>
-    <div class="panel-actions">
-      <button class="btn secondary" data-goto="1">← Chọn thêm sản phẩm</button>
-      <button class="btn primary" id="toCheckoutBtn">Tiếp tục →</button>
-    </div>
-  </section>
-
-  <!-- STEP 3: CHECKOUT FORM -->
-  <section id="checkoutSection" class="panel">
-    <h2>Thông tin đặt hàng sỉ</h2>
-    <form id="checkoutForm" class="checkout-form">
-      <label>Tên công ty / cửa hàng
-        <input type="text" id="custCompany" required placeholder="Công ty TNHH Cà Phê ABC">
-      </label>
-      <label>Người liên hệ
-        <input type="text" id="custName" required placeholder="Nguyễn Văn A">
-      </label>
-      <label>Số điện thoại
-        <input type="tel" id="custPhone" required pattern="[0-9]{9,11}" placeholder="0901234567">
-      </label>
-      <label>Mã số thuế (nếu có)
-        <input type="text" id="custTax" placeholder="0312345678">
-      </label>
-      <label>Địa chỉ giao hàng
-        <input type="text" id="custAddress" required placeholder="Số nhà, đường, phường/xã, quận/huyện, tỉnh/thành">
-      </label>
-      <label>Ghi chú đơn hàng (tuỳ chọn)
-        <textarea id="custNote" placeholder="Yêu cầu rang xay, đóng gói, thời gian giao..."></textarea>
-      </label>
-      <fieldset class="payment-methods">
-        <legend>Hình thức thanh toán</legend>
-        <label class="radio"><input type="radio" name="payment" value="cod" checked> Thanh toán khi nhận hàng (COD)</label>
-        <label class="radio"><input type="radio" name="payment" value="transfer"> Chuyển khoản ngân hàng</label>
-        <label class="radio"><input type="radio" name="payment" value="debt"> Công nợ 30 ngày (đối tác thân thiết)</label>
-      </fieldset>
-      <div class="order-mini-summary">
-        <span>Tổng thanh toán</span>
-        <strong id="checkoutTotal">0₫</strong>
+    <!-- STEP 2: CART -->
+    <section id="cartSection" class="panel">
+      <h2>Giỏ hàng đặt sỉ</h2>
+      <div id="cartItems" class="cart-items"></div>
+      <div class="cart-summary">
+        <div class="row"><span>Tạm tính</span><span id="cartSubtotal">0₫</span></div>
+        <div class="row discount"><span>Chiết khấu</span><span id="cartDiscount">-0₫</span></div>
+        <div class="row total"><span>Tổng cộng</span><span id="cartTotal">0₫</span></div>
       </div>
       <div class="panel-actions">
-        <button type="button" class="btn secondary" data-goto="2">← Quay lại giỏ hàng</button>
-        <button type="submit" class="btn primary">Xác nhận đặt hàng</button>
+        <button class="btn secondary" data-goto="1">← Chọn thêm sản phẩm</button>
+        <button class="btn primary" id="toCheckoutBtn">Tiếp tục →</button>
       </div>
-    </form>
-  </section>
+    </section>
 
-  <!-- STEP 4: CONFIRMATION -->
-  <section id="confirmSection" class="panel">
-    <div class="confirm-box">
-      <div class="confirm-icon">✅</div>
-      <h2>Đặt hàng sỉ thành công!</h2>
-      <p>Mã đơn hàng: <strong id="orderId"></strong></p>
+    <!-- STEP 3: CHECKOUT FORM -->
+    <section id="checkoutSection" class="panel">
+      <h2>Thông tin đặt hàng sỉ</h2>
+      <form id="checkoutForm" class="checkout-form">
+        <label>Tên công ty / cửa hàng
+          <input type="text" id="custCompany" required placeholder="Công ty TNHH Cà Phê ABC">
+        </label>
+        <label>Người liên hệ
+          <input type="text" id="custName" required placeholder="Nguyễn Văn A">
+        </label>
+        <label>Số điện thoại
+          <input type="tel" id="custPhone" required pattern="[0-9]{9,11}" placeholder="0901234567">
+        </label>
+        <label>Mã số thuế (nếu có)
+          <input type="text" id="custTax" placeholder="0312345678">
+        </label>
+        <label>Địa chỉ giao hàng
+          <input type="text" id="custAddress" required placeholder="Số nhà, đường, phường/xã, quận/huyện, tỉnh/thành">
+        </label>
+        <label>Ghi chú đơn hàng (tuỳ chọn)
+          <textarea id="custNote" placeholder="Yêu cầu rang xay, đóng gói, thời gian giao..."></textarea>
+        </label>
+        <fieldset class="payment-methods">
+          <legend>Hình thức thanh toán</legend>
+          <label class="radio"><input type="radio" name="payment" value="cod" checked> Thanh toán khi nhận hàng (COD)</label>
+          <label class="radio"><input type="radio" name="payment" value="transfer"> Chuyển khoản ngân hàng</label>
+          <label class="radio"><input type="radio" name="payment" value="debt" id="paymentDebtRadio"> Công nợ 30 ngày (đối tác thân thiết)</label>
+          <div class="debt-note" id="debtNote"></div>
+        </fieldset>
+        <div class="order-mini-summary">
+          <span>Tổng thanh toán</span>
+          <strong id="checkoutTotal">0₫</strong>
+        </div>
+        <div class="panel-actions">
+          <button type="button" class="btn secondary" data-goto="2">← Quay lại giỏ hàng</button>
+          <button type="submit" class="btn primary">Xác nhận đặt hàng</button>
+        </div>
+      </form>
+    </section>
 
-      <div class="order-status-track" id="orderStatusTrack">
-        <div class="status-step done" data-status="placed">
-          <span class="dot"></span>Đã đặt hàng
+    <!-- STEP 4: CONFIRMATION -->
+    <section id="confirmSection" class="panel">
+      <div class="confirm-box">
+        <div class="confirm-icon">✅</div>
+        <h2>Đặt hàng sỉ thành công!</h2>
+        <p>Mã đơn hàng: <strong id="orderId"></strong></p>
+
+        <div class="order-status-track" id="orderStatusTrack">
+          <div class="status-step done" data-status="placed"><span class="dot"></span>Đã đặt hàng</div>
+          <div class="status-step" data-status="confirmed"><span class="dot"></span>Đã xác nhận</div>
+          <div class="status-step" data-status="packing"><span class="dot"></span>Đang đóng gói</div>
+          <div class="status-step" data-status="delivering"><span class="dot"></span>Đang vận chuyển</div>
+          <div class="status-step" data-status="done"><span class="dot"></span>Đã giao hàng</div>
         </div>
-        <div class="status-step" data-status="confirmed">
-          <span class="dot"></span>Đã xác nhận
-        </div>
-        <div class="status-step" data-status="packing">
-          <span class="dot"></span>Đang đóng gói
-        </div>
-        <div class="status-step" data-status="delivering">
-          <span class="dot"></span>Đang vận chuyển
-        </div>
-        <div class="status-step" data-status="done">
-          <span class="dot"></span>Đã giao hàng
-        </div>
+
+        <div id="orderReceipt" class="order-receipt"></div>
+
+        <button class="btn primary" id="newOrderBtn">Đặt đơn mới</button>
       </div>
+    </section>
 
-      <div id="orderReceipt" class="order-receipt"></div>
+  </div>
 
-      <button class="btn primary" id="newOrderBtn">Đặt đơn mới</button>
-    </div>
-  </section>
+  <!-- ============ VIEW: THEO DÕI ĐƠN ============ -->
+  <div class="view" id="view-track">
+    <h2>📦 Theo dõi đơn hàng đang xử lý</h2>
+    <div id="trackList" class="history-list"></div>
+  </div>
 
-  <!-- ORDER HISTORY -->
-  <section id="historySection">
-    <h2>Lịch sử đơn hàng</h2>
+  <!-- ============ VIEW: CÔNG NỢ ============ -->
+  <div class="view" id="view-debt">
+    <h2>💰 Công nợ của bạn</h2>
+    <div id="debtSummary"></div>
+    <div id="debtList" class="history-list"></div>
+  </div>
+
+  <!-- ============ VIEW: LỊCH SỬ MUA HÀNG ============ -->
+  <div class="view" id="view-history">
+    <h2>📋 Lịch sử mua hàng</h2>
     <div id="historyList" class="history-list"></div>
-  </section>
+  </div>
+
+  <!-- ============ VIEW: ƯU ĐÃI RIÊNG ============ -->
+  <div class="view" id="view-offers">
+    <h2>🎁 Ưu đãi dành riêng cho bạn</h2>
+    <div id="offersContent"></div>
+  </div>
 
 </main>
 
@@ -193,17 +208,34 @@
 <div class="modal" id="stockModal">
   <div class="modal-box">
     <div class="drawer-header">
-      <h3>📦 Quản lý tồn kho (kg)</h3>
+      <h3>📦 Quản lý tồn kho</h3>
       <button id="closeStockModal">✕</button>
     </div>
     <div class="stock-table-wrap">
       <table class="stock-table">
         <thead>
-          <tr><th>Sản phẩm</th><th>Loại</th><th>Giá/kg</th><th>Tồn kho (kg)</th><th>Nhập thêm (kg)</th></tr>
+          <tr><th>Sản phẩm</th><th>Loại</th><th>Đơn giá</th><th>Tồn kho</th><th>Nhập thêm</th></tr>
         </thead>
         <tbody id="stockTableBody"></tbody>
       </table>
     </div>
+  </div>
+</div>
+
+<!-- LOGIN / CUSTOMER SWITCH MODAL -->
+<div class="modal" id="loginModal">
+  <div class="modal-box narrow">
+    <div class="drawer-header">
+      <h3>👤 Đăng nhập đối tác sỉ</h3>
+      <button id="closeLoginModal">✕</button>
+    </div>
+    <p class="muted-text">Nhập số điện thoại đối tác để xem <strong>giá sỉ riêng</strong>, công nợ, lịch sử và ưu đãi của bạn.</p>
+    <div class="login-form">
+      <input type="tel" id="loginPhone" placeholder="Nhập số điện thoại...">
+      <button class="btn primary" id="loginSubmitBtn">Đăng nhập</button>
+    </div>
+    <div class="login-hint">Dùng thử: 0901111111 · 0902222222 · 0903333333</div>
+    <button class="btn secondary full" id="logoutBtn" style="margin-top:14px;">Đăng xuất (dùng như khách vãng lai)</button>
   </div>
 </div>
 

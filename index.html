@@ -285,12 +285,14 @@
       <h3>👤 Đăng nhập đối tác sỉ</h3>
       <button id="closeLoginModal">✕</button>
     </div>
-    <p class="muted-text">Nhập số điện thoại đối tác để xem <strong>giá sỉ riêng</strong>, công nợ, lịch sử và ưu đãi của bạn.</p>
+    <p class="muted-text">Đăng nhập bằng số điện thoại và mật khẩu để xem <strong>giá sỉ riêng</strong>, công nợ, lịch sử và ưu đãi của bạn.</p>
     <div class="login-form">
-      <input type="tel" id="loginPhone" placeholder="Nhập số điện thoại...">
-      <button class="btn primary" id="loginSubmitBtn">Đăng nhập</button>
+      <input type="tel" id="loginPhone" placeholder="Số điện thoại">
+      <input type="password" id="loginPassword" placeholder="Mật khẩu">
+      <button class="btn primary full" id="loginSubmitBtn">Đăng nhập</button>
     </div>
-    <div class="login-hint">Dùng thử: 0901111111 · 0902222222 · 0903333333</div>
+    <div class="form-error" id="loginError" hidden></div>
+    <div class="login-hint">Dùng thử: 0900000000 / 123456 (khách mẫu KH001)<br>hoặc 0901111111 · 0902222222 · 0903333333 (mật khẩu: 123456)</div>
     <div class="auth-disclaimer">⚠️ Đây là xác thực demo cục bộ theo số điện thoại, <strong>chưa có bảo mật đăng nhập thật</strong> (chưa có OTP/mật khẩu/backend). Cần kết nối hệ thống xác thực thật trước khi vận hành chính thức.</div>
     <button class="btn secondary full" id="logoutBtn" style="margin-top:14px;">Đăng xuất (dùng như khách vãng lai)</button>
   </div>

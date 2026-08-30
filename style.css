@@ -675,8 +675,8 @@ main { max-width: 1100px; margin: 0 auto; padding: 8px 24px 60px; }
 /* LOGIN MODAL */
 .modal-box.narrow { width: 440px; }
 .muted-text { color: var(--muted); font-size: 0.9rem; }
-.login-form { display: flex; gap: 10px; margin: 14px 0; }
-.login-form input { flex: 1; padding: 11px 14px; border: 1px solid var(--cream-dark); border-radius: 10px; font-size: 0.95rem; }
+.login-form { display: flex; flex-direction: column; gap: 12px; margin: 14px 0; }
+.login-form input { padding: 11px 14px; border: 1px solid var(--cream-dark); border-radius: 10px; font-size: 0.95rem; }
 .login-hint { color: var(--muted); font-size: 0.8rem; }
 
 @media (max-width: 900px) {

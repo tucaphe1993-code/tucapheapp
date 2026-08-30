@@ -62,24 +62,43 @@ const PICKUP_LOCATIONS = [
 ];
 
 // ===== KHÁCH HÀNG SỈ (DEMO — mỗi khách một mức giá & hạn mức công nợ riêng) =====
+// "password" ở đây CHỈ là dữ liệu demo để kiểm thử màn hình đăng nhập cục bộ.
+// Khi có backend/Lark Base thật, KHÔNG lưu mật khẩu dạng plain-text như thế này —
+// việc xác thực phải chuyển hẳn sang authenticateCustomer() bên dưới (xem AUTH CONTRACT).
 const CUSTOMERS = [
-  { id: "guest", phone: "", name: "Khách vãng lai", company: "", tier: "Chưa đăng nhập", group: "—", discount: 0, debtLimit: 0,
+  { id: "guest", phone: "", password: null, name: "Khách vãng lai", company: "", tier: "Chưa đăng nhập", group: "—", discount: 0, debtLimit: 0,
     offer: "Đăng nhập bằng số điện thoại đối tác để nhận giá sỉ riêng, công nợ và ưu đãi cá nhân hoá." },
-  { id: "kh1", phone: "0901111111", name: "Nguyễn Văn A", company: "Quán Cà Phê Xanh", tier: "Đối tác Bạc", group: "Quán cà phê", discount: 0, debtLimit: 20000000,
+  // --- Tài khoản mẫu theo yêu cầu: dùng để kiểm thử màn hình đăng nhập SĐT + mật khẩu ---
+  { id: "KH001", phone: "0900000000", password: "123456", name: "Khách hàng test", company: "", tier: "Khách mẫu", group: "—", discount: 0, debtLimit: 0,
+    offer: "Tài khoản khách hàng mẫu — chưa có giá sỉ riêng hay hạn mức công nợ (sẽ cập nhật ở bước sau)." },
+  // --- Các khách demo có sẵn từ trước (giữ nguyên, chỉ thêm mật khẩu để tiếp tục đăng nhập được) ---
+  { id: "kh1", phone: "0901111111", password: "123456", name: "Nguyễn Văn A", company: "Quán Cà Phê Xanh", tier: "Đối tác Bạc", group: "Quán cà phê", discount: 0, debtLimit: 20000000,
     offer: "Tặng 2kg Robusta khi tổng sản lượng đặt trong tháng đạt 200kg." },
-  { id: "kh2", phone: "0902222222", name: "Trần Thị B", company: "Chuỗi The Green Bean", tier: "Đối tác Vàng", group: "Chuỗi cửa hàng", discount: 0.03, debtLimit: 50000000,
+  { id: "kh2", phone: "0902222222", password: "123456", name: "Trần Thị B", company: "Chuỗi The Green Bean", tier: "Đối tác Vàng", group: "Chuỗi cửa hàng", discount: 0.03, debtLimit: 50000000,
     offer: "Giảm thêm 3% trên mọi đơn hàng, áp dụng tự động." },
-  { id: "kh3", phone: "0903333333", name: "Lê Văn C", company: "Xưởng Rang Xay Phúc An", tier: "Đối tác Kim Cương", group: "Xưởng rang xay", discount: 0.06, debtLimit: 100000000,
+  { id: "kh3", phone: "0903333333", password: "123456", name: "Lê Văn C", company: "Xưởng Rang Xay Phúc An", tier: "Đối tác Kim Cương", group: "Xưởng rang xay", discount: 0.06, debtLimit: 100000000,
     offer: "Giảm thêm 6% và miễn phí vận chuyển toàn quốc." },
 ];
 
-// ===== AUTH: cấu trúc rõ ràng để thay bằng backend thật sau này =====
-// Hiện tại: tra cứu cục bộ theo số điện thoại — KHÔNG PHẢI xác thực bảo mật thật
-// (không OTP, không mật khẩu, không token phiên). Khi có backend, thay nội dung
-// hàm này bằng: const res = await fetch('/api/auth/login', {method:'POST', body:...})
-// và trả về customer tương ứng từ response.
-function authenticateCustomerByPhone(phone) {
-  return CUSTOMERS.find(c => c.phone === phone) || null;
+// ===== AUTH CONTRACT: cấu trúc rõ ràng để thay bằng backend thật sau này =====
+// Hiện tại: đối chiếu SĐT + mật khẩu với mảng CUSTOMERS cục bộ (mật khẩu dạng
+// plain-text trong file JS) — CHỈ dùng để demo giao diện, KHÔNG PHẢI xác thực
+// bảo mật thật (không mã hoá, không OTP, không token phiên, không rate-limit).
+//
+// Khi có backend/Lark Base thật, thay TOÀN BỘ nội dung hàm này bằng một lời gọi
+// API, ví dụ:
+//   async function authenticateCustomer(phone, password) {
+//     const res = await fetch('/api/auth/login', {
+//       method: 'POST',
+//       headers: { 'Content-Type': 'application/json' },
+//       body: JSON.stringify({ phone, password }),
+//     });
+//     if (!res.ok) return null; // sai SĐT/mật khẩu -> backend trả lỗi
+//     return res.json(); // { id, name, company, tier, discount, debtLimit, ... }
+//   }
+// Các nơi gọi hàm này (nút Đăng nhập) không cần đổi gì thêm khi backend sẵn sàng.
+function authenticateCustomer(phone, password) {
+  return CUSTOMERS.find(c => c.id !== "guest" && c.phone === phone && c.password === password) || null;
 }
 
 const CUSTOMER_KEY = "tucaphe_current_customer_b2b";
@@ -936,20 +955,44 @@ document.getElementById("closeStockModal").addEventListener("click", closeStockM
 
 // ===== LOGIN / CUSTOMER SWITCH MODAL =====
 const loginModal = document.getElementById("loginModal");
-function openLoginModal() { loginModal.classList.add("open"); overlay.classList.add("show"); }
+function showLoginError(message) {
+  const el = document.getElementById("loginError");
+  if (!message) { el.hidden = true; el.textContent = ""; return; }
+  el.hidden = false;
+  el.textContent = message;
+}
+function openLoginModal() {
+  showLoginError("");
+  loginModal.classList.add("open");
+  overlay.classList.add("show");
+}
 function closeLoginModal() { loginModal.classList.remove("open"); overlay.classList.remove("show"); }
 document.getElementById("customerBtn").addEventListener("click", openLoginModal);
 document.getElementById("closeLoginModal").addEventListener("click", closeLoginModal);
 document.getElementById("loginSubmitBtn").addEventListener("click", () => {
   const phone = document.getElementById("loginPhone").value.trim();
-  const found = authenticateCustomerByPhone(phone);
-  if (!found) { alert("Không tìm thấy đối tác với số điện thoại này.\nDùng thử: 0901111111, 0902222222 hoặc 0903333333."); return; }
+  const password = document.getElementById("loginPassword").value;
+
+  if (!phone || !password) {
+    showLoginError("Vui lòng nhập đầy đủ số điện thoại và mật khẩu.");
+    return;
+  }
+
+  const found = authenticateCustomer(phone, password);
+  if (!found) {
+    showLoginError("Số điện thoại hoặc mật khẩu không đúng. Vui lòng kiểm tra lại.");
+    return;
+  }
+
+  showLoginError("");
   setCurrentCustomer(found.id);
   document.getElementById("loginPhone").value = "";
+  document.getElementById("loginPassword").value = "";
   closeLoginModal();
 });
 document.getElementById("logoutBtn").addEventListener("click", () => {
   setCurrentCustomer("guest");
+  showLoginError("");
   closeLoginModal();
 });
 function updateCustomerBadge() {

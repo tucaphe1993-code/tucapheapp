@@ -121,6 +121,42 @@ main { max-width: 1100px; margin: 0 auto; padding: 8px 24px 60px; }
 .panel.active { display: block; }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(6px);} to { opacity:1; transform:none; } }
 
+/* DATA BANNER (demo data disclosure) */
+.data-banner {
+  background: #fff4e0;
+  border: 1px solid #f3d9a8;
+  color: #8a5a12;
+  border-radius: 12px;
+  padding: 12px 16px;
+  font-size: 0.85rem;
+  margin: 16px 0;
+}
+
+/* CUSTOMER DASHBOARD (sau khi đăng nhập) */
+.customer-dashboard {
+  display: none;
+  background: linear-gradient(135deg, var(--green-light), #fff);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 26px;
+  margin: 16px 0;
+}
+.customer-dashboard.show { display: block; }
+.customer-dashboard h2 { margin: 0 0 4px; color: var(--forest); }
+.customer-dashboard .tier-line { color: var(--muted); font-weight: 600; margin: 0 0 16px; }
+.dash-grid { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 18px; }
+.dash-card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 14px 18px;
+  box-shadow: var(--shadow);
+  flex: 1;
+  min-width: 150px;
+}
+.dash-card span { display: block; color: var(--muted); font-size: 0.74rem; font-weight: 700; text-transform: uppercase; margin-bottom: 4px; }
+.dash-card strong { font-size: 1.15rem; color: var(--forest); }
+.dash-actions { display: flex; gap: 12px; flex-wrap: wrap; }
+
 /* HERO */
 .hero {
   display: grid;
@@ -415,6 +451,35 @@ main { max-width: 1100px; margin: 0 auto; padding: 8px 24px 60px; }
 }
 .order-mini-summary strong { color: var(--forest); font-size: 1.15rem; }
 .debt-note { color: var(--muted); font-size: 0.78rem; margin-top: -4px; }
+.conditional-field { display: flex; flex-direction: column; gap: 14px; padding: 4px 0 4px 14px; border-left: 3px solid var(--green-light); }
+.form-error {
+  background: #fbe4e1;
+  color: #c0392b;
+  border-radius: 10px;
+  padding: 12px 16px;
+  font-size: 0.88rem;
+  margin-bottom: 14px;
+  white-space: pre-line;
+}
+.auth-disclaimer {
+  background: #fff4e0;
+  color: #8a5a12;
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 0.78rem;
+  margin-top: 14px;
+}
+.no-price { color: var(--muted); font-style: italic; }
+.btn.danger { background: #fbe4e1; color: #c0392b; }
+.btn.danger:hover { background: #f6c9c3; }
+
+/* REVIEW BOX (xác nhận đơn hàng trước khi tạo) */
+.review-box { background: #fff; border-radius: var(--radius); box-shadow: var(--shadow); padding: 22px 26px; margin: 16px 0; }
+.review-box h4 { color: var(--forest); margin: 18px 0 8px; }
+.review-box h4:first-child { margin-top: 0; }
+.review-row { display: flex; justify-content: space-between; gap: 12px; padding: 5px 0; font-size: 0.92rem; }
+.review-row span:first-child { color: var(--muted); }
+.review-line { display: flex; justify-content: space-between; gap: 12px; padding: 6px 0; border-bottom: 1px dashed var(--cream-dark); font-size: 0.92rem; }
 
 /* CONFIRMATION */
 .confirm-box {

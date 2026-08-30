@@ -1,48 +1,54 @@
-// ===== DỮ LIỆU SẢN PHẨM =====
+// ===== DỮ LIỆU SẢN PHẨM (CÀ PHÊ HẠT BÁN SỈ) =====
 const CATEGORIES = [
-  { id: "phin", name: "Cà phê phin truyền thống" },
-  { id: "may", name: "Cà phê pha máy" },
-  { id: "xay", name: "Cà phê đá xay" },
-  { id: "tra", name: "Trà trái cây" },
+  { id: "arabica", name: "Arabica" },
+  { id: "robusta", name: "Robusta" },
+  { id: "dacsan", name: "Hạt đặc sản" },
+  { id: "blend", name: "Blend hỗn hợp" },
 ];
 
+// price = giá / kg (VNĐ), stock = tồn kho (kg), minOrderKg = số kg tối thiểu / lần đặt
 const PRODUCTS = [
-  { id: "p1", cat: "phin", name: "Cà phê đen đá", desc: "Đậm đà, nguyên chất", price: 25000, icon: "☕", stock: 40 },
-  { id: "p2", cat: "phin", name: "Cà phê nâu đá", desc: "Cà phê phin + sữa đặc", price: 29000, icon: "☕", stock: 40 },
-  { id: "p3", cat: "phin", name: "Bạc xỉu", desc: "Nhiều sữa, ít cà phê, dịu ngọt", price: 32000, icon: "🥛", stock: 30 },
-  { id: "p4", cat: "phin", name: "Cà phê muối", desc: "Vị mặn ngọt lạ miệng", price: 35000, icon: "☕", stock: 20 },
-  { id: "p5", cat: "may", name: "Espresso", desc: "Chuẩn Ý, đậm vị", price: 35000, icon: "☕", stock: 25 },
-  { id: "p6", cat: "may", name: "Americano", desc: "Espresso pha loãng, thanh nhẹ", price: 39000, icon: "☕", stock: 25 },
-  { id: "p7", cat: "may", name: "Latte", desc: "Espresso hoà quyện sữa tươi", price: 45000, icon: "🥛", stock: 20 },
-  { id: "p8", cat: "may", name: "Cappuccino", desc: "Lớp bọt sữa mịn béo", price: 45000, icon: "☕", stock: 20 },
-  { id: "p9", cat: "may", name: "Mocha", desc: "Cà phê + socola quyến rũ", price: 49000, icon: "🍫", stock: 15 },
-  { id: "p10", cat: "xay", name: "Frappuccino Cà phê", desc: "Đá xay mát lạnh vị cà phê", price: 49000, icon: "🥤", stock: 15 },
-  { id: "p11", cat: "xay", name: "Frappuccino Socola", desc: "Đá xay socola béo ngậy", price: 52000, icon: "🥤", stock: 15 },
-  { id: "p12", cat: "xay", name: "Cookie Cream Đá Xay", desc: "Vị bánh quy kem thơm ngon", price: 55000, icon: "🥤", stock: 10 },
-  { id: "p13", cat: "tra", name: "Trà đào cam sả", desc: "Thanh mát, giải nhiệt", price: 39000, icon: "🍑", stock: 20 },
-  { id: "p14", cat: "tra", name: "Trà vải", desc: "Ngọt thanh hương vải", price: 39000, icon: "🍵", stock: 20 },
+  { id: "p1", cat: "arabica", name: "Arabica Cầu Đất", origin: "Đà Lạt", desc: "Rang vừa, vị chua thanh, hương hoa quả", price: 220000, icon: "☕", stock: 500, minOrderKg: 10 },
+  { id: "p2", cat: "arabica", name: "Arabica Rang Mộc", origin: "Sơn La", desc: "Nguyên chất, phù hợp pha máy espresso", price: 230000, icon: "☕", stock: 250, minOrderKg: 10 },
+  { id: "p3", cat: "robusta", name: "Robusta Buôn Ma Thuột", origin: "Đắk Lắk", desc: "Rang đậm, vị đắng mạnh, nhiều caffeine", price: 140000, icon: "🫘", stock: 800, minOrderKg: 20 },
+  { id: "p4", cat: "robusta", name: "Robusta Rang Mộc", origin: "Đắk Nông", desc: "Nguyên chất, chuyên dùng pha phin", price: 135000, icon: "🫘", stock: 700, minOrderKg: 20 },
+  { id: "p5", cat: "dacsan", name: "Culi Robusta", origin: "Đắk Lắk", desc: "Hạt tròn đặc biệt, đậm đà hiếm có", price: 160000, icon: "🌰", stock: 300, minOrderKg: 10 },
+  { id: "p6", cat: "dacsan", name: "Moka Cầu Đất", origin: "Đà Lạt", desc: "Hương thơm đặc trưng, sản lượng thấp", price: 350000, icon: "🌸", stock: 150, minOrderKg: 5 },
+  { id: "p7", cat: "dacsan", name: "Cherry (Excelsa)", origin: "Quảng Trị", desc: "Vị chua nhẹ, hậu vị trái cây", price: 130000, icon: "🍒", stock: 200, minOrderKg: 10 },
+  { id: "p8", cat: "blend", name: "Blend 4 Loại Hạt", origin: "Hỗn hợp", desc: "Arabica, Robusta, Culi, Cherry cân bằng", price: 180000, icon: "🥣", stock: 600, minOrderKg: 20 },
+  { id: "p9", cat: "blend", name: "Blend Espresso Ý", origin: "Hỗn hợp", desc: "Công thức rang đậm chuẩn quán cà phê", price: 195000, icon: "🥣", stock: 400, minOrderKg: 20 },
 ];
 const CAT_NAME = Object.fromEntries(CATEGORIES.map(c => [c.id, c.name]));
 
+// Chiết khấu sỉ theo sản lượng đặt của MỖI sản phẩm
+const TIERS = [
+  { minKg: 100, rate: 0.10 },
+  { minKg: 50, rate: 0.05 },
+];
+function tierRateFor(qtyKg) {
+  const tier = TIERS.find(t => qtyKg >= t.minKg);
+  return tier ? tier.rate : 0;
+}
+
 // ===== STOCK STORE (localStorage) =====
 function loadStock() {
-  const saved = JSON.parse(localStorage.getItem("tucaphe_stock") || "{}");
+  const saved = JSON.parse(localStorage.getItem("tucaphe_stock_b2b") || "{}");
   const stock = {};
   PRODUCTS.forEach(p => { stock[p.id] = saved[p.id] !== undefined ? saved[p.id] : p.stock; });
   return stock;
 }
 let stock = loadStock();
-function saveStock() { localStorage.setItem("tucaphe_stock", JSON.stringify(stock)); }
+function saveStock() { localStorage.setItem("tucaphe_stock_b2b", JSON.stringify(stock)); }
 function getStock(id) { return stock[id] ?? 0; }
 
 // ===== STATE =====
-let cart = JSON.parse(localStorage.getItem("tucaphe_cart") || "{}"); // { productId: qty }
-let currentCategory = "phin";
+let cart = JSON.parse(localStorage.getItem("tucaphe_cart_b2b") || "{}"); // { productId: qtyKg }
+let currentCategory = "arabica";
 let currentStep = 1;
 let lastOrder = null;
 
-const money = (n) => n.toLocaleString("vi-VN") + "₫";
-const saveCart = () => localStorage.setItem("tucaphe_cart", JSON.stringify(cart));
+const money = (n) => Math.round(n).toLocaleString("vi-VN") + "₫";
+const saveCart = () => localStorage.setItem("tucaphe_cart_b2b", JSON.stringify(cart));
 
 // ===== RENDER: CATEGORY TABS =====
 function renderCategoryTabs() {
@@ -59,6 +65,24 @@ function renderCategoryTabs() {
   });
 }
 
+// ===== RENDER: QUICK ORDER BAR (chọn loại hạt) =====
+function renderQuickBar() {
+  const sel = document.getElementById("quickCat");
+  sel.innerHTML = CATEGORIES.map(c => `<option value="${c.id}">${c.name}</option>`).join("");
+  sel.value = currentCategory;
+  sel.addEventListener("change", () => {
+    currentCategory = sel.value;
+    renderCategoryTabs();
+    renderProductGrid();
+  });
+  document.getElementById("quickFindBtn").addEventListener("click", () => {
+    currentCategory = sel.value;
+    renderCategoryTabs();
+    renderProductGrid();
+    document.getElementById("productGrid").scrollIntoView({ behavior: "smooth", block: "start" });
+  });
+}
+
 // ===== RENDER: PRODUCT GRID =====
 function renderProductGrid() {
   const grid = document.getElementById("productGrid");
@@ -68,21 +92,26 @@ function renderProductGrid() {
     const inCart = cart[p.id] || 0;
     const remaining = Math.max(0, available - inCart);
     const outOfStock = remaining <= 0;
-    let badgeClass = "", badgeText = `Còn ${available}`;
+    let badgeClass = "", badgeText = `Còn ${available}kg`;
     if (available <= 0) { badgeClass = "out"; badgeText = "Hết hàng"; }
-    else if (available <= 5) { badgeClass = "low"; badgeText = `Sắp hết: ${available}`; }
+    else if (available <= p.minOrderKg * 2) { badgeClass = "low"; badgeText = `Sắp hết: ${available}kg`; }
+    const defaultQty = Math.min(p.minOrderKg, Math.max(1, remaining));
     return `
     <div class="product-card ${outOfStock ? "out-of-stock" : ""}">
-      <div class="product-thumb">${p.icon}</div>
+      <div class="product-thumb">
+        <span class="origin-badge">📍 ${p.origin}</span>
+        ${p.icon}
+      </div>
       <div class="product-info">
         <span class="stock-badge ${badgeClass}">${badgeText}</span>
         <div class="product-name">${p.name}</div>
         <div class="product-desc">${p.desc}</div>
-        <div class="product-price">${money(p.price)}</div>
+        <div class="min-order">Đặt tối thiểu ${p.minOrderKg}kg / lần</div>
+        <div class="product-price">${money(p.price)} <small>/ kg</small></div>
         <div class="qty-row">
           <div class="qty-control">
             <button data-act="dec" data-id="${p.id}" ${outOfStock ? "disabled" : ""}>−</button>
-            <input type="text" readonly id="qty-${p.id}" value="1">
+            <input type="text" readonly id="qty-${p.id}" value="${defaultQty}">
             <button data-act="inc" data-id="${p.id}" ${outOfStock ? "disabled" : ""}>+</button>
           </div>
           <button class="add-btn" data-add="${p.id}" ${outOfStock ? "disabled" : ""}>${outOfStock ? "Hết hàng" : "Thêm"}</button>
@@ -94,10 +123,11 @@ function renderProductGrid() {
   grid.querySelectorAll("[data-act]").forEach(btn => {
     btn.addEventListener("click", () => {
       const id = btn.dataset.id;
+      const p = PRODUCTS.find(pr => pr.id === id);
       const input = document.getElementById(`qty-${id}`);
-      const maxQty = Math.max(1, getStock(id) - (cart[id] || 0));
-      let val = parseInt(input.value, 10) || 1;
-      val = btn.dataset.act === "inc" ? Math.min(maxQty, val + 1) : Math.max(1, val - 1);
+      const maxQty = Math.max(p.minOrderKg, getStock(id) - (cart[id] || 0));
+      let val = parseInt(input.value, 10) || p.minOrderKg;
+      val = btn.dataset.act === "inc" ? Math.min(maxQty, val + p.minOrderKg) : Math.max(p.minOrderKg, val - p.minOrderKg);
       input.value = val;
     });
   });
@@ -123,29 +153,31 @@ function getCartLines() {
     .filter(([, qty]) => qty > 0)
     .map(([id, qty]) => {
       const p = PRODUCTS.find(pr => pr.id === id);
-      return { ...p, qty, lineTotal: p.price * qty };
+      const rate = tierRateFor(qty);
+      const base = p.price * qty;
+      const discount = base * rate;
+      return { ...p, qty, rate, base, discount, lineTotal: base - discount };
     });
 }
-function getCartTotal() {
-  return getCartLines().reduce((sum, l) => sum + l.lineTotal, 0);
-}
-function getCartCount() {
-  return Object.values(cart).reduce((s, q) => s + q, 0);
-}
+function getCartSubtotal() { return getCartLines().reduce((s, l) => s + l.base, 0); }
+function getCartDiscountTotal() { return getCartLines().reduce((s, l) => s + l.discount, 0); }
+function getCartTotal() { return getCartLines().reduce((sum, l) => sum + l.lineTotal, 0); }
+function getCartCount() { return Object.values(cart).reduce((s, q) => s + q, 0); }
 
 function updateCartCount() {
-  document.getElementById("cartCount").textContent = getCartCount();
+  document.getElementById("cartCount").textContent = getCartCount() + "kg";
 }
 
 // ===== RENDER: CART SECTION (step 2) & DRAWER =====
 function cartItemsHtml(lines) {
-  if (lines.length === 0) return `<div class="empty-msg">Giỏ hàng đang trống. Hãy chọn món yêu thích của bạn!</div>`;
+  if (lines.length === 0) return `<div class="empty-msg">Giỏ hàng đang trống. Hãy chọn cà phê hạt cần đặt!</div>`;
   return lines.map(l => `
     <div class="cart-item">
       <div class="cart-item-icon">${l.icon}</div>
       <div class="cart-item-info">
         <div class="cart-item-name">${l.name}</div>
-        <div class="cart-item-price">${money(l.price)} × ${l.qty}</div>
+        <div class="cart-item-price">${money(l.price)}/kg × ${l.qty}kg</div>
+        ${l.rate > 0 ? `<div class="cart-item-discount">Chiết khấu sỉ -${Math.round(l.rate * 100)}%</div>` : ""}
       </div>
       <div class="cart-item-line-total">${money(l.lineTotal)}</div>
       <button class="remove-btn" data-remove="${l.id}" title="Xoá">🗑️</button>
@@ -156,9 +188,9 @@ function cartItemsHtml(lines) {
 function renderCartSection() {
   const lines = getCartLines();
   document.getElementById("cartItems").innerHTML = cartItemsHtml(lines);
-  const total = getCartTotal();
-  document.getElementById("cartSubtotal").textContent = money(total);
-  document.getElementById("cartTotal").textContent = money(total);
+  document.getElementById("cartSubtotal").textContent = money(getCartSubtotal());
+  document.getElementById("cartDiscount").textContent = "-" + money(getCartDiscountTotal());
+  document.getElementById("cartTotal").textContent = money(getCartTotal());
 
   document.getElementById("cartItems").querySelectorAll("[data-remove]").forEach(btn => {
     btn.addEventListener("click", () => {
@@ -206,7 +238,10 @@ function goToStep(step) {
 }
 
 document.querySelectorAll("[data-goto]").forEach(btn => {
-  btn.addEventListener("click", () => goToStep(parseInt(btn.dataset.goto, 10)));
+  btn.addEventListener("click", (e) => { e.preventDefault(); goToStep(parseInt(btn.dataset.goto, 10)); });
+});
+document.getElementById("heroOrderBtn").addEventListener("click", () => {
+  document.getElementById("productGrid").scrollIntoView({ behavior: "smooth", block: "start" });
 });
 
 document.getElementById("toCheckoutBtn").addEventListener("click", () => {
@@ -217,6 +252,11 @@ document.getElementById("toCheckoutBtn").addEventListener("click", () => {
   goToStep(3);
 });
 
+document.querySelector('[data-scroll="historySection"]').addEventListener("click", (e) => {
+  e.preventDefault();
+  document.getElementById("historySection").scrollIntoView({ behavior: "smooth" });
+});
+
 // ===== CART DRAWER TOGGLE =====
 const cartDrawer = document.getElementById("cartDrawer");
 const overlay = document.getElementById("overlay");
@@ -224,7 +264,7 @@ function openDrawer() { renderCartDrawer(); cartDrawer.classList.add("open"); ov
 function closeDrawer() { cartDrawer.classList.remove("open"); overlay.classList.remove("show"); }
 document.getElementById("cartToggle").addEventListener("click", openDrawer);
 document.getElementById("closeDrawer").addEventListener("click", closeDrawer);
-overlay.addEventListener("click", closeDrawer);
+overlay.addEventListener("click", () => { closeDrawer(); closeStockModal(); });
 document.getElementById("drawerCheckoutBtn").addEventListener("click", () => {
   closeDrawer();
   goToStep(2);
@@ -238,26 +278,30 @@ document.getElementById("checkoutForm").addEventListener("submit", (e) => {
     goToStep(1);
     return;
   }
+  const company = document.getElementById("custCompany").value.trim();
   const name = document.getElementById("custName").value.trim();
   const phone = document.getElementById("custPhone").value.trim();
+  const tax = document.getElementById("custTax").value.trim();
   const address = document.getElementById("custAddress").value.trim();
   const note = document.getElementById("custNote").value.trim();
   const payment = document.querySelector('input[name="payment"]:checked').value;
-  const paymentLabel = { cod: "Thanh toán khi nhận hàng (COD)", transfer: "Chuyển khoản ngân hàng", momo: "Ví MoMo" }[payment];
+  const paymentLabel = { cod: "Thanh toán khi nhận hàng (COD)", transfer: "Chuyển khoản ngân hàng", debt: "Công nợ 30 ngày" }[payment];
 
   const lines = getCartLines();
+  const subtotal = getCartSubtotal();
+  const discount = getCartDiscountTotal();
   const total = getCartTotal();
-  const orderId = "TCF" + Date.now().toString().slice(-8);
+  const orderId = "TCFB2B" + Date.now().toString().slice(-8);
 
   lastOrder = {
     id: orderId,
-    name, phone, address, note, payment: paymentLabel,
-    lines, total,
+    company, name, phone, tax, address, note, payment: paymentLabel,
+    lines, subtotal, discount, total,
     createdAt: new Date().toISOString(),
     status: "placed",
   };
 
-  // Trừ tồn kho theo số lượng đã đặt
+  // Trừ tồn kho theo số kg đã đặt
   lines.forEach(l => { stock[l.id] = Math.max(0, getStock(l.id) - l.qty); });
   saveStock();
   renderStockTable();
@@ -276,9 +320,12 @@ document.getElementById("checkoutForm").addEventListener("submit", (e) => {
 function renderConfirmation(order) {
   document.getElementById("orderId").textContent = order.id;
   document.getElementById("orderReceipt").innerHTML = `
-    ${order.lines.map(l => `<div><span>${l.name} × ${l.qty}</span><span>${money(l.lineTotal)}</span></div>`).join("")}
+    ${order.lines.map(l => `<div><span>${l.name} × ${l.qty}kg${l.rate > 0 ? ` (-${Math.round(l.rate * 100)}%)` : ""}</span><span>${money(l.lineTotal)}</span></div>`).join("")}
+    <div><span>Tạm tính</span><span>${money(order.subtotal)}</span></div>
+    <div><span>Chiết khấu sỉ</span><span>-${money(order.discount)}</span></div>
     <div class="receipt-total"><span>Tổng cộng</span><span>${money(order.total)}</span></div>
-    <div><span>Người nhận</span><span>${order.name}</span></div>
+    <div><span>Công ty</span><span>${order.company}</span></div>
+    <div><span>Người liên hệ</span><span>${order.name}</span></div>
     <div><span>SĐT</span><span>${order.phone}</span></div>
     <div><span>Địa chỉ</span><span>${order.address}</span></div>
     <div><span>Thanh toán</span><span>${order.payment}</span></div>
@@ -286,7 +333,7 @@ function renderConfirmation(order) {
   updateStatusTrack("placed");
 }
 
-const STATUS_FLOW = ["placed", "confirmed", "brewing", "delivering", "done"];
+const STATUS_FLOW = ["placed", "confirmed", "packing", "delivering", "done"];
 function updateStatusTrack(status) {
   const idx = STATUS_FLOW.indexOf(status);
   document.querySelectorAll("#orderStatusTrack .status-step").forEach(el => {
@@ -314,22 +361,22 @@ document.getElementById("newOrderBtn").addEventListener("click", () => goToStep(
 
 // ===== ORDER HISTORY (localStorage) =====
 function getHistory() {
-  return JSON.parse(localStorage.getItem("tucaphe_orders") || "[]");
+  return JSON.parse(localStorage.getItem("tucaphe_orders_b2b") || "[]");
 }
 function saveOrderToHistory(order) {
   const history = getHistory();
   history.unshift(order);
-  localStorage.setItem("tucaphe_orders", JSON.stringify(history.slice(0, 20)));
+  localStorage.setItem("tucaphe_orders_b2b", JSON.stringify(history.slice(0, 20)));
   renderHistory();
 }
 function updateOrderStatusInHistory(orderId, status) {
   const history = getHistory();
   const o = history.find(h => h.id === orderId);
-  if (o) { o.status = status; localStorage.setItem("tucaphe_orders", JSON.stringify(history)); }
+  if (o) { o.status = status; localStorage.setItem("tucaphe_orders_b2b", JSON.stringify(history)); }
 }
 const STATUS_LABEL = {
-  placed: "Đã đặt hàng", confirmed: "Đã xác nhận", brewing: "Đang pha chế",
-  delivering: "Đang giao hàng", done: "Hoàn thành",
+  placed: "Đã đặt hàng", confirmed: "Đã xác nhận", packing: "Đang đóng gói",
+  delivering: "Đang vận chuyển", done: "Đã giao hàng",
 };
 function renderHistory() {
   const history = getHistory();
@@ -342,7 +389,8 @@ function renderHistory() {
     <div class="history-item">
       <span class="hid">#${o.id}</span>
       <span>${new Date(o.createdAt).toLocaleString("vi-VN")}</span>
-      <span>${o.lines.length} món · ${money(o.total)}</span>
+      <span>${o.company || ""}</span>
+      <span>${o.lines.reduce((s, l) => s + l.qty, 0)}kg · ${money(o.total)}</span>
       <span class="history-badge">${STATUS_LABEL[o.status] || o.status}</span>
     </div>
   `).join("");
@@ -358,10 +406,10 @@ function renderStockTable() {
       <td>${p.icon} ${p.name}</td>
       <td>${CAT_NAME[p.cat]}</td>
       <td>${money(p.price)}</td>
-      <td>${qty <= 0 ? '<span class="stock-badge out">Hết hàng</span>' : qty <= 5 ? `<span class="stock-badge low">${qty}</span>` : qty}</td>
+      <td>${qty <= 0 ? '<span class="stock-badge out">Hết hàng</span>' : qty <= p.minOrderKg * 2 ? `<span class="stock-badge low">${qty}kg</span>` : qty + "kg"}</td>
       <td>
         <div class="restock-control">
-          <input type="number" min="1" value="10" id="restock-${p.id}">
+          <input type="number" min="1" value="100" id="restock-${p.id}">
           <button data-restock="${p.id}">Nhập kho</button>
         </div>
       </td>
@@ -386,12 +434,13 @@ const stockModal = document.getElementById("stockModal");
 function openStockModal() { renderStockTable(); stockModal.classList.add("open"); overlay.classList.add("show"); }
 function closeStockModal() { stockModal.classList.remove("open"); overlay.classList.remove("show"); }
 document.getElementById("stockToggle").addEventListener("click", openStockModal);
+document.getElementById("stockToggle2").addEventListener("click", openStockModal);
 document.getElementById("closeStockModal").addEventListener("click", closeStockModal);
-overlay.addEventListener("click", closeStockModal);
 
 // ===== INIT =====
 function init() {
   renderCategoryTabs();
+  renderQuickBar();
   renderProductGrid();
   updateCartCount();
   renderCartDrawer();

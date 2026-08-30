@@ -8,23 +8,53 @@
 </head>
 <body>
 
-<header class="site-header">
-  <div class="logo">🌱 Tú Cà Phê <span>Sỉ</span></div>
-  <nav class="main-nav" id="mainNav">
-    <a href="#" class="nav-link active" data-view="order">☕ Đặt cà phê</a>
-    <a href="#" class="nav-link" data-view="track">📦 Theo dõi đơn</a>
-    <a href="#" class="nav-link" data-view="debt">💰 Công nợ</a>
-    <a href="#" class="nav-link" data-view="history">📋 Lịch sử</a>
-    <a href="#" class="nav-link" data-view="offers">🎁 Ưu đãi</a>
-  </nav>
-  <div class="header-actions">
-    <button class="pill-btn ghost" id="customerBtn">👤 <span id="customerNameTag">Đăng nhập</span></button>
-    <button class="pill-btn ghost" id="stockToggle">📦 Kho hàng</button>
-    <button class="pill-btn solid" id="cartToggle">
-      🛒 Giỏ hàng <span class="cart-count" id="cartCount">0</span>
-    </button>
-  </div>
-</header>
+<div class="app-shell">
+
+  <!-- ============ SIDEBAR (desktop cố định / mobile drawer) ============ -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-brand">
+      <div class="sidebar-logo">🌱</div>
+      <div class="sidebar-brand-text">
+        <div class="sidebar-title">Tú Cà Phê <span>Sỉ</span></div>
+        <div class="sidebar-subtitle">Cổng đặt hàng đối tác</div>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav" id="mainNav">
+      <div class="sidebar-group">
+        <div class="sidebar-group-label">Tổng quan</div>
+        <a href="#" class="nav-link sidebar-link active" data-view="order">🏠 <span>Đặt cà phê</span></a>
+      </div>
+      <div class="sidebar-group">
+        <div class="sidebar-group-label">Đơn hàng</div>
+        <a href="#" class="nav-link sidebar-link" data-view="track">📦 <span>Theo dõi đơn</span></a>
+        <a href="#" class="nav-link sidebar-link" data-view="history">📋 <span>Lịch sử</span></a>
+        <a href="#" class="nav-link sidebar-link" data-view="debt">💰 <span>Công nợ</span></a>
+      </div>
+      <div class="sidebar-group">
+        <div class="sidebar-group-label">Ưu đãi</div>
+        <a href="#" class="nav-link sidebar-link" data-view="offers">🎁 <span>Ưu đãi</span></a>
+      </div>
+      <div class="sidebar-group">
+        <div class="sidebar-group-label">Hệ thống</div>
+        <button type="button" class="sidebar-link" id="stockToggle">📦 <span>Kho hàng</span></button>
+      </div>
+    </nav>
+  </aside>
+  <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+  <div class="app-main">
+    <!-- ============ HEADER (phía trên main content) ============ -->
+    <header class="app-header">
+      <button type="button" class="menu-toggle" id="menuToggle" aria-label="Mở menu">☰</button>
+      <div class="breadcrumb" id="breadcrumb">Đặt cà phê</div>
+      <div class="app-header-actions">
+        <button class="pill-btn ghost" id="customerBtn">👤 <span id="customerNameTag">Đăng nhập</span></button>
+        <button class="pill-btn solid" id="cartToggle">
+          🛒 Giỏ hàng <span class="cart-count" id="cartCount">0</span>
+        </button>
+      </div>
+    </header>
 
 <main>
 
@@ -250,7 +280,9 @@
     <div id="profileContent"></div>
   </div>
 
-</main>
+    </main>
+  </div>
+</div>
 
 <!-- SLIDE-OUT CART DRAWER -->
 <div class="cart-drawer" id="cartDrawer">

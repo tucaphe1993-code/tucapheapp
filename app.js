@@ -526,19 +526,33 @@ document.getElementById("toCheckoutBtn").addEventListener("click", () => {
 
 // ===== VIEW NAVIGATION (menu ngang: Đặt hàng / Theo dõi / Công nợ / Lịch sử / Ưu đãi) =====
 const VIEWS = ["order", "track", "debt", "history", "offers", "profile"];
+const VIEW_TITLES = {
+  order: "Đặt cà phê", track: "Theo dõi đơn", debt: "Công nợ",
+  history: "Lịch sử", offers: "Ưu đãi", profile: "Tài khoản của tôi",
+};
 function showView(view) {
   VIEWS.forEach(v => document.getElementById("view-" + v).classList.toggle("active", v === view));
   document.querySelectorAll(".nav-link").forEach(a => a.classList.toggle("active", a.dataset.view === view));
+  document.getElementById("breadcrumb").textContent = VIEW_TITLES[view] || "";
   if (view === "track") renderTrackView();
   if (view === "debt") renderDebtView();
   if (view === "history") renderHistoryView();
   if (view === "offers") renderOffersView();
   if (view === "profile") renderProfileView();
   window.scrollTo({ top: 0, behavior: "smooth" });
+  closeSidebarDrawer();
 }
 document.querySelectorAll(".nav-link[data-view]").forEach(a => {
   a.addEventListener("click", (e) => { e.preventDefault(); showView(a.dataset.view); });
 });
+
+// ===== SIDEBAR DRAWER (chỉ hiển thị/ẩn UI shell trên mobile — không đụng logic nghiệp vụ) =====
+const sidebarEl = document.getElementById("sidebar");
+const sidebarOverlay = document.getElementById("sidebarOverlay");
+function openSidebarDrawer() { sidebarEl.classList.add("open"); sidebarOverlay.classList.add("show"); }
+function closeSidebarDrawer() { sidebarEl.classList.remove("open"); sidebarOverlay.classList.remove("show"); }
+document.getElementById("menuToggle").addEventListener("click", openSidebarDrawer);
+sidebarOverlay.addEventListener("click", closeSidebarDrawer);
 
 // ===== CART DRAWER TOGGLE =====
 const cartDrawer = document.getElementById("cartDrawer");
@@ -1103,7 +1117,7 @@ function renderStockTable() {
 const stockModal = document.getElementById("stockModal");
 function openStockModal() { renderStockTable(); stockModal.classList.add("open"); overlay.classList.add("show"); }
 function closeStockModal() { stockModal.classList.remove("open"); overlay.classList.remove("show"); }
-document.getElementById("stockToggle").addEventListener("click", openStockModal);
+document.getElementById("stockToggle").addEventListener("click", () => { closeSidebarDrawer(); openStockModal(); });
 document.getElementById("stockToggle2").addEventListener("click", openStockModal);
 document.getElementById("closeStockModal").addEventListener("click", closeStockModal);
 

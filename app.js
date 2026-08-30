@@ -61,32 +61,90 @@ const PICKUP_LOCATIONS = [
   { id: "kho1", name: "Kho/Xưởng Tú Cà Phê (địa chỉ cần cập nhật)" },
 ];
 
-// ===== KHÁCH HÀNG SỈ (DEMO — mỗi khách một mức giá & hạn mức công nợ riêng) =====
-// "password" ở đây CHỈ là dữ liệu demo để kiểm thử màn hình đăng nhập cục bộ.
-// Khi có backend/Lark Base thật, KHÔNG lưu mật khẩu dạng plain-text như thế này —
-// việc xác thực phải chuyển hẳn sang authenticateCustomer() bên dưới (xem AUTH CONTRACT).
-const CUSTOMERS = [
-  { id: "guest", phone: "", password: null, name: "Khách vãng lai", company: "", tier: "Chưa đăng nhập", group: "—", discount: 0, debtLimit: 0,
-    offer: "Đăng nhập bằng số điện thoại đối tác để nhận giá sỉ riêng, công nợ và ưu đãi cá nhân hoá." },
-  // --- Tài khoản mẫu theo yêu cầu: dùng để kiểm thử màn hình đăng nhập SĐT + mật khẩu ---
-  { id: "KH001", phone: "0900000000", password: "123456", name: "Khách hàng test", company: "", tier: "Khách mẫu", group: "—", discount: 0, debtLimit: 0,
-    offer: "Tài khoản khách hàng mẫu — chưa có giá sỉ riêng hay hạn mức công nợ (sẽ cập nhật ở bước sau)." },
-  // --- Các khách demo có sẵn từ trước (giữ nguyên, chỉ thêm mật khẩu để tiếp tục đăng nhập được) ---
-  { id: "kh1", phone: "0901111111", password: "123456", name: "Nguyễn Văn A", company: "Quán Cà Phê Xanh", tier: "Đối tác Bạc", group: "Quán cà phê", discount: 0, debtLimit: 20000000,
+// =====================================================================
+// ⚠️ KHÁCH HÀNG SỈ — DỮ LIỆU MOCK/LOCAL, CHƯA CÓ BACKEND/LARK BASE THẬT
+// "password" ở đây CHỈ là dữ liệu demo để kiểm thử màn hình đăng nhập/đăng ký
+// cục bộ, lưu dạng plain-text trong trình duyệt (localStorage). Đây KHÔNG PHẢI
+// kiến trúc bảo mật production. Khi có backend/Lark Base thật:
+//   - Mật khẩu phải được hash phía server (bcrypt/argon2...), không bao giờ
+//     lưu hay so sánh plain-text ở frontend.
+//   - Toàn bộ store CUSTOMERS bên dưới (localStorage) phải được thay bằng dữ
+//     liệu lấy qua API — xem authenticateCustomer() và registerCustomer().
+// =====================================================================
+//
+// Sơ đồ dữ liệu (chuẩn bị cho bước sau — giá riêng / Lark Base):
+//   CUSTOMER (id, phone, status...) → CUSTOMER ID → [sau này] BẢNG GIÁ RIÊNG
+//   → SẢN PHẨM → ĐƠN HÀNG (customerId) → LỊCH SỬ MUA HÀNG (lọc theo customerId)
+//   → LARK BASE. Mỗi khách có thể có mức giá khác nhau — KHÔNG có giá cố định
+//   chung cho tất cả khách (trường "discount" hiện tại chỉ là placeholder demo).
+
+// Trạng thái tài khoản hợp lệ. "pending" = khách mới đăng ký, chờ Tú Cà Phê duyệt.
+const CUSTOMER_STATUS = { PENDING: "pending", ACTIVE: "active", BLOCKED: "blocked" };
+const CUSTOMER_STATUS_LABEL = {
+  pending: "Chờ duyệt", active: "Đang hoạt động", blocked: "Bị khoá",
+};
+
+// Dữ liệu khởi tạo (seed) — CHỈ dùng lần đầu tiên khi trình duyệt chưa có store.
+// Sau đó mọi thay đổi (đăng ký mới, sửa hồ sơ) được lưu vào localStorage, xem
+// loadCustomerStore()/saveCustomerStore() bên dưới.
+const CUSTOMER_SEED = [
+  { id: "guest", phone: "", password: null, name: "Khách vãng lai", company: "", email: "", address: "",
+    tier: "Chưa đăng nhập", group: "—", discount: 0, debtLimit: 0, status: CUSTOMER_STATUS.ACTIVE,
+    offer: "Đăng nhập hoặc đăng ký tài khoản đối tác để nhận giá sỉ riêng, công nợ và ưu đãi cá nhân hoá." },
+  // --- Tài khoản mẫu theo yêu cầu: dùng để kiểm thử đăng nhập/trạng thái tài khoản ---
+  { id: "KH00001", phone: "0900000000", password: "123456", name: "Khách hàng test", company: "", email: "", address: "",
+    tier: "Khách mẫu", group: "—", discount: 0, debtLimit: 0, status: CUSTOMER_STATUS.ACTIVE,
+    offer: "Tài khoản khách hàng mẫu (active) — chưa có giá sỉ riêng hay hạn mức công nợ (sẽ cập nhật ở bước sau)." },
+  { id: "KH00002", phone: "0900000002", password: "123456", name: "Đối tác chờ duyệt (demo)", company: "", email: "", address: "",
+    tier: "Khách mẫu", group: "—", discount: 0, debtLimit: 0, status: CUSTOMER_STATUS.PENDING,
+    offer: "" },
+  { id: "KH00003", phone: "0900000003", password: "123456", name: "Đối tác bị khoá (demo)", company: "", email: "", address: "",
+    tier: "Khách mẫu", group: "—", discount: 0, debtLimit: 0, status: CUSTOMER_STATUS.BLOCKED,
+    offer: "" },
+  // --- Các khách demo có sẵn từ trước (giữ nguyên giá sỉ/công nợ, chỉ thêm mật khẩu + trạng thái) ---
+  { id: "kh1", phone: "0901111111", password: "123456", name: "Nguyễn Văn A", company: "Quán Cà Phê Xanh", email: "", address: "",
+    tier: "Đối tác Bạc", group: "Quán cà phê", discount: 0, debtLimit: 20000000, status: CUSTOMER_STATUS.ACTIVE,
     offer: "Tặng 2kg Robusta khi tổng sản lượng đặt trong tháng đạt 200kg." },
-  { id: "kh2", phone: "0902222222", password: "123456", name: "Trần Thị B", company: "Chuỗi The Green Bean", tier: "Đối tác Vàng", group: "Chuỗi cửa hàng", discount: 0.03, debtLimit: 50000000,
+  { id: "kh2", phone: "0902222222", password: "123456", name: "Trần Thị B", company: "Chuỗi The Green Bean", email: "", address: "",
+    tier: "Đối tác Vàng", group: "Chuỗi cửa hàng", discount: 0.03, debtLimit: 50000000, status: CUSTOMER_STATUS.ACTIVE,
     offer: "Giảm thêm 3% trên mọi đơn hàng, áp dụng tự động." },
-  { id: "kh3", phone: "0903333333", password: "123456", name: "Lê Văn C", company: "Xưởng Rang Xay Phúc An", tier: "Đối tác Kim Cương", group: "Xưởng rang xay", discount: 0.06, debtLimit: 100000000,
+  { id: "kh3", phone: "0903333333", password: "123456", name: "Lê Văn C", company: "Xưởng Rang Xay Phúc An", email: "", address: "",
+    tier: "Đối tác Kim Cương", group: "Xưởng rang xay", discount: 0.06, debtLimit: 100000000, status: CUSTOMER_STATUS.ACTIVE,
     offer: "Giảm thêm 6% và miễn phí vận chuyển toàn quốc." },
 ];
 
+// ===== STORE KHÁCH HÀNG (localStorage) — cho phép đăng ký mới & sửa hồ sơ =====
+const CUSTOMERS_STORE_KEY = "tucaphe_customers_b2b";
+function loadCustomerStore() {
+  const saved = JSON.parse(localStorage.getItem(CUSTOMERS_STORE_KEY) || "null");
+  if (saved && Array.isArray(saved)) return saved;
+  const seeded = CUSTOMER_SEED.map(c => ({ ...c }));
+  localStorage.setItem(CUSTOMERS_STORE_KEY, JSON.stringify(seeded));
+  return seeded;
+}
+function saveCustomerStore() { localStorage.setItem(CUSTOMERS_STORE_KEY, JSON.stringify(CUSTOMERS)); }
+let CUSTOMERS = loadCustomerStore();
+
+// Mã khách hàng tự sinh dạng KH00001, KH00002... — không cho khách tự nhập.
+// Đếm bắt đầu sau các ID mẫu (KH00001-KH00003) để không trùng.
+const CUSTOMER_SEQ_KEY = "tucaphe_customer_seq_b2b";
+function nextCustomerId() {
+  const seq = parseInt(localStorage.getItem(CUSTOMER_SEQ_KEY) || "3", 10) + 1;
+  localStorage.setItem(CUSTOMER_SEQ_KEY, String(seq));
+  return "KH" + String(seq).padStart(5, "0");
+}
+
+function isPhoneRegistered(phone) {
+  return CUSTOMERS.some(c => c.id !== "guest" && c.phone === phone);
+}
+
 // ===== AUTH CONTRACT: cấu trúc rõ ràng để thay bằng backend thật sau này =====
-// Hiện tại: đối chiếu SĐT + mật khẩu với mảng CUSTOMERS cục bộ (mật khẩu dạng
-// plain-text trong file JS) — CHỈ dùng để demo giao diện, KHÔNG PHẢI xác thực
-// bảo mật thật (không mã hoá, không OTP, không token phiên, không rate-limit).
+// Hiện tại: đối chiếu SĐT + mật khẩu với store CUSTOMERS cục bộ (mật khẩu dạng
+// plain-text) — CHỈ dùng để demo giao diện, KHÔNG PHẢI xác thực bảo mật thật
+// (không mã hoá, không OTP, không token phiên, không rate-limit).
 //
-// Khi có backend/Lark Base thật, thay TOÀN BỘ nội dung hàm này bằng một lời gọi
-// API, ví dụ:
+// Khi có backend/Lark Base thật, thay TOÀN BỘ nội dung 2 hàm dưới đây bằng lời
+// gọi API, ví dụ:
 //   async function authenticateCustomer(phone, password) {
 //     const res = await fetch('/api/auth/login', {
 //       method: 'POST',
@@ -94,11 +152,34 @@ const CUSTOMERS = [
 //       body: JSON.stringify({ phone, password }),
 //     });
 //     if (!res.ok) return null; // sai SĐT/mật khẩu -> backend trả lỗi
-//     return res.json(); // { id, name, company, tier, discount, debtLimit, ... }
+//     return res.json(); // { id, name, company, status, discount, debtLimit, ... }
 //   }
-// Các nơi gọi hàm này (nút Đăng nhập) không cần đổi gì thêm khi backend sẵn sàng.
+//   async function registerCustomer(data) {
+//     const res = await fetch('/api/auth/register', { method: 'POST', body: JSON.stringify(data) });
+//     return res.json(); // backend tự sinh Customer ID, trạng thái mặc định "pending"
+//   }
+// Các nơi gọi 2 hàm này (nút Đăng nhập/Đăng ký) không cần đổi gì thêm khi có backend.
 function authenticateCustomer(phone, password) {
   return CUSTOMERS.find(c => c.id !== "guest" && c.phone === phone && c.password === password) || null;
+}
+function registerCustomer({ name, company, phone, email, address, password }) {
+  const id = nextCustomerId();
+  const record = {
+    id, phone, password, name, company, email: email || "", address,
+    tier: "Khách mới", group: "—", discount: 0, debtLimit: 0,
+    status: CUSTOMER_STATUS.PENDING,
+    offer: "Tài khoản đang chờ Tú Cà Phê xác nhận. Sau khi được duyệt, bạn sẽ nhận giá sỉ riêng theo hạng đối tác.",
+  };
+  CUSTOMERS.push(record);
+  saveCustomerStore();
+  return record;
+}
+function updateCustomerProfile(id, patch) {
+  const c = CUSTOMERS.find(x => x.id === id);
+  if (!c) return null;
+  Object.assign(c, patch);
+  saveCustomerStore();
+  return c;
 }
 
 const CUSTOMER_KEY = "tucaphe_current_customer_b2b";
@@ -444,7 +525,7 @@ document.getElementById("toCheckoutBtn").addEventListener("click", () => {
 });
 
 // ===== VIEW NAVIGATION (menu ngang: Đặt hàng / Theo dõi / Công nợ / Lịch sử / Ưu đãi) =====
-const VIEWS = ["order", "track", "debt", "history", "offers"];
+const VIEWS = ["order", "track", "debt", "history", "offers", "profile"];
 function showView(view) {
   VIEWS.forEach(v => document.getElementById("view-" + v).classList.toggle("active", v === view));
   document.querySelectorAll(".nav-link").forEach(a => a.classList.toggle("active", a.dataset.view === view));
@@ -452,6 +533,7 @@ function showView(view) {
   if (view === "debt") renderDebtView();
   if (view === "history") renderHistoryView();
   if (view === "offers") renderOffersView();
+  if (view === "profile") renderProfileView();
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 document.querySelectorAll(".nav-link[data-view]").forEach(a => {
@@ -798,7 +880,7 @@ function renderHistoryView() {
   const c = getCurrentCustomer();
   if (c.id === "guest") { container.innerHTML = `<div class="empty-msg">Đăng nhập để xem lịch sử mua hàng của bạn.</div>`; return; }
   const orders = getCustomerHistory(c.id);
-  if (!orders.length) { container.innerHTML = `<div class="empty-msg">Chưa có đơn hàng nào.</div>`; return; }
+  if (!orders.length) { container.innerHTML = `<div class="empty-msg">Bạn chưa có đơn hàng nào.</div>`; return; }
   container.innerHTML = orders.map(o => historyRowHtml(o, { reorder: true })).join("");
   container.querySelectorAll("[data-reorder]").forEach(btn => {
     btn.addEventListener("click", () => reorderOrder(btn.dataset.reorder));
@@ -906,6 +988,78 @@ function renderOffersView() {
   `;
 }
 
+// ===== VIEW: TÀI KHOẢN CỦA TÔI (hồ sơ khách hàng) =====
+function profileRow(label, value) {
+  return `<div class="review-row"><span>${label}</span><span>${value || "—"}</span></div>`;
+}
+function renderProfileView(editMode = false) {
+  const c = getCurrentCustomer();
+  const el = document.getElementById("profileContent");
+  if (c.id === "guest") {
+    el.innerHTML = `<div class="empty-msg">Vui lòng đăng nhập để xem tài khoản của bạn.</div>`;
+    return;
+  }
+
+  if (!editMode) {
+    el.innerHTML = `
+      <div class="review-box">
+        <h4>Thông tin tài khoản</h4>
+        ${profileRow("Customer ID", c.id)}
+        ${profileRow("Trạng thái", `<span class="status-pill ${c.status}">${CUSTOMER_STATUS_LABEL[c.status] || c.status}</span>`)}
+        ${profileRow("Họ và tên", c.name)}
+        ${profileRow("Tên quán / doanh nghiệp", c.company)}
+        ${profileRow("Số điện thoại", c.phone)}
+        ${profileRow("Email", c.email)}
+        ${profileRow("Địa chỉ giao hàng", c.address)}
+      </div>
+      <div class="panel-actions">
+        <button class="btn secondary" id="profileEditBtn">Chỉnh sửa thông tin</button>
+        <button class="btn danger" id="profileLogoutBtn">Đăng xuất</button>
+      </div>
+    `;
+    document.getElementById("profileEditBtn").addEventListener("click", () => renderProfileView(true));
+    document.getElementById("profileLogoutBtn").addEventListener("click", () => {
+      setCurrentCustomer("guest");
+      showView("order");
+    });
+  } else {
+    el.innerHTML = `
+      <form id="profileEditForm" class="checkout-form review-box">
+        <h4>Chỉnh sửa thông tin</h4>
+        <label>Họ và tên
+          <input type="text" id="editName" value="${c.name || ""}" required>
+        </label>
+        <label>Tên quán / doanh nghiệp
+          <input type="text" id="editCompany" value="${c.company || ""}">
+        </label>
+        <label>Email
+          <input type="email" id="editEmail" value="${c.email || ""}">
+        </label>
+        <label>Địa chỉ giao hàng
+          <input type="text" id="editAddress" value="${c.address || ""}">
+        </label>
+        <div class="panel-actions">
+          <button type="button" class="btn secondary" id="profileCancelBtn">Huỷ</button>
+          <button type="submit" class="btn primary">Lưu thay đổi</button>
+        </div>
+      </form>
+    `;
+    document.getElementById("profileCancelBtn").addEventListener("click", () => renderProfileView(false));
+    document.getElementById("profileEditForm").addEventListener("submit", (e) => {
+      e.preventDefault();
+      updateCustomerProfile(c.id, {
+        name: document.getElementById("editName").value.trim(),
+        company: document.getElementById("editCompany").value.trim(),
+        email: document.getElementById("editEmail").value.trim(),
+        address: document.getElementById("editAddress").value.trim(),
+      });
+      updateCustomerBadge();
+      renderCustomerDashboard();
+      renderProfileView(false);
+    });
+  }
+}
+
 // ===== STOCK MODAL =====
 function renderStockTable() {
   const body = document.getElementById("stockTableBody");
@@ -953,7 +1107,7 @@ document.getElementById("stockToggle").addEventListener("click", openStockModal)
 document.getElementById("stockToggle2").addEventListener("click", openStockModal);
 document.getElementById("closeStockModal").addEventListener("click", closeStockModal);
 
-// ===== LOGIN / CUSTOMER SWITCH MODAL =====
+// ===== LOGIN / ĐĂNG KÝ MODAL =====
 const loginModal = document.getElementById("loginModal");
 function showLoginError(message) {
   const el = document.getElementById("loginError");
@@ -961,14 +1115,29 @@ function showLoginError(message) {
   el.hidden = false;
   el.textContent = message;
 }
-function openLoginModal() {
+function switchAuthTab(tab) {
+  document.querySelectorAll(".auth-tab").forEach(btn => btn.classList.toggle("active", btn.dataset.authtab === tab));
+  document.getElementById("loginPane").hidden = tab !== "login";
+  document.getElementById("registerPane").hidden = tab !== "register";
   showLoginError("");
+  showRegisterMessage("");
+}
+document.querySelectorAll(".auth-tab").forEach(btn => {
+  btn.addEventListener("click", () => switchAuthTab(btn.dataset.authtab));
+});
+
+function openLoginModal(tab = "login") {
+  switchAuthTab(tab);
   loginModal.classList.add("open");
   overlay.classList.add("show");
 }
 function closeLoginModal() { loginModal.classList.remove("open"); overlay.classList.remove("show"); }
-document.getElementById("customerBtn").addEventListener("click", openLoginModal);
+document.getElementById("customerBtn").addEventListener("click", () => {
+  if (getCurrentCustomer().id === "guest") openLoginModal("login");
+  else showView("profile");
+});
 document.getElementById("closeLoginModal").addEventListener("click", closeLoginModal);
+
 document.getElementById("loginSubmitBtn").addEventListener("click", () => {
   const phone = document.getElementById("loginPhone").value.trim();
   const password = document.getElementById("loginPassword").value;
@@ -980,7 +1149,15 @@ document.getElementById("loginSubmitBtn").addEventListener("click", () => {
 
   const found = authenticateCustomer(phone, password);
   if (!found) {
-    showLoginError("Số điện thoại hoặc mật khẩu không đúng. Vui lòng kiểm tra lại.");
+    showLoginError("Số điện thoại hoặc mật khẩu không chính xác.");
+    return;
+  }
+  if (found.status === CUSTOMER_STATUS.PENDING) {
+    showLoginError("Tài khoản của bạn đang chờ Tú Cà Phê xác nhận.");
+    return;
+  }
+  if (found.status === CUSTOMER_STATUS.BLOCKED) {
+    showLoginError("Tài khoản hiện đang bị khóa. Vui lòng liên hệ Tú Cà Phê.");
     return;
   }
 
@@ -994,11 +1171,46 @@ document.getElementById("logoutBtn").addEventListener("click", () => {
   setCurrentCustomer("guest");
   showLoginError("");
   closeLoginModal();
+  showView("order");
 });
 function updateCustomerBadge() {
   const c = getCurrentCustomer();
   document.getElementById("customerNameTag").textContent = c.id === "guest" ? "Đăng nhập" : c.name;
 }
+
+// ===== ĐĂNG KÝ TÀI KHOẢN MỚI =====
+function showRegisterMessage(errorMsg, successMsg) {
+  const errEl = document.getElementById("registerError");
+  const okEl = document.getElementById("registerSuccess");
+  errEl.hidden = !errorMsg; errEl.textContent = errorMsg || "";
+  okEl.hidden = !successMsg; okEl.textContent = successMsg || "";
+}
+
+document.getElementById("registerForm").addEventListener("submit", (e) => {
+  e.preventDefault();
+  const name = document.getElementById("regName").value.trim();
+  const company = document.getElementById("regCompany").value.trim();
+  const phone = document.getElementById("regPhone").value.trim();
+  const email = document.getElementById("regEmail").value.trim();
+  const address = document.getElementById("regAddress").value.trim();
+  const password = document.getElementById("regPassword").value;
+  const passwordConfirm = document.getElementById("regPasswordConfirm").value;
+
+  const errors = [];
+  if (!name) errors.push("Vui lòng nhập họ và tên.");
+  if (!company) errors.push("Vui lòng nhập tên quán / doanh nghiệp.");
+  if (!phone || !/^[0-9]{9,11}$/.test(phone)) errors.push("Số điện thoại không hợp lệ.");
+  else if (isPhoneRegistered(phone)) errors.push("Số điện thoại này đã được đăng ký. Vui lòng đăng nhập.");
+  if (!address) errors.push("Vui lòng nhập địa chỉ giao hàng.");
+  if (!password || password.length < 6) errors.push("Mật khẩu phải có ít nhất 6 ký tự.");
+  if (password !== passwordConfirm) errors.push("Mật khẩu xác nhận không khớp.");
+
+  if (errors.length) { showRegisterMessage(errors.join(" ")); return; }
+
+  const record = registerCustomer({ name, company, phone, email, address, password });
+  showRegisterMessage("", `Đăng ký thành công! Mã khách hàng của bạn: ${record.id}. Tài khoản đang chờ Tú Cà Phê xác nhận — bạn sẽ đăng nhập được sau khi được duyệt.`);
+  document.getElementById("registerForm").reset();
+});
 
 // ===== DASHBOARD SAU ĐĂNG NHẬP (thay cho hero khi đã có khách hàng) =====
 function renderCustomerDashboard() {

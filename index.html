@@ -244,6 +244,12 @@
     <div id="offersContent"></div>
   </div>
 
+  <!-- ============ VIEW: TÀI KHOẢN CỦA TÔI ============ -->
+  <div class="view" id="view-profile">
+    <h2>👤 Tài khoản của tôi</h2>
+    <div id="profileContent"></div>
+  </div>
+
 </main>
 
 <!-- SLIDE-OUT CART DRAWER -->
@@ -278,23 +284,69 @@
   </div>
 </div>
 
-<!-- LOGIN / CUSTOMER SWITCH MODAL -->
+<!-- LOGIN / ĐĂNG KÝ MODAL -->
 <div class="modal" id="loginModal">
   <div class="modal-box narrow">
     <div class="drawer-header">
-      <h3>👤 Đăng nhập đối tác sỉ</h3>
+      <h3>👤 Tài khoản đối tác sỉ</h3>
       <button id="closeLoginModal">✕</button>
     </div>
-    <p class="muted-text">Đăng nhập bằng số điện thoại và mật khẩu để xem <strong>giá sỉ riêng</strong>, công nợ, lịch sử và ưu đãi của bạn.</p>
-    <div class="login-form">
-      <input type="tel" id="loginPhone" placeholder="Số điện thoại">
-      <input type="password" id="loginPassword" placeholder="Mật khẩu">
-      <button class="btn primary full" id="loginSubmitBtn">Đăng nhập</button>
+
+    <div class="auth-tabs">
+      <button type="button" class="auth-tab active" data-authtab="login">Đăng nhập</button>
+      <button type="button" class="auth-tab" data-authtab="register">Đăng ký tài khoản</button>
     </div>
-    <div class="form-error" id="loginError" hidden></div>
-    <div class="login-hint">Dùng thử: 0900000000 / 123456 (khách mẫu KH001)<br>hoặc 0901111111 · 0902222222 · 0903333333 (mật khẩu: 123456)</div>
-    <div class="auth-disclaimer">⚠️ Đây là xác thực demo cục bộ theo số điện thoại, <strong>chưa có bảo mật đăng nhập thật</strong> (chưa có OTP/mật khẩu/backend). Cần kết nối hệ thống xác thực thật trước khi vận hành chính thức.</div>
-    <button class="btn secondary full" id="logoutBtn" style="margin-top:14px;">Đăng xuất (dùng như khách vãng lai)</button>
+
+    <!-- TAB: ĐĂNG NHẬP (khách cũ) -->
+    <div class="auth-pane" id="loginPane">
+      <p class="muted-text">Đăng nhập bằng số điện thoại và mật khẩu để xem <strong>giá sỉ riêng</strong>, công nợ, lịch sử và ưu đãi của bạn.</p>
+      <div class="login-form">
+        <input type="tel" id="loginPhone" placeholder="Số điện thoại">
+        <input type="password" id="loginPassword" placeholder="Mật khẩu">
+        <button class="btn primary full" id="loginSubmitBtn">Đăng nhập</button>
+      </div>
+      <div class="form-error" id="loginError" hidden></div>
+      <div class="login-hint">
+        Dùng thử: 0900000000 / 123456 (KH00001 - đang hoạt động)<br>
+        0900000002 / 123456 (KH00002 - đang chờ duyệt)<br>
+        0900000003 / 123456 (KH00003 - đã bị khoá)<br>
+        hoặc 0901111111 · 0902222222 · 0903333333 (mật khẩu: 123456)
+      </div>
+      <div class="auth-disclaimer">⚠️ Đây là xác thực demo cục bộ, <strong>chưa có bảo mật đăng nhập thật</strong> (chưa mã hoá mật khẩu, chưa OTP, chưa backend). Cần kết nối hệ thống xác thực thật trước khi vận hành chính thức.</div>
+      <button class="btn secondary full" id="logoutBtn" style="margin-top:14px;">Đăng xuất (dùng như khách vãng lai)</button>
+    </div>
+
+    <!-- TAB: ĐĂNG KÝ (khách mới) -->
+    <div class="auth-pane" id="registerPane" hidden>
+      <p class="muted-text">Đăng ký để được Tú Cà Phê xét duyệt làm đối tác sỉ. Tài khoản mới sẽ ở trạng thái <strong>chờ duyệt</strong> cho đến khi được xác nhận.</p>
+      <form id="registerForm" class="checkout-form">
+        <label>Họ và tên
+          <input type="text" id="regName" required placeholder="Nguyễn Văn A">
+        </label>
+        <label>Tên quán / doanh nghiệp
+          <input type="text" id="regCompany" required placeholder="Quán Cà Phê ABC">
+        </label>
+        <label>Số điện thoại
+          <input type="tel" id="regPhone" required placeholder="09xxxxxxxx">
+        </label>
+        <label>Email (không bắt buộc)
+          <input type="email" id="regEmail" placeholder="email@vidu.com">
+        </label>
+        <label>Địa chỉ giao hàng
+          <input type="text" id="regAddress" required placeholder="Số nhà, đường, phường/xã, quận/huyện">
+        </label>
+        <label>Mật khẩu
+          <input type="password" id="regPassword" required placeholder="Tối thiểu 6 ký tự">
+        </label>
+        <label>Xác nhận mật khẩu
+          <input type="password" id="regPasswordConfirm" required placeholder="Nhập lại mật khẩu">
+        </label>
+        <div class="form-error" id="registerError" hidden></div>
+        <div class="form-success" id="registerSuccess" hidden></div>
+        <button type="submit" class="btn primary full">Đăng ký tài khoản</button>
+      </form>
+      <div class="auth-disclaimer">⚠️ Dữ liệu đăng ký hiện lưu cục bộ trong trình duyệt (demo), chưa đồng bộ Lark Base/backend thật.</div>
+    </div>
   </div>
 </div>
 

@@ -66,3 +66,8 @@ function saveCombos(list) {
 function getComboById(id) {
   return loadCombos().find(c => c.id === id) || null;
 }
+
+// Ảnh thật (URL) nếu có, ngược lại rơi về icon emoji đặt sẵn (placeholder).
+function comboMediaHtml(c) {
+  return c.image ? `<img src="${c.image}" alt="${c.name.replace(/"/g, "")}">` : c.icon;
+}

@@ -168,3 +168,8 @@ function getProductById(id) {
 
 const money = (n) => Math.round(n).toLocaleString("vi-VN") + "₫";
 const isInStock = (product) => typeof product.stock === "number" && product.stock > 0;
+
+// Ảnh thật (URL) nếu có, ngược lại rơi về icon emoji đặt sẵn (placeholder).
+function productMediaHtml(p) {
+  return p.image ? `<img src="${p.image}" alt="${p.name.replace(/"/g, "")}">` : p.icon;
+}

@@ -17,7 +17,7 @@ function renderDetail() {
 
   main.innerHTML = `
     <div class="detail-grid">
-      <div class="detail-image">${product.icon}</div>
+      <div class="detail-image">${productMediaHtml(product)}</div>
       <div class="detail-info">
         <a href="products.html?cat=${product.category_id}" style="color:var(--accent-dark);font-weight:700;font-size:0.82rem;text-decoration:none;">← ${category ? category.name : "Sản phẩm"}</a>
         <h1>${product.name}</h1>

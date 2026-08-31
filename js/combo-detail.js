@@ -30,7 +30,7 @@ function renderComboDetail() {
 
   main.innerHTML = `
     <div class="detail-grid">
-      <div class="detail-image" style="font-size:6rem;">${combo.icon}</div>
+      <div class="detail-image" style="font-size:6rem;">${comboMediaHtml(combo)}</div>
       <div class="detail-info">
         <a href="combos.html" style="color:var(--accent-dark);font-weight:700;font-size:0.82rem;text-decoration:none;">← Tất cả combo</a>
         <h1>${combo.name.toUpperCase()}</h1>

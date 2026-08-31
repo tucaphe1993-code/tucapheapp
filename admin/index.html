@@ -253,7 +253,8 @@
       <select id="pf_category_id" required></select>
     </label>
     <label>Tên sản phẩm<input type="text" id="pf_name" required></label>
-    <label>Icon (emoji)<input type="text" id="pf_icon" placeholder="☕" required></label>
+    <label>Icon (emoji, dùng khi chưa có ảnh)<input type="text" id="pf_icon" placeholder="☕" required></label>
+    <label>Ảnh sản phẩm (URL, để trống nếu chưa có)<input type="url" id="pf_image" placeholder="https://..."></label>
     <label>Mô tả ngắn<input type="text" id="pf_short_desc" required></label>
     <label>Mô tả chi tiết<textarea id="pf_description" required></textarea></label>
     <label>Đơn vị<input type="text" id="pf_unit" value="kg" required></label>
@@ -291,7 +292,8 @@
     <input type="hidden" id="cb_id">
     <label>Tên combo<input type="text" id="cb_name" required></label>
     <label>Mô tả ngắn<input type="text" id="cb_tagline" required></label>
-    <label>Icon (emoji, thay cho hình ảnh)<input type="text" id="cb_icon" placeholder="📦" required></label>
+    <label>Icon (emoji, dùng khi chưa có ảnh)<input type="text" id="cb_icon" placeholder="📦" required></label>
+    <label>Ảnh combo (URL, để trống nếu chưa có)<input type="url" id="cb_image" placeholder="https://..."></label>
     <label>Giá combo (đ) — để trống nếu chưa có giá, sẽ hiện "Liên hệ báo giá"
       <input type="number" id="cb_price_from" min="0" placeholder="Để trống nếu chưa có giá">
     </label>

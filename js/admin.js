@@ -122,6 +122,7 @@ function openProductModal(id) {
   document.getElementById("pf_category_id").value = p ? p.category_id : loadCategories()[0].id;
   document.getElementById("pf_name").value = p ? p.name : "";
   document.getElementById("pf_icon").value = p ? p.icon : "☕";
+  document.getElementById("pf_image").value = p && p.image ? p.image : "";
   document.getElementById("pf_short_desc").value = p ? p.short_desc : "";
   document.getElementById("pf_description").value = p ? p.description : "";
   document.getElementById("pf_unit").value = p ? p.unit : "kg";
@@ -147,6 +148,7 @@ document.getElementById("productForm").addEventListener("submit", (e) => {
     category_id: document.getElementById("pf_category_id").value,
     name: document.getElementById("pf_name").value.trim(),
     icon: document.getElementById("pf_icon").value.trim() || "☕",
+    image: document.getElementById("pf_image").value.trim(),
     short_desc: document.getElementById("pf_short_desc").value.trim(),
     description: document.getElementById("pf_description").value.trim(),
     unit: document.getElementById("pf_unit").value.trim(),
@@ -276,6 +278,7 @@ function openComboModal(id) {
   document.getElementById("cb_name").value = c ? c.name : "";
   document.getElementById("cb_tagline").value = c ? c.tagline : "";
   document.getElementById("cb_icon").value = c ? c.icon : "📦";
+  document.getElementById("cb_image").value = c && c.image ? c.image : "";
   document.getElementById("cb_price_from").value = c && c.price_from ? c.price_from : "";
   comboItemsState = c ? c.items.map(it => ({ ...it })) : [];
   renderComboItemsRows();
@@ -297,6 +300,7 @@ document.getElementById("comboForm").addEventListener("submit", (e) => {
     name: document.getElementById("cb_name").value.trim(),
     tagline: document.getElementById("cb_tagline").value.trim(),
     icon: document.getElementById("cb_icon").value.trim() || "📦",
+    image: document.getElementById("cb_image").value.trim(),
     price_from: priceVal ? Number(priceVal) : null,
     items: comboItemsState.filter(row => row.label.trim()),
   };

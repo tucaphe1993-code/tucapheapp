@@ -37,7 +37,7 @@ function productCardHtml(p) {
   return `
     <a class="product-card-v2" href="product.html?id=${p.id}">
       <div class="product-card-v2-art">
-        ${p.icon}
+        ${productMediaHtml(p)}
         ${p.badge ? `<span class="product-card-v2-badge">${p.badge}</span>` : ""}
       </div>
       <div class="product-card-v2-name">${p.name.toUpperCase()}</div>

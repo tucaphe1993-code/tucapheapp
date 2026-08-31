@@ -3,98 +3,225 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Tú Cà Phê - Cà phê rang xay nguyên chất</title>
+<title>Tú Cà Phê — Thiết bị pha chế & cà phê rang mộc cho quán</title>
+<meta name="description" content="Tú Cà Phê — cà phê rang mộc, máy pha, máy xay, thiết bị pha chế và combo trọn gói để bắt đầu kinh doanh cà phê theo cách của bạn.">
 <link rel="stylesheet" href="css/style.css">
 </head>
-<body data-page="home">
+<body class="site-body" data-page="home">
 
-<div class="app-shell">
-  <aside class="sidebar" id="sidebar">
-    <div class="sidebar-brand">
-      <div class="sidebar-logo">☕</div>
-      <div>
-        <div class="sidebar-title">Tú Cà Phê</div>
-        <div class="sidebar-subtitle">Cà phê rang xay nguyên chất</div>
+<header class="site-header" id="siteHeader">
+  <div class="site-header-inner">
+    <button type="button" class="site-hamburger" id="siteHamburger" aria-label="Mở menu">☰</button>
+    <a href="index.html" class="site-logo">TÚ CÀ PHÊ</a>
+    <nav class="site-nav" id="siteNav">
+      <a href="index.html" data-page="home">Trang chủ</a>
+      <a href="products.html?cat=ca-phe">Cà phê</a>
+      <a href="products.html?cat=may-pha">Máy pha</a>
+      <a href="products.html?cat=may-xay">Máy xay</a>
+      <a href="products.html?cat=thiet-bi">Thiết bị</a>
+      <a href="combos.html">Combo</a>
+      <a href="combos.html#xe-ca-phe">Xe cà phê</a>
+      <a href="about.html">Về Tú Cà Phê</a>
+    </nav>
+    <div class="site-header-actions">
+      <button type="button" class="site-icon-btn" id="siteSearchToggle" aria-label="Tìm kiếm">🔍</button>
+      <a href="about.html" class="site-icon-btn" aria-label="Tài khoản">👤</a>
+      <a href="checkout.html" class="site-icon-btn" aria-label="Giỏ hàng">🛒<span class="cart-count" id="cartCount">0</span></a>
+    </div>
+  </div>
+  <div class="site-search-bar" id="siteSearchBar">
+    <input type="search" id="siteSearchInput" placeholder="Tìm cà phê, máy pha, máy xay, thiết bị...">
+  </div>
+</header>
+<div class="site-nav-overlay" id="siteNavOverlay"></div>
+
+<main style="padding:0;max-width:none;">
+
+  <!-- HERO -->
+  <section class="hero-premium">
+    <div class="hero-premium-content">
+      <div class="hero-premium-eyebrow">TÚ CÀ PHÊ</div>
+      <h1>BẮT ĐẦU KINH DOANH<br>CÀ PHÊ THEO CÁCH<br>CỦA BẠN</h1>
+      <p class="hero-premium-sub">Cà phê • Máy pha • Thiết bị • Combo trọn gói</p>
+      <div class="hero-premium-actions">
+        <a href="combos.html" class="btn primary lg">XEM COMBO</a>
+        <a href="products.html" class="btn outline lg">KHÁM PHÁ SẢN PHẨM</a>
       </div>
     </div>
-    <nav class="sidebar-nav">
-      <a href="index.html" class="sidebar-link" data-page="home">🏠 <span>Trang chủ</span></a>
-      <a href="products.html" class="sidebar-link" data-page="products">☕ <span>Cà phê</span></a>
-      <a href="pricing.html" class="sidebar-link" data-page="pricing">💰 <span>Bảng giá</span></a>
-      <a href="guide.html" class="sidebar-link" data-page="guide">📖 <span>Hướng dẫn mua</span></a>
-      <a href="about.html" class="sidebar-link" data-page="about">🏷️ <span>Về Tú Cà Phê</span></a>
-      <a href="contact.html" class="sidebar-link" data-page="contact">📞 <span>Liên hệ</span></a>
-      <div class="sidebar-divider"></div>
-      <a href="checkout.html" class="sidebar-link" data-page="cart">🛒 <span>Giỏ hàng</span></a>
-    </nav>
-  </aside>
-  <div class="sidebar-overlay" id="sidebarOverlay"></div>
+  </section>
 
-  <div class="app-main">
-    <header class="app-header">
-      <button type="button" class="menu-toggle" id="menuToggle" aria-label="Mở menu">☰</button>
-      <div class="breadcrumb">Trang chủ</div>
-      <div class="app-header-actions">
-        <a href="checkout.html" class="pill-btn solid">🛒 Giỏ hàng <span class="cart-count" id="cartCount">0</span></a>
-      </div>
-    </header>
+  <div class="data-banner" style="max-width:1280px;margin:28px auto 0;">⚠️ Toàn bộ sản phẩm, combo, giá bán trên trang là <strong>dữ liệu mẫu (demo)</strong> dựng giao diện — chưa phải bảng giá chính thức của Tú Cà Phê.</div>
 
-    <main>
-      <div class="data-banner">⚠️ Giá sản phẩm hiển thị trên trang là <strong>dữ liệu mẫu (demo)</strong>, chưa phải bảng giá chính thức của Tú Cà Phê.</div>
-
-      <section class="hero">
-        <div class="hero-copy">
-          <span class="hero-badge">☕ Cà phê rang mới mỗi tuần</span>
-          <h1>TÚ CÀ PHÊ</h1>
-          <p class="subhead">Cà phê rang xay cho quán và gia đình</p>
-          <p>Cà phê rang mới – giá lẻ minh bạch – mua từ 5kg có giá sỉ. Nguyên liệu chọn lọc, rang theo mẻ nhỏ để giữ trọn hương vị.</p>
-          <div class="hero-actions">
-            <a href="products.html" class="btn primary lg">Xem cà phê</a>
-            <a href="pricing.html" class="btn outline lg">Xem giá sỉ</a>
-          </div>
+  <!-- CATEGORY -->
+  <section class="section-block">
+    <h2 class="section-title center">CHỌN GIẢI PHÁP</h2>
+    <div class="category-grid">
+      <a class="category-card" href="products.html?cat=ca-phe">
+        <div class="category-card-art">☕</div>
+        <div class="category-card-body">
+          <h3>CÀ PHÊ</h3>
+          <p>Cà phê rang mộc<br>cho quán và gia đình</p>
+          <span class="category-card-cta">KHÁM PHÁ →</span>
         </div>
-        <div class="hero-art" aria-hidden="true">☕</div>
-      </section>
+      </a>
+      <a class="category-card" href="products.html?cat=may-pha">
+        <div class="category-card-art">⚙️</div>
+        <div class="category-card-body">
+          <h3>MÁY PHA</h3>
+          <p>Máy pha espresso<br>cho mọi mô hình</p>
+          <span class="category-card-cta">KHÁM PHÁ →</span>
+        </div>
+      </a>
+      <a class="category-card" href="products.html?cat=thiet-bi">
+        <div class="category-card-art">🧰</div>
+        <div class="category-card-body">
+          <h3>THIẾT BỊ</h3>
+          <p>Máy xay và dụng cụ<br>pha chế chuyên nghiệp</p>
+          <span class="category-card-cta">KHÁM PHÁ →</span>
+        </div>
+      </a>
+      <a class="category-card" href="combos.html">
+        <div class="category-card-art">📦</div>
+        <div class="category-card-body">
+          <h3>COMBO</h3>
+          <p>Giải pháp trọn gói<br>để bắt đầu kinh doanh</p>
+          <span class="category-card-cta">KHÁM PHÁ →</span>
+        </div>
+      </a>
+    </div>
+  </section>
 
-      <h2 class="section-title">Sản phẩm nổi bật</h2>
-      <p class="section-sub">Mua từ 5kg (tổng đơn) để được áp dụng giá sỉ cho các sản phẩm đủ điều kiện.</p>
-      <div class="product-grid" id="featuredGrid"></div>
+  <!-- BEST SELLERS -->
+  <section class="section-block tight">
+    <h2 class="section-title center">SẢN PHẨM NỔI BẬT</h2>
+    <div class="product-grid-v2" id="bestSellersGrid"></div>
+  </section>
 
-    </main>
+  <!-- MÁY PHA EDITORIAL -->
+  <section class="editorial-section">
+    <div class="editorial-section-inner">
+      <div class="editorial-art">⚙️</div>
+      <div class="editorial-body">
+        <div class="hero-premium-eyebrow" style="color:var(--accent-dark);">MÁY PHA CÀ PHÊ</div>
+        <h2>CHỌN ĐÚNG MÁY<br>CHO ĐÚNG MÔ HÌNH</h2>
+        <ul class="editorial-list">
+          <li>Xe cà phê</li>
+          <li>Take-away</li>
+          <li>Quán nhỏ</li>
+          <li>Quán vừa</li>
+          <li>Quán chuyên nghiệp</li>
+        </ul>
+        <a href="products.html?cat=may-pha" class="editorial-cta">XEM MÁY PHA →</a>
+      </div>
+    </div>
+  </section>
 
-    <div class="sticky-cart-cta" id="stickyCartCta">
-      <span>🛒 Xem giỏ hàng của bạn</span>
-      <a href="checkout.html">Xem giỏ →</a>
+  <!-- COMBO -->
+  <section class="section-block">
+    <h2 class="section-title center">COMBO KINH DOANH CÀ PHÊ</h2>
+    <p class="section-sub center">Từ một bộ máy pha đến mô hình xe cà phê trọn gói.</p>
+    <div class="combo-grid" id="comboGrid"></div>
+  </section>
+
+  <!-- SMART COMBO FINDER -->
+  <section class="section-block tight">
+    <div class="finder-banner">
+      <h2>CHƯA BIẾT CHỌN GÌ?</h2>
+      <p>Tìm bộ thiết bị phù hợp với ngân sách của bạn.</p>
+      <button type="button" class="btn primary lg" id="openFinderBtn">TÌM COMBO PHÙ HỢP →</button>
+    </div>
+  </section>
+
+  <!-- FULL-BLEED XE CÀ PHÊ -->
+  <section class="fullbleed-section" id="xe-ca-phe">
+    <div class="fullbleed-overlay">
+      <h2>MỞ XE CÀ PHÊ<br>TỪ CON SỐ 0</h2>
+      <div class="fullbleed-chain">XE + MÁY PHA + MÁY XAY + THIẾT BỊ + CÀ PHÊ + HƯỚNG DẪN</div>
+      <a href="combos.html" class="btn primary lg">XEM COMBO TRỌN GÓI</a>
+    </div>
+  </section>
+
+</main>
+
+<footer class="site-footer">
+  <div class="site-footer-inner">
+    <div>
+      <span class="site-logo">TÚ CÀ PHÊ</span>
+      <p>Cà phê rang mộc và thiết bị pha chế cho quán, xe cà phê và gia đình.</p>
+    </div>
+    <div>
+      <strong>Liên hệ</strong>
+      <a href="tel:0786515253">📞 0786.51.52.53</a>
+      <a href="mailto:tucaphe.official@gmail.com">✉️ tucaphe.official@gmail.com</a>
+    </div>
+    <div>
+      <strong>Khám phá</strong>
+      <a href="products.html">Sản phẩm</a>
+      <a href="combos.html">Combo</a>
+      <a href="about.html">Về Tú Cà Phê</a>
+    </div>
+    <div>
+      <strong>Hỗ trợ</strong>
+      <a href="guide.html">Hướng dẫn mua</a>
+      <a href="pricing.html">Bảng giá</a>
+      <a href="contact.html">Liên hệ</a>
+    </div>
+  </div>
+  <div class="site-footer-bottom">© Tú Cà Phê — dữ liệu demo, chưa phải thông tin kinh doanh chính thức.</div>
+</footer>
+
+<!-- SMART COMBO FINDER WIZARD -->
+<div class="finder-overlay" id="finderOverlay"></div>
+<div class="finder-wizard" id="finderWizard">
+  <button type="button" class="finder-close" id="finderCloseBtn">✕</button>
+  <div id="finderStep1">
+    <div class="finder-step-label">BƯỚC 1 / 3</div>
+    <h3>NGÂN SÁCH CỦA BẠN?</h3>
+    <div class="finder-options" data-finder-group="budget">
+      <button type="button" class="finder-option" data-value="0">20–30 triệu</button>
+      <button type="button" class="finder-option" data-value="1">30–50 triệu</button>
+      <button type="button" class="finder-option" data-value="2">50–80 triệu</button>
+      <button type="button" class="finder-option" data-value="3">80–120 triệu</button>
+      <button type="button" class="finder-option" data-value="4">120 triệu+</button>
+    </div>
+  </div>
+  <div id="finderStep2" style="display:none;">
+    <div class="finder-step-label">BƯỚC 2 / 3</div>
+    <h3>MÔ HÌNH KINH DOANH?</h3>
+    <div class="finder-options" data-finder-group="model">
+      <button type="button" class="finder-option" data-value="0">Xe cà phê</button>
+      <button type="button" class="finder-option" data-value="0">Take-away</button>
+      <button type="button" class="finder-option" data-value="1">Quán nhỏ</button>
+      <button type="button" class="finder-option" data-value="2">Quán vừa</button>
+      <button type="button" class="finder-option" data-value="3">Quán chuyên nghiệp</button>
+    </div>
+    <div class="finder-nav"><button type="button" class="btn secondary sm" id="finderBack2">← Quay lại</button></div>
+  </div>
+  <div id="finderStep3" style="display:none;">
+    <div class="finder-step-label">BƯỚC 3 / 3</div>
+    <h3>SẢN LƯỢNG DỰ KIẾN?</h3>
+    <div class="finder-options" data-finder-group="volume">
+      <button type="button" class="finder-option" data-value="0">&lt;50 ly/ngày</button>
+      <button type="button" class="finder-option" data-value="1">50–100 ly/ngày</button>
+      <button type="button" class="finder-option" data-value="2">100–200 ly/ngày</button>
+      <button type="button" class="finder-option" data-value="3">&gt;200 ly/ngày</button>
+    </div>
+    <div class="finder-nav"><button type="button" class="btn secondary sm" id="finderBack3">← Quay lại</button></div>
+  </div>
+  <div id="finderResult" style="display:none;" class="finder-result">
+    <div class="finder-result-label">COMBO PHÙ HỢP VỚI BẠN</div>
+    <div id="finderResultBody"></div>
+    <div class="finder-nav" style="justify-content:center;margin-top:18px;">
+      <button type="button" class="btn secondary sm" id="finderRestartBtn">Làm lại</button>
     </div>
   </div>
 </div>
 
+<script src="js/categories-data.js"></script>
 <script src="js/products-data.js"></script>
-<script src="js/pricing.js"></script>
+<script src="js/combos-data.js"></script>
 <script src="js/cart.js"></script>
-<script src="js/ui.js"></script>
-<script>
-  function renderFeatured() {
-    const products = getVisibleProducts().slice(0, 4);
-    const cart = loadCart();
-    const totalKg = getCartTotalKg(cart);
-    document.getElementById("featuredGrid").innerHTML = products.map(p => {
-      const wholesaleEligible = totalKg >= p.wholesale_min_kg;
-      return `
-      <a href="product.html?id=${p.id}" class="product-card">
-        <div class="product-thumb">${p.icon}</div>
-        <div class="product-info">
-          <div class="product-name">${p.name}</div>
-          <div class="product-desc">${p.short_desc}</div>
-          <div class="product-price-row">
-            <div class="price-line retail"><span class="label">Giá lẻ</span><span class="value">${money(p.retail_price)}/${p.unit}</span></div>
-            <div class="price-line wholesale"><span class="label">Giá sỉ từ ${p.wholesale_min_kg}kg</span><span class="value">${money(p.wholesale_price)}/${p.unit}</span></div>
-          </div>
-        </div>
-      </a>`;
-    }).join("");
-  }
-  renderFeatured();
-</script>
+<script src="js/site-ui.js"></script>
+<script src="js/home.js"></script>
 </body>
 </html>

@@ -35,12 +35,34 @@
         </div>
       </div>
       <nav class="sidebar-nav">
+        <div class="sidebar-section-label">Tổng quan</div>
         <button class="sidebar-link active" data-tab="products">📦 <span>Sản phẩm</span></button>
+        <button class="sidebar-link" data-tab="categories">🗂️ <span>Danh mục</span></button>
+        <button class="sidebar-link" data-tab="combos">🎁 <span>Combo</span></button>
         <button class="sidebar-link" data-tab="orders">🧾 <span>Đơn hàng</span></button>
         <button class="sidebar-link" data-tab="customers">👥 <span>Khách hàng</span></button>
+
+        <div class="sidebar-section-label">Công thức pha chế</div>
+        <button class="sidebar-link" data-tab="recipes">📋 <span>Tất cả công thức</span> <span class="sidebar-count" id="recipesCount"></span></button>
+        <div id="sidebarRecipeCategories"></div>
+
+        <div class="sidebar-section-label">Thư viện chung</div>
+        <button class="sidebar-link" data-tab="ingredients">🧂 <span>Nguyên liệu</span> <span class="sidebar-count" id="ingredientsCount"></span></button>
+
+        <div class="sidebar-section-label">Chi phí &amp; vận hành</div>
+        <button class="sidebar-link" data-tab="pricing-calc">💰 <span>Bảng tính giá bán</span></button>
+        <button class="sidebar-link" data-tab="breakeven">📈 <span>Điểm hoà vốn</span></button>
+
+        <div class="sidebar-section-label">Tra cứu</div>
+        <button class="sidebar-link" data-tab="about-system">ℹ️ <span>Về hệ thống</span></button>
+
         <div class="sidebar-divider"></div>
         <button class="sidebar-link" id="adminLogoutBtn">🚪 <span>Đăng xuất</span></button>
       </nav>
+
+      <div class="sidebar-footer">
+        <a href="tel:0786515253" class="sidebar-phone">📞 0786.51.52.53</a>
+      </div>
     </aside>
 
     <div class="app-main">
@@ -52,6 +74,17 @@
       </header>
 
       <main>
+        <!-- TOOLBAR DỮ LIỆU: chỉ hiện ở tab Nguyên liệu / Công thức pha chế -->
+        <div class="data-toolbar" id="dataToolbar" style="display:none;">
+          <button type="button" class="btn secondary sm" id="btnPrint">🖶 In / PDF</button>
+          <button type="button" class="btn secondary sm" id="btnExport">💾 Lưu vào file</button>
+          <label class="file-input-label" for="importFileInput">📁 Nạp từ file khác
+            <input type="file" id="importFileInput" accept="application/json">
+          </label>
+          <button type="button" class="btn secondary sm" id="btnResetData">↺ Khôi phục gốc</button>
+          <button type="button" class="btn secondary sm" id="btnAboutOriginal">🏷️ Bản gốc Tú Cà Phê</button>
+        </div>
+
         <!-- TAB: SẢN PHẨM -->
         <section id="tab-products">
           <div class="admin-toolbar">
@@ -64,6 +97,32 @@
                 <tr><th>Tên</th><th>Giá lẻ</th><th>Giá sỉ</th><th>Ngưỡng sỉ</th><th>Tồn kho</th><th>Trạng thái</th><th>Hành động</th></tr>
               </thead>
               <tbody id="productsTableBody"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- TAB: DANH MỤC -->
+        <section id="tab-categories" style="display:none;">
+          <h2 class="section-title" style="margin-top:0;">Danh mục sản phẩm</h2>
+          <p class="section-sub">4 danh mục gắn với menu điều hướng của site — chỉ sửa được tên/mô tả ngắn, không thêm/xoá để tránh vỡ điều hướng.</p>
+          <div class="admin-table-wrap">
+            <table class="admin-table">
+              <thead><tr><th>Tên danh mục</th><th>Mô tả ngắn</th><th>Số sản phẩm</th><th>Hành động</th></tr></thead>
+              <tbody id="categoriesTableBody"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- TAB: COMBO -->
+        <section id="tab-combos" style="display:none;">
+          <div class="admin-toolbar">
+            <h2 class="section-title" style="margin:0;">Combo kinh doanh</h2>
+            <button class="btn primary" id="addComboBtn">+ Tạo combo</button>
+          </div>
+          <div class="admin-table-wrap">
+            <table class="admin-table">
+              <thead><tr><th>Combo</th><th>Giá</th><th>Số hạng mục</th><th>Trạng thái</th><th>Hành động</th></tr></thead>
+              <tbody id="combosTableBody"></tbody>
             </table>
           </div>
         </section>
@@ -83,16 +142,103 @@
 
         <!-- TAB: KHÁCH HÀNG -->
         <section id="tab-customers" style="display:none;">
-          <h2 class="section-title" style="margin-top:0;">Khách hàng đã đặt đơn</h2>
-          <p class="section-sub">Danh sách rút ra từ lịch sử đơn hàng cục bộ (chưa có bảng khách hàng riêng vì mô hình hiện tại không yêu cầu tài khoản).</p>
+          <h2 class="section-title" style="margin-top:0;">Khách hàng</h2>
+          <p class="section-sub">Tự động tạo/cập nhật mỗi khi có đơn hàng mới ở trang Giỏ hàng &amp; Đặt hàng.</p>
           <div class="admin-table-wrap">
             <table class="admin-table">
-              <thead><tr><th>Tên</th><th>SĐT</th><th>Quán/DN</th><th>Số đơn đã đặt</th></tr></thead>
+              <thead><tr><th>Tên</th><th>SĐT</th><th>Quán/DN</th><th>Số đơn</th><th>Tổng chi tiêu</th><th>Đơn gần nhất</th></tr></thead>
               <tbody id="customersTableBody"></tbody>
             </table>
           </div>
         </section>
+
+        <!-- TAB: NGUYÊN LIỆU -->
+        <section id="tab-ingredients" style="display:none;">
+          <div class="admin-toolbar">
+            <h2 class="section-title" style="margin:0;">Thư viện nguyên liệu</h2>
+            <button class="btn primary" id="addIngredientBtn">+ Thêm nguyên liệu</button>
+          </div>
+          <input type="search" class="admin-search-input" id="ingredientSearchInput" placeholder="Tìm nguyên liệu...">
+          <div class="admin-table-wrap">
+            <table class="admin-table">
+              <thead>
+                <tr><th>Tên nguyên liệu</th><th>Đơn vị</th><th>Đơn giá</th><th>Hành động</th></tr>
+              </thead>
+              <tbody id="ingredientsTableBody"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- TAB: CÔNG THỨC PHA CHẾ -->
+        <section id="tab-recipes" style="display:none;">
+          <div class="admin-toolbar">
+            <h2 class="section-title" style="margin:0;">Công thức pha chế &amp; giá vốn</h2>
+            <button class="btn primary" id="addRecipeBtn">+ Thêm công thức</button>
+          </div>
+          <input type="search" class="admin-search-input" id="recipeSearchInput" placeholder="Tìm món...">
+          <div class="recipes-layout">
+            <aside class="recipes-category-nav" id="recipesCategoryNav"></aside>
+            <div class="recipes-content" id="recipesGroups"></div>
+          </div>
+        </section>
+
+        <!-- TAB: BẢNG TÍNH GIÁ BÁN -->
+        <section id="tab-pricing-calc" style="display:none;">
+          <h2 class="section-title" style="margin-top:0;">Bảng tính giá bán</h2>
+          <p class="section-sub">Chọn 1 công thức đã có giá vốn (hoặc nhập giá vốn thủ công) để tính giá bán đề xuất theo tỷ lệ lợi nhuận mong muốn.</p>
+          <form class="checkout-form" id="pricingCalcForm" style="max-width:480px;" onsubmit="return false;">
+            <label>Chọn công thức có sẵn (tuỳ chọn)
+              <select id="pc_recipe"><option value="">— Nhập giá vốn thủ công —</option></select>
+            </label>
+            <label>Giá vốn (đ)<input type="number" id="pc_cost" min="0" value="0"></label>
+            <label>Tỷ lệ lợi nhuận mong muốn (%)<input type="number" id="pc_margin" min="0" value="50"></label>
+            <div class="admin-table-wrap" style="padding:16px 18px;display:flex;flex-direction:column;gap:6px;">
+              <div style="display:flex;justify-content:space-between;"><span>Giá vốn</span><strong id="pc_out_cost">0₫</strong></div>
+              <div style="display:flex;justify-content:space-between;"><span>Lợi nhuận / món</span><strong id="pc_out_profit">0₫</strong></div>
+              <div style="display:flex;justify-content:space-between;font-size:1.1rem;"><span>Giá bán đề xuất</span><strong style="color:var(--accent-dark);" id="pc_out_price">0₫</strong></div>
+            </div>
+          </form>
+        </section>
+
+        <!-- TAB: ĐIỂM HOÀ VỐN -->
+        <section id="tab-breakeven" style="display:none;">
+          <h2 class="section-title" style="margin-top:0;">Điểm hoà vốn</h2>
+          <p class="section-sub">Nhập chi phí cố định hàng tháng và giá bán/giá vốn trung bình mỗi món để ước tính số món cần bán để hoà vốn.</p>
+          <form class="checkout-form" id="breakevenForm" style="max-width:480px;" onsubmit="return false;">
+            <label>Chi phí cố định / tháng (đ)<input type="number" id="be_fixed_cost" min="0" value="0"></label>
+            <label>Giá bán trung bình / món (đ)<input type="number" id="be_price" min="0" value="0"></label>
+            <label>Giá vốn trung bình / món (đ)<input type="number" id="be_cost" min="0" value="0"></label>
+            <div class="admin-table-wrap" style="padding:16px 18px;display:flex;flex-direction:column;gap:6px;">
+              <div style="display:flex;justify-content:space-between;"><span>Lợi nhuận gộp / món</span><strong id="be_out_margin">0₫</strong></div>
+              <div style="display:flex;justify-content:space-between;font-size:1.1rem;"><span>Điểm hoà vốn (món/tháng)</span><strong style="color:var(--accent-dark);" id="be_out_units">—</strong></div>
+              <div style="display:flex;justify-content:space-between;"><span>Doanh thu hoà vốn</span><strong id="be_out_revenue">0₫</strong></div>
+            </div>
+          </form>
+        </section>
+
+        <!-- TAB: VỀ HỆ THỐNG -->
+        <section id="tab-about-system" style="display:none;">
+          <h2 class="section-title" style="margin-top:0;">Về hệ thống</h2>
+          <div class="content-page">
+            <p><strong>Tú Cà Phê Admin</strong> — hệ thống quản trị nội bộ: sản phẩm, đơn hàng, khách hàng, thư viện nguyên liệu, công thức pha chế &amp; giá vốn, công cụ tính giá bán và điểm hoà vốn.</p>
+            <p style="color:var(--muted);">Phiên bản demo — dữ liệu lưu cục bộ (localStorage) trên trình duyệt này, chưa kết nối backend/Lark Base thật.</p>
+            <p><a href="../index.html" target="_blank">🔗 Xem trang khách hàng</a></p>
+          </div>
+        </section>
       </main>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: BẢN GỐC TÚ CÀ PHÊ -->
+<div class="sidebar-overlay" id="aboutOriginalOverlay" style="z-index:60;"></div>
+<div id="aboutOriginalModal" style="display:none;position:fixed;inset:0;align-items:center;justify-content:center;z-index:61;">
+  <div class="checkout-form" style="width:460px;max-width:92vw;">
+    <h3 style="margin:0;color:var(--coffee-dark);">🏷️ Bản gốc Tú Cà Phê</h3>
+    <p style="color:var(--text);margin:0;">Hệ thống này do Tú Cà Phê tự xây dựng riêng (không dùng chung template với ai khác), nên không có "bản gốc" để đối chiếu như các nền tảng no-code.</p>
+    <p style="color:var(--muted);margin:0;font-size:0.88rem;">Nếu cần khôi phục dữ liệu về trạng thái ban đầu, dùng nút <strong>↺ Khôi phục gốc</strong>. Nếu cần lưu trữ/chia sẻ dữ liệu, dùng <strong>💾 Lưu vào file</strong> để tải file backup, và <strong>📁 Nạp từ file khác</strong> để nạp lại.</p>
+    <div class="panel-actions" style="display:flex;justify-content:flex-end;">
+      <button type="button" class="btn primary" id="aboutOriginalClose">Đã hiểu</button>
     </div>
   </div>
 </div>
@@ -103,16 +249,17 @@
   <form id="productForm" class="checkout-form" style="width:480px;max-width:92vw;max-height:88vh;overflow-y:auto;">
     <h3 id="productModalTitle" style="margin:0;color:var(--coffee-dark);">Thêm sản phẩm</h3>
     <input type="hidden" id="pf_id">
+    <label>Danh mục
+      <select id="pf_category_id" required></select>
+    </label>
     <label>Tên sản phẩm<input type="text" id="pf_name" required></label>
+    <label>Icon (emoji)<input type="text" id="pf_icon" placeholder="☕" required></label>
     <label>Mô tả ngắn<input type="text" id="pf_short_desc" required></label>
     <label>Mô tả chi tiết<textarea id="pf_description" required></textarea></label>
-    <label>Hương vị<input type="text" id="pf_flavor" required></label>
-    <label>Mức rang<input type="text" id="pf_roast" required></label>
-    <label>Loại hạt<input type="text" id="pf_origin_type" required></label>
     <label>Đơn vị<input type="text" id="pf_unit" value="kg" required></label>
     <label>Giá lẻ (đ)<input type="number" id="pf_retail_price" required min="0"></label>
-    <label>Giá sỉ (đ)<input type="number" id="pf_wholesale_price" required min="0"></label>
-    <label>Ngưỡng áp giá sỉ (kg)<input type="number" id="pf_wholesale_min_kg" required min="1"></label>
+    <label>Giá sỉ (đ) — với thiết bị, để bằng giá lẻ<input type="number" id="pf_wholesale_price" required min="0"></label>
+    <label>Ngưỡng áp giá sỉ (kg) — với thiết bị, để 1<input type="number" id="pf_wholesale_min_kg" required min="1"></label>
     <label>Tồn kho<input type="number" id="pf_stock" required min="0"></label>
     <div class="panel-actions" style="display:flex;gap:10px;">
       <button type="button" class="btn secondary" id="productModalCancel">Huỷ</button>
@@ -121,7 +268,117 @@
   </form>
 </div>
 
+<!-- MODAL THÊM/SỬA CATEGORY -->
+<div class="sidebar-overlay" id="categoryModalOverlay" style="z-index:60;"></div>
+<div id="categoryModal" style="display:none;position:fixed;inset:0;align-items:center;justify-content:center;z-index:61;">
+  <form id="categoryForm" class="checkout-form" style="width:420px;max-width:92vw;">
+    <h3 style="margin:0;color:var(--coffee-dark);">Sửa danh mục</h3>
+    <input type="hidden" id="cf_id">
+    <label>Tên danh mục<input type="text" id="cf_name" required></label>
+    <label>Mô tả ngắn<input type="text" id="cf_tagline" required></label>
+    <div class="panel-actions" style="display:flex;gap:10px;">
+      <button type="button" class="btn secondary" id="categoryModalCancel">Huỷ</button>
+      <button type="submit" class="btn primary">Lưu</button>
+    </div>
+  </form>
+</div>
+
+<!-- MODAL THÊM/SỬA COMBO -->
+<div class="sidebar-overlay" id="comboModalOverlay" style="z-index:60;"></div>
+<div id="comboModal" style="display:none;position:fixed;inset:0;align-items:center;justify-content:center;z-index:61;">
+  <form id="comboForm" class="checkout-form" style="width:560px;max-width:94vw;max-height:90vh;overflow-y:auto;">
+    <h3 id="comboModalTitle" style="margin:0;color:var(--coffee-dark);">Tạo combo</h3>
+    <input type="hidden" id="cb_id">
+    <label>Tên combo<input type="text" id="cb_name" required></label>
+    <label>Mô tả ngắn<input type="text" id="cb_tagline" required></label>
+    <label>Icon (emoji, thay cho hình ảnh)<input type="text" id="cb_icon" placeholder="📦" required></label>
+    <label>Giá combo (đ) — để trống nếu chưa có giá, sẽ hiện "Liên hệ báo giá"
+      <input type="number" id="cb_price_from" min="0" placeholder="Để trống nếu chưa có giá">
+    </label>
+
+    <div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+        <strong style="font-size:0.9rem;color:var(--coffee-dark);">Hạng mục trong combo</strong>
+        <button type="button" class="btn secondary sm" id="addComboItemRowBtn">+ Thêm hạng mục</button>
+      </div>
+      <div class="admin-table-wrap">
+        <table class="admin-table">
+          <thead><tr><th>Tên hạng mục</th><th>Liên kết sản phẩm (tuỳ chọn)</th><th></th></tr></thead>
+          <tbody id="comboItemsBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="panel-actions" style="display:flex;gap:10px;">
+      <button type="button" class="btn secondary" id="comboModalCancel">Huỷ</button>
+      <button type="submit" class="btn primary">Lưu</button>
+    </div>
+  </form>
+</div>
+
+<!-- MODAL THÊM/SỬA NGUYÊN LIỆU -->
+<div class="sidebar-overlay" id="ingredientModalOverlay" style="z-index:60;"></div>
+<div id="ingredientModal" style="display:none;position:fixed;inset:0;align-items:center;justify-content:center;z-index:61;">
+  <form id="ingredientForm" class="checkout-form" style="width:420px;max-width:92vw;max-height:88vh;overflow-y:auto;">
+    <h3 id="ingredientModalTitle" style="margin:0;color:var(--coffee-dark);">Thêm nguyên liệu</h3>
+    <input type="hidden" id="if_id">
+    <label>Tên nguyên liệu<input type="text" id="if_name" required></label>
+    <label>Đơn vị<input type="text" id="if_unit" placeholder="ml, g, cái..." required></label>
+    <label>Đơn giá / đơn vị (đ)<input type="number" id="if_unit_price" required min="0" step="0.01"></label>
+    <div class="panel-actions" style="display:flex;gap:10px;">
+      <button type="button" class="btn secondary" id="ingredientModalCancel">Huỷ</button>
+      <button type="submit" class="btn primary">Lưu</button>
+    </div>
+  </form>
+</div>
+
+<!-- MODAL THÊM/SỬA CÔNG THỨC -->
+<div class="sidebar-overlay" id="recipeModalOverlay" style="z-index:60;"></div>
+<div id="recipeModal" style="display:none;position:fixed;inset:0;align-items:center;justify-content:center;z-index:61;">
+  <form id="recipeForm" class="checkout-form" style="width:620px;max-width:94vw;max-height:90vh;overflow-y:auto;">
+    <h3 id="recipeModalTitle" style="margin:0;color:var(--coffee-dark);">Thêm công thức</h3>
+    <input type="hidden" id="rf_id">
+    <label>Tên món<input type="text" id="rf_name" required></label>
+    <label>Danh mục
+      <input type="text" id="rf_category" list="recipeCategoryList" placeholder="Vd: Cà phê phin" required>
+      <datalist id="recipeCategoryList"></datalist>
+    </label>
+
+    <div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+        <strong style="font-size:0.9rem;color:var(--coffee-dark);">Nguyên liệu</strong>
+        <button type="button" class="btn secondary sm" id="addRecipeItemRowBtn">+ Thêm dòng nguyên liệu</button>
+      </div>
+      <div class="admin-table-wrap">
+        <table class="admin-table">
+          <thead>
+            <tr><th>Nguyên liệu</th><th>Số lượng</th><th>Thành tiền</th><th></th></tr>
+          </thead>
+          <tbody id="recipeItemsBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div style="display:flex;justify-content:space-between;align-items:center;font-weight:800;color:var(--coffee-dark);padding:6px 2px;">
+      <span>Tổng giá vốn</span>
+      <span id="recipeTotalCost">0₫</span>
+    </div>
+
+    <label>Cách làm<textarea id="rf_instructions" rows="5" placeholder="Mỗi bước 1 dòng"></textarea></label>
+
+    <div class="panel-actions" style="display:flex;gap:10px;">
+      <button type="button" class="btn secondary" id="recipeModalCancel">Huỷ</button>
+      <button type="submit" class="btn primary">Lưu</button>
+    </div>
+  </form>
+</div>
+
+<script src="../js/categories-data.js"></script>
 <script src="../js/products-data.js"></script>
+<script src="../js/combos-data.js"></script>
+<script src="../js/customers-data.js"></script>
+<script src="../js/ingredients-data.js"></script>
+<script src="../js/recipes-data.js"></script>
 <script src="../js/admin.js"></script>
 </body>
 </html>

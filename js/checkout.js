@@ -16,14 +16,18 @@ function saveOrderLocally(order) {
 
 function cartStatusHtml(cart) {
   const lines = buildCartLines(cart);
-  if (!lines.length) return `<div class="cart-status-banner empty">Giỏ hàng của bạn đang trống. <a href="products.html">Xem cà phê →</a></div>`;
+  if (!lines.length) return `<div class="cart-status-banner empty">Giỏ hàng của bạn đang trống. <a href="products.html">Xem sản phẩm →</a></div>`;
+
+  // Giá sỉ chỉ áp dụng cho cà phê — bỏ qua thiết bị khi tính banner này.
+  const coffeeLines = lines.filter(l => l.category_id === "ca-phe");
+  if (!coffeeLines.length) return "";
+
   const totalKg = getCartTotalKg(cart);
-  const minThresholds = lines.map(l => l.wholesale_min_kg);
-  const nearestThreshold = Math.min(...minThresholds);
-  const allWholesale = lines.every(l => l.isWholesale);
-  if (allWholesale) return `<div class="cart-status-banner eligible">✓ Đang áp dụng giá sỉ cho toàn bộ đơn hàng.</div>`;
-  if (totalKg >= nearestThreshold) return `<div class="cart-status-banner eligible">✓ Một số sản phẩm trong giỏ đã được áp dụng giá sỉ.</div>`;
-  return `<div class="cart-status-banner progress">Mua thêm ${nearestThreshold - totalKg}kg để được áp dụng giá sỉ (từ ${nearestThreshold}kg).</div>`;
+  const nearestThreshold = Math.min(...coffeeLines.map(l => l.wholesale_min_kg));
+  const allWholesale = coffeeLines.every(l => l.isWholesale);
+  if (allWholesale) return `<div class="cart-status-banner eligible">✓ Đang áp dụng giá sỉ cho toàn bộ cà phê trong đơn.</div>`;
+  if (totalKg >= nearestThreshold) return `<div class="cart-status-banner eligible">✓ Một số sản phẩm cà phê trong giỏ đã được áp dụng giá sỉ.</div>`;
+  return `<div class="cart-status-banner progress">Mua thêm ${nearestThreshold - totalKg}kg cà phê để được áp dụng giá sỉ (từ ${nearestThreshold}kg).</div>`;
 }
 
 function renderCart() {
@@ -36,11 +40,11 @@ function renderCart() {
       <div class="cart-item-icon">${l.icon}</div>
       <div class="cart-item-info">
         <div class="cart-item-name">${l.name}</div>
-        <div class="cart-item-price">${money(l.unitPrice)}/${l.unit} ${l.isWholesale ? "(giá sỉ)" : "(giá lẻ)"}</div>
+        <div class="cart-item-price">${l.category_id === "combo" ? money(l.unitPrice) + "/bộ" : money(l.unitPrice) + "/" + l.unit + (l.category_id === "ca-phe" ? (l.isWholesale ? " (giá sỉ)" : " (giá lẻ)") : "")}</div>
       </div>
       <div class="cart-item-qty">
         <button data-dec="${l.id}">−</button>
-        <span>${l.qty}${l.unit}</span>
+        <span>${l.qty} ${l.unit}</span>
         <button data-inc="${l.id}">+</button>
       </div>
       <div class="cart-item-total">${money(l.lineTotal)}</div>
@@ -140,6 +144,7 @@ document.getElementById("checkoutForm").addEventListener("submit", async (e) => 
   }
   order.syncedToBackend = syncedToBackend;
   saveOrderLocally(order);
+  upsertCustomerFromOrder(order);
 
   // Trừ tồn kho cục bộ (demo) — khi có backend thật, việc trừ kho phải do backend xử lý.
   const products = loadProducts();
@@ -162,7 +167,7 @@ function showSuccess(order) {
   document.getElementById("successView").style.display = "block";
   document.getElementById("successOrderId").textContent = "Mã đơn hàng: " + order.id;
   document.getElementById("successReceipt").innerHTML = `
-    ${order.lines.map(l => `<div><span>${l.name} × ${l.qty}${l.unit}</span><span>${money(l.lineTotal)}</span></div>`).join("")}
+    ${order.lines.map(l => `<div><span>${l.name} × ${l.qty} ${l.unit}</span><span>${money(l.lineTotal)}</span></div>`).join("")}
     <div><span>Tổng khối lượng</span><span>${order.totalKg}kg</span></div>
     <div style="font-weight:800;border-top:1px dashed var(--cream-dark);margin-top:6px;padding-top:8px;"><span>Tổng tiền</span><span>${money(order.total)}</span></div>
     <div><span>Người nhận</span><span>${order.customerName}</span></div>

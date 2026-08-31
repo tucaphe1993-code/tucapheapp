@@ -3,60 +3,79 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Cà phê - Tú Cà Phê</title>
+<title>Sản phẩm - Tú Cà Phê</title>
+<meta name="description" content="Cà phê rang mộc, máy pha, máy xay và thiết bị pha chế từ Tú Cà Phê.">
 <link rel="stylesheet" href="css/style.css">
 </head>
-<body data-page="products">
+<body class="site-body" data-page="products">
 
-<div class="app-shell">
-  <aside class="sidebar" id="sidebar">
-    <div class="sidebar-brand">
-      <div class="sidebar-logo">☕</div>
-      <div>
-        <div class="sidebar-title">Tú Cà Phê</div>
-        <div class="sidebar-subtitle">Cà phê rang xay nguyên chất</div>
-      </div>
-    </div>
-    <nav class="sidebar-nav">
-      <a href="index.html" class="sidebar-link" data-page="home">🏠 <span>Trang chủ</span></a>
-      <a href="products.html" class="sidebar-link" data-page="products">☕ <span>Cà phê</span></a>
-      <a href="pricing.html" class="sidebar-link" data-page="pricing">💰 <span>Bảng giá</span></a>
-      <a href="guide.html" class="sidebar-link" data-page="guide">📖 <span>Hướng dẫn mua</span></a>
-      <a href="about.html" class="sidebar-link" data-page="about">🏷️ <span>Về Tú Cà Phê</span></a>
-      <a href="contact.html" class="sidebar-link" data-page="contact">📞 <span>Liên hệ</span></a>
-      <div class="sidebar-divider"></div>
-      <a href="checkout.html" class="sidebar-link" data-page="cart">🛒 <span>Giỏ hàng</span></a>
+<header class="site-header" id="siteHeader">
+  <div class="site-header-inner">
+    <button type="button" class="site-hamburger" id="siteHamburger" aria-label="Mở menu">☰</button>
+    <a href="index.html" class="site-logo">TÚ CÀ PHÊ</a>
+    <nav class="site-nav" id="siteNav">
+      <a href="index.html" data-page="home">Trang chủ</a>
+      <a href="products.html?cat=ca-phe">Cà phê</a>
+      <a href="products.html?cat=may-pha">Máy pha</a>
+      <a href="products.html?cat=may-xay">Máy xay</a>
+      <a href="products.html?cat=thiet-bi">Thiết bị</a>
+      <a href="combos.html">Combo</a>
+      <a href="combos.html#xe-ca-phe">Xe cà phê</a>
+      <a href="about.html">Về Tú Cà Phê</a>
     </nav>
-  </aside>
-  <div class="sidebar-overlay" id="sidebarOverlay"></div>
-
-  <div class="app-main">
-    <header class="app-header">
-      <button type="button" class="menu-toggle" id="menuToggle" aria-label="Mở menu">☰</button>
-      <div class="breadcrumb">Cà phê</div>
-      <div class="app-header-actions">
-        <a href="checkout.html" class="pill-btn solid">🛒 Giỏ hàng <span class="cart-count" id="cartCount">0</span></a>
-      </div>
-    </header>
-
-    <main>
-      <div class="data-banner">⚠️ Giá sản phẩm hiển thị trên trang là <strong>dữ liệu mẫu (demo)</strong>, chưa phải bảng giá chính thức của Tú Cà Phê.</div>
-      <h2 class="section-title">Tất cả cà phê</h2>
-      <p class="section-sub">Mua từ 5kg (tổng đơn) để được áp dụng giá sỉ cho các sản phẩm đủ điều kiện.</p>
-      <div class="product-grid" id="productGrid"></div>
-    </main>
-
-    <div class="sticky-cart-cta" id="stickyCartCta">
-      <span>🛒 Xem giỏ hàng của bạn</span>
-      <a href="checkout.html">Xem giỏ →</a>
+    <div class="site-header-actions">
+      <button type="button" class="site-icon-btn" id="siteSearchToggle" aria-label="Tìm kiếm">🔍</button>
+      <a href="about.html" class="site-icon-btn" aria-label="Tài khoản">👤</a>
+      <a href="checkout.html" class="site-icon-btn" aria-label="Giỏ hàng">🛒<span class="cart-count" id="cartCount">0</span></a>
     </div>
   </div>
-</div>
+  <div class="site-search-bar" id="siteSearchBar">
+    <input type="search" id="siteSearchInput" placeholder="Tìm cà phê, máy pha, máy xay, thiết bị...">
+  </div>
+</header>
+<div class="site-nav-overlay" id="siteNavOverlay"></div>
 
+<main style="padding:0;max-width:none;">
+  <div class="section-block" style="padding-bottom:100px;">
+    <div class="data-banner">⚠️ Giá sản phẩm hiển thị trên trang là <strong>dữ liệu mẫu (demo)</strong>, chưa phải bảng giá chính thức của Tú Cà Phê.</div>
+    <h1 class="section-title" id="pageTitle" style="margin-top:32px;">Tất cả sản phẩm</h1>
+    <p class="section-sub" id="pageSub">Cà phê, máy pha, máy xay và thiết bị pha chế từ Tú Cà Phê.</p>
+    <div class="category-filter-pills" id="categoryPills"></div>
+    <div class="product-grid-v2" id="productGrid" style="margin-top:32px;"></div>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="site-footer-inner">
+    <div>
+      <span class="site-logo">TÚ CÀ PHÊ</span>
+      <p>Cà phê rang mộc và thiết bị pha chế cho quán, xe cà phê và gia đình.</p>
+    </div>
+    <div>
+      <strong>Liên hệ</strong>
+      <a href="tel:0786515253">📞 0786.51.52.53</a>
+      <a href="mailto:tucaphe.official@gmail.com">✉️ tucaphe.official@gmail.com</a>
+    </div>
+    <div>
+      <strong>Khám phá</strong>
+      <a href="products.html">Sản phẩm</a>
+      <a href="combos.html">Combo</a>
+      <a href="about.html">Về Tú Cà Phê</a>
+    </div>
+    <div>
+      <strong>Hỗ trợ</strong>
+      <a href="guide.html">Hướng dẫn mua</a>
+      <a href="pricing.html">Bảng giá</a>
+      <a href="contact.html">Liên hệ</a>
+    </div>
+  </div>
+  <div class="site-footer-bottom">© Tú Cà Phê — dữ liệu demo, chưa phải thông tin kinh doanh chính thức.</div>
+</footer>
+
+<script src="js/categories-data.js"></script>
 <script src="js/products-data.js"></script>
-<script src="js/pricing.js"></script>
 <script src="js/cart.js"></script>
-<script src="js/ui.js"></script>
-<script src="js/products-page.js"></script>
+<script src="js/site-ui.js"></script>
+<script src="js/products-listing.js"></script>
 </body>
 </html>

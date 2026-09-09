@@ -7,3 +7,10 @@ compatibility_date = "2024-01-01"
 binding = "DB"
 database_name = "tucaphe-db"
 database_id = "REPLACE_WITH_YOUR_D1_DATABASE_ID"
+
+# Gắn Worker vào cùng domain với trang bán hàng (order.tucaphe.vn) — cần DNS
+# của tucaphe.vn quản lý trên Cloudflare VÀ bản ghi order.tucaphe.vn ở chế độ
+# Proxied (orange cloud), không phải "DNS only". Xem worker/README.md mục 5.
+routes = [
+  { pattern = "order.tucaphe.vn/api/*", zone_name = "tucaphe.vn" }
+]

@@ -33,7 +33,7 @@ export default {
 };
 
 function buildCorsHeaders() {
-  const allowedOrigin = "https://order.tucaphe.vn"; // TODO: xác nhận lại domain bán hàng thật sẽ dùng
+  const allowedOrigin = "https://order.tucaphe.vn"; // domain thật của trang bán hàng (đã xác nhận)
   return {
     "Access-Control-Allow-Origin": allowedOrigin,
     "Access-Control-Allow-Methods": "GET, POST, PATCH, DELETE, OPTIONS",

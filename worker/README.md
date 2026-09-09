@@ -36,19 +36,32 @@ npx wrangler secret put ADMIN_TOKEN
 # nhân viên — không phải tài khoản riêng từng người.
 npx wrangler deploy
 ```
-Sau khi deploy, Wrangler trả về 1 URL dạng
-`https://tucaphe-order-api.<subdomain>.workers.dev`.
 
-## 5. Cập nhật frontend trỏ về Worker thật
-- `js/products-data.js`: sửa hằng số `API_BASE_URL` (đầu file) thành URL
-  Worker vừa deploy + `/api` (vd: `https://tucaphe-order-api.<subdomain>.workers.dev/api`,
-  hoặc gắn route riêng `order.tucaphe.vn/api` qua Cloudflare Routes nếu muốn
-  giữ cùng domain — nhớ sửa luôn `allowedOrigin` trong `order-api.js`). Chỉ
-  cần sửa 1 chỗ này — `checkout.js`/`admin.js`/`stock-data.js` đều tự ghép
-  thêm path (`/orders`, `/products`, `/stock-tx`...) dựa trên hằng số này.
-- `js/admin.js`: sửa hằng số `ADMIN_TOKEN` (đầu file) cho khớp đúng giá trị
-  đã đặt ở bước 4 (client cần biết token này để gửi kèm request — xem mục
-  Bảo mật).
+## 5. Gắn Worker vào order.tucaphe.vn/api (đã cấu hình sẵn trong wrangler.toml)
+Vì DNS của `tucaphe.vn` quản lý trên Cloudflare, `wrangler.toml` đã khai báo
+route `order.tucaphe.vn/api/*` trỏ thẳng vào Worker — **cùng domain với
+trang bán hàng**, nên không cần sửa `API_BASE_URL` (đang để `/api`, mặc định
+đã đúng). Trước khi `wrangler deploy` ở bước 4, kiểm tra trong Cloudflare
+Dashboard → DNS:
+- Bản ghi `order` (order.tucaphe.vn) phải ở chế độ **Proxied** (biểu tượng
+  đám mây cam), không phải "DNS only" (đám mây xám) — Route chỉ hoạt động
+  với traffic đi qua Cloudflare. Nếu bản ghi đang là DNS only (thường gặp
+  khi trỏ vào GitHub Pages để tránh xung đột chứng chỉ SSL), bật Proxied rồi
+  vào SSL/TLS → Overview, chọn chế độ **Full** (không chọn Flexible, để
+  tránh vòng lặp redirect với chứng chỉ GitHub Pages).
+- Sau khi bật Proxied, kiểm tra lại trang bán hàng vẫn tải bình thường
+  (`https://order.tucaphe.vn`) trước khi thử tính năng đặt hàng — bật sai
+  chế độ SSL/TLS có thể khiến cả trang web chính bị lỗi tạm thời.
+
+Nếu không muốn đụng vào cấu hình DNS/SSL đang chạy, có thể bỏ qua route này:
+xoá đoạn `routes = [...]` trong `wrangler.toml`, sau đó dùng thẳng URL dạng
+`https://tucaphe-order-api.<subdomain>.workers.dev` (Wrangler trả về sau khi
+deploy) làm giá trị `API_BASE_URL` trong `js/products-data.js` — cách này
+không cần đổi gì ở Cloudflare DNS, deploy xong dùng được ngay.
+
+- `js/admin.js`: dù chọn cách nào ở trên, vẫn cần sửa hằng số `ADMIN_TOKEN`
+  (đầu file) cho khớp đúng giá trị đã đặt ở bước 4 (client cần biết token
+  này để gửi kèm request — xem mục Bảo mật).
 
 ## 6. Bảo mật — giới hạn cần biết
 - Chỉ có **1 token dùng chung** cho toàn bộ nhân viên (`ADMIN_TOKEN`), không
@@ -56,8 +69,9 @@ Sau khi deploy, Wrangler trả về 1 URL dạng
   đã sửa gì. Đủ để chặn người lạ trên Internet ghi thẳng vào D1, nhưng
   **không phải bảo mật production thật** — giống cách mật khẩu quản trị demo
   hiện tại (`tucaphe2026`) đã được ghi chú trong `admin/index.html`.
-- CORS trong `order-api.js` giới hạn theo `allowedOrigin` — cần xác nhận lại
-  domain bán hàng thật rồi sửa đúng giá trị này trước khi đi vào sử dụng thật.
+- CORS trong `order-api.js` giới hạn theo `allowedOrigin` — đã đặt đúng
+  `https://order.tucaphe.vn` (domain thật của trang bán hàng, theo file
+  `CNAME` ở gốc repo). Nếu sau này đổi domain, nhớ sửa lại giá trị này.
 - Nếu lộ `ADMIN_TOKEN`, đổi lại bằng `npx wrangler secret put ADMIN_TOKEN`
   (ghi đè giá trị cũ) rồi cập nhật lại trong `js/admin.js`.
 

@@ -42,6 +42,15 @@
         <button class="sidebar-link" data-tab="orders">🧾 <span>Đơn hàng</span></button>
         <button class="sidebar-link" data-tab="customers">👥 <span>Khách hàng</span></button>
 
+        <div class="sidebar-section-label">Kho hàng</div>
+        <button class="sidebar-link" data-tab="stock">📊 <span>Xuất nhập tồn</span></button>
+
+        <div class="sidebar-section-label">Sản xuất</div>
+        <button class="sidebar-link" data-tab="production">🏭 <span>Sản xuất &amp; giao hàng</span></button>
+
+        <div class="sidebar-section-label">Nhân sự</div>
+        <button class="sidebar-link" data-tab="hr">🧑‍🤝‍🧑 <span>Nhân sự &amp; chấm công</span></button>
+
         <div class="sidebar-section-label">Công thức pha chế</div>
         <button class="sidebar-link" data-tab="recipes">📋 <span>Tất cả công thức</span> <span class="sidebar-count" id="recipesCount"></span></button>
         <div id="sidebarRecipeCategories"></div>
@@ -52,6 +61,7 @@
         <div class="sidebar-section-label">Chi phí &amp; vận hành</div>
         <button class="sidebar-link" data-tab="pricing-calc">💰 <span>Bảng tính giá bán</span></button>
         <button class="sidebar-link" data-tab="breakeven">📈 <span>Điểm hoà vốn</span></button>
+        <button class="sidebar-link" data-tab="finance">🏦 <span>Tài chính</span></button>
 
         <div class="sidebar-section-label">Tra cứu</div>
         <button class="sidebar-link" data-tab="about-system">ℹ️ <span>Về hệ thống</span></button>
@@ -129,11 +139,15 @@
 
         <!-- TAB: ĐƠN HÀNG -->
         <section id="tab-orders" style="display:none;">
-          <h2 class="section-title" style="margin-top:0;">Đơn hàng</h2>
+          <div class="admin-toolbar">
+            <h2 class="section-title" style="margin:0;">Đơn hàng</h2>
+            <button class="btn primary" id="addOrderBtn">+ Tạo đơn hàng</button>
+          </div>
+          <p class="section-sub">Dùng khi khách đặt qua điện thoại/Zalo/tại quầy — nhập tay thay vì để khách tự đặt trên trang bán hàng.</p>
           <div class="admin-table-wrap">
             <table class="admin-table">
               <thead>
-                <tr><th>Mã đơn</th><th>Ngày đặt</th><th>Khách hàng</th><th>SĐT</th><th>Tổng kg</th><th>Tổng tiền</th><th>Đồng bộ Lark</th><th>Trạng thái</th></tr>
+                <tr><th>Mã đơn</th><th>Ngày đặt</th><th>Khách hàng</th><th>SĐT</th><th>Kênh</th><th>Tổng kg</th><th>Tổng tiền</th><th>Đồng bộ</th><th>Trạng thái</th></tr>
               </thead>
               <tbody id="ordersTableBody"></tbody>
             </table>
@@ -148,6 +162,102 @@
             <table class="admin-table">
               <thead><tr><th>Tên</th><th>SĐT</th><th>Quán/DN</th><th>Số đơn</th><th>Tổng chi tiêu</th><th>Đơn gần nhất</th></tr></thead>
               <tbody id="customersTableBody"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- TAB: XUẤT NHẬP TỒN -->
+        <section id="tab-stock" style="display:none;">
+          <h2 class="section-title" style="margin-top:0;">Xuất nhập tồn</h2>
+          <p class="section-sub">Theo dõi tồn kho Nguyên liệu pha chế và Sản phẩm bán (cà phê, máy móc) trong 1 sổ chung.</p>
+          <div class="admin-toolbar">
+            <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+              <label style="display:flex;align-items:center;gap:6px;font-size:0.85rem;font-weight:600;">Từ ngày
+                <input type="date" id="stockPeriodFrom" style="padding:8px 10px;border:1px solid var(--cream-dark);border-radius:8px;">
+              </label>
+              <label style="display:flex;align-items:center;gap:6px;font-size:0.85rem;font-weight:600;">Đến ngày
+                <input type="date" id="stockPeriodTo" style="padding:8px 10px;border:1px solid var(--cream-dark);border-radius:8px;">
+              </label>
+            </div>
+            <div style="display:flex;gap:8px;">
+              <button class="btn secondary" id="addStockInBtn">+ Tạo phiếu nhập</button>
+              <button class="btn primary" id="addStockOutBtn">+ Tạo phiếu xuất</button>
+            </div>
+          </div>
+          <div class="admin-table-wrap">
+            <table class="admin-table">
+              <thead>
+                <tr><th>STT</th><th>Tên</th><th>Loại</th><th>ĐVT</th><th>Tồn đầu kỳ</th><th>Nhập trong kỳ</th><th>Xuất trong kỳ</th><th>Tồn cuối kỳ (tính)</th><th>Tồn thực</th></tr>
+              </thead>
+              <tbody id="stockLedgerBody"></tbody>
+            </table>
+          </div>
+
+          <h3 class="section-title" style="font-size:1.1rem;margin-top:32px;">Lịch sử phiếu kho</h3>
+          <div class="admin-table-wrap">
+            <table class="admin-table">
+              <thead><tr><th>Mã phiếu</th><th>Loại</th><th>Ngày</th><th>Mặt hàng</th><th>Số lượng</th><th>Ghi chú</th><th>Nguồn</th><th>Hành động</th></tr></thead>
+              <tbody id="stockTxTableBody"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- TAB: SẢN XUẤT & GIAO HÀNG -->
+        <section id="tab-production" style="display:none;">
+          <div class="admin-toolbar">
+            <h2 class="section-title" style="margin:0;">Mẻ sản xuất</h2>
+            <button class="btn primary" id="addProductionBtn">+ Tạo mẻ sản xuất</button>
+          </div>
+          <p class="section-sub">Mỗi mẻ tự động xuất nguyên liệu đầu vào và nhập sản phẩm đầu ra vào sổ Xuất nhập tồn.</p>
+          <div class="admin-table-wrap">
+            <table class="admin-table">
+              <thead><tr><th>Mã mẻ</th><th>Ngày</th><th>Sản phẩm đầu ra</th><th>Số lượng ra</th><th>Nguyên liệu đầu vào</th><th>Ghi chú</th><th>Hành động</th></tr></thead>
+              <tbody id="productionTableBody"></tbody>
+            </table>
+          </div>
+
+          <h2 class="section-title" style="margin-top:36px;">Giao hàng</h2>
+          <p class="section-sub">Cập nhật trạng thái giao hàng cho các đơn ở tab Đơn hàng.</p>
+          <div class="admin-table-wrap">
+            <table class="admin-table">
+              <thead><tr><th>Mã đơn</th><th>Khách hàng</th><th>Địa chỉ</th><th>Trạng thái giao</th><th>Ngày giao dự kiến</th><th>Người giao</th></tr></thead>
+              <tbody id="deliveryTableBody"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- TAB: NHÂN SỰ & CHẤM CÔNG -->
+        <section id="tab-hr" style="display:none;">
+          <div class="admin-toolbar">
+            <h2 class="section-title" style="margin:0;">Nhân viên</h2>
+            <button class="btn primary" id="addEmployeeBtn">+ Thêm nhân viên</button>
+          </div>
+          <div class="admin-table-wrap">
+            <table class="admin-table">
+              <thead><tr><th>Tên</th><th>SĐT</th><th>Vị trí</th><th>Đơn giá công</th><th>Ngày vào làm</th><th>Trạng thái</th><th>Hành động</th></tr></thead>
+              <tbody id="employeesTableBody"></tbody>
+            </table>
+          </div>
+
+          <div class="admin-toolbar" style="margin-top:36px;">
+            <h2 class="section-title" style="margin:0;">Chấm công</h2>
+            <div style="display:flex;gap:10px;align-items:center;">
+              <input type="month" id="attendanceMonth" style="padding:8px 10px;border:1px solid var(--cream-dark);border-radius:8px;">
+              <button class="btn primary" id="addAttendanceBtn">+ Chấm công</button>
+            </div>
+          </div>
+          <div class="admin-table-wrap">
+            <table class="admin-table">
+              <thead><tr><th>Nhân viên</th><th>Ngày</th><th>Công</th><th>Ghi chú</th><th>Hành động</th></tr></thead>
+              <tbody id="attendanceTableBody"></tbody>
+            </table>
+          </div>
+
+          <h3 class="section-title" style="font-size:1.1rem;margin-top:28px;">Tổng hợp lương tháng</h3>
+          <div class="admin-table-wrap">
+            <table class="admin-table">
+              <thead><tr><th>Nhân viên</th><th>Tổng công</th><th>Lương ước tính</th></tr></thead>
+              <tbody id="attendanceSummaryBody"></tbody>
             </table>
           </div>
         </section>
@@ -216,6 +326,42 @@
           </form>
         </section>
 
+        <!-- TAB: TÀI CHÍNH -->
+        <section id="tab-finance" style="display:none;">
+          <div class="admin-toolbar">
+            <h2 class="section-title" style="margin:0;">Tài chính</h2>
+            <button class="btn primary" id="addFinanceBtn">+ Thêm giao dịch</button>
+          </div>
+          <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:16px;">
+            <label style="display:flex;align-items:center;gap:6px;font-size:0.85rem;font-weight:600;">Từ ngày
+              <input type="date" id="financePeriodFrom" style="padding:8px 10px;border:1px solid var(--cream-dark);border-radius:8px;">
+            </label>
+            <label style="display:flex;align-items:center;gap:6px;font-size:0.85rem;font-weight:600;">Đến ngày
+              <input type="date" id="financePeriodTo" style="padding:8px 10px;border:1px solid var(--cream-dark);border-radius:8px;">
+            </label>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:20px;">
+            <div class="admin-table-wrap" style="padding:16px 18px;">
+              <div style="color:var(--muted);font-size:0.82rem;">Tổng thu</div>
+              <strong style="font-size:1.3rem;color:var(--success);" id="finance_out_thu">0₫</strong>
+            </div>
+            <div class="admin-table-wrap" style="padding:16px 18px;">
+              <div style="color:var(--muted);font-size:0.82rem;">Tổng chi</div>
+              <strong style="font-size:1.3rem;color:var(--danger);" id="finance_out_chi">0₫</strong>
+            </div>
+            <div class="admin-table-wrap" style="padding:16px 18px;">
+              <div style="color:var(--muted);font-size:0.82rem;">Lợi nhuận</div>
+              <strong style="font-size:1.3rem;color:var(--accent-dark);" id="finance_out_profit">0₫</strong>
+            </div>
+          </div>
+          <div class="admin-table-wrap">
+            <table class="admin-table">
+              <thead><tr><th>Mã</th><th>Ngày</th><th>Loại</th><th>Danh mục</th><th>Số tiền</th><th>Ghi chú</th><th>Hành động</th></tr></thead>
+              <tbody id="financeTableBody"></tbody>
+            </table>
+          </div>
+        </section>
+
         <!-- TAB: VỀ HỆ THỐNG -->
         <section id="tab-about-system" style="display:none;">
           <h2 class="section-title" style="margin-top:0;">Về hệ thống</h2>
@@ -261,7 +407,9 @@
     <label>Giá lẻ (đ)<input type="number" id="pf_retail_price" required min="0"></label>
     <label>Giá sỉ (đ) — với thiết bị, để bằng giá lẻ<input type="number" id="pf_wholesale_price" required min="0"></label>
     <label>Ngưỡng áp giá sỉ (kg) — với thiết bị, để 1<input type="number" id="pf_wholesale_min_kg" required min="1"></label>
-    <label>Tồn kho<input type="number" id="pf_stock" required min="0"></label>
+    <label>Tồn kho ban đầu (chỉ áp dụng khi tạo sản phẩm mới — sửa tồn kho ở tab Xuất nhập tồn)
+      <input type="number" id="pf_stock" required min="0">
+    </label>
     <div class="panel-actions" style="display:flex;gap:10px;">
       <button type="button" class="btn secondary" id="productModalCancel">Huỷ</button>
       <button type="submit" class="btn primary">Lưu</button>
@@ -375,12 +523,185 @@
   </form>
 </div>
 
+<!-- MODAL TẠO ĐƠN HÀNG THỦ CÔNG -->
+<div class="sidebar-overlay" id="orderModalOverlay" style="z-index:60;"></div>
+<div id="orderModal" style="display:none;position:fixed;inset:0;align-items:center;justify-content:center;z-index:61;">
+  <form id="orderForm" class="checkout-form" style="width:640px;max-width:94vw;max-height:90vh;overflow-y:auto;">
+    <h3 style="margin:0;color:var(--coffee-dark);">Tạo đơn hàng</h3>
+    <label>Họ và tên khách<input type="text" id="of_name" required></label>
+    <label>Số điện thoại<input type="text" id="of_phone" required></label>
+    <label>Tên quán / doanh nghiệp (không bắt buộc)<input type="text" id="of_company"></label>
+    <label>Địa chỉ nhận hàng<input type="text" id="of_address" required></label>
+    <label>Tỉnh / thành<input type="text" id="of_province" required></label>
+    <label>Ghi chú<input type="text" id="of_note"></label>
+
+    <div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+        <strong style="font-size:0.9rem;color:var(--coffee-dark);">Sản phẩm</strong>
+        <button type="button" class="btn secondary sm" id="addOrderItemRowBtn">+ Thêm sản phẩm</button>
+      </div>
+      <div class="admin-table-wrap">
+        <table class="admin-table">
+          <thead><tr><th>Sản phẩm</th><th>Số lượng</th><th>Đơn giá</th><th>Thành tiền</th><th></th></tr></thead>
+          <tbody id="orderItemsBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div style="display:flex;justify-content:space-between;align-items:center;font-weight:800;color:var(--coffee-dark);padding:6px 2px;">
+      <span>Tổng khối lượng / Tổng tiền</span>
+      <span><span id="orderTotalKg">0kg</span> · <span id="orderTotalMoney">0₫</span></span>
+    </div>
+
+    <div class="panel-actions" style="display:flex;gap:10px;">
+      <button type="button" class="btn secondary" id="orderModalCancel">Huỷ</button>
+      <button type="submit" class="btn primary">Tạo đơn hàng</button>
+    </div>
+  </form>
+</div>
+
+<!-- MODAL PHIẾU NHẬP/XUẤT KHO -->
+<div class="sidebar-overlay" id="stockTxModalOverlay" style="z-index:60;"></div>
+<div id="stockTxModal" style="display:none;position:fixed;inset:0;align-items:center;justify-content:center;z-index:61;">
+  <form id="stockTxForm" class="checkout-form" style="width:600px;max-width:94vw;max-height:90vh;overflow-y:auto;">
+    <h3 id="stockTxModalTitle" style="margin:0;color:var(--coffee-dark);">Tạo phiếu nhập</h3>
+    <input type="hidden" id="stx_type">
+    <label>Ngày<input type="date" id="stx_date" required></label>
+    <label>Ghi chú<input type="text" id="stx_note" placeholder="Vd: Nhập từ nhà cung cấp A"></label>
+
+    <div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+        <strong style="font-size:0.9rem;color:var(--coffee-dark);">Danh sách mặt hàng</strong>
+        <button type="button" class="btn secondary sm" id="addStockTxRowBtn">+ Thêm dòng</button>
+      </div>
+      <div class="admin-table-wrap">
+        <table class="admin-table">
+          <thead><tr><th>Loại</th><th>Mặt hàng</th><th>Số lượng</th><th></th></tr></thead>
+          <tbody id="stockTxItemsBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="panel-actions" style="display:flex;gap:10px;">
+      <button type="button" class="btn secondary" id="stockTxModalCancel">Huỷ</button>
+      <button type="submit" class="btn primary">Lưu phiếu</button>
+    </div>
+  </form>
+</div>
+
+<!-- MODAL TẠO MẺ SẢN XUẤT -->
+<div class="sidebar-overlay" id="productionModalOverlay" style="z-index:60;"></div>
+<div id="productionModal" style="display:none;position:fixed;inset:0;align-items:center;justify-content:center;z-index:61;">
+  <form id="productionForm" class="checkout-form" style="width:600px;max-width:94vw;max-height:90vh;overflow-y:auto;">
+    <h3 style="margin:0;color:var(--coffee-dark);">Tạo mẻ sản xuất</h3>
+    <label>Ngày<input type="date" id="pdf_date" required></label>
+    <label>Sản phẩm đầu ra
+      <select id="pdf_product_id" required></select>
+    </label>
+    <label>Số lượng đầu ra<input type="number" id="pdf_output_qty" min="0" step="0.01" required></label>
+    <label>Ghi chú<input type="text" id="pdf_note" placeholder="Vd: Rang mẻ sáng"></label>
+
+    <div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+        <strong style="font-size:0.9rem;color:var(--coffee-dark);">Nguyên liệu đầu vào</strong>
+        <button type="button" class="btn secondary sm" id="addProductionRowBtn">+ Thêm dòng</button>
+      </div>
+      <div class="admin-table-wrap">
+        <table class="admin-table">
+          <thead><tr><th>Nguyên liệu</th><th>Số lượng</th><th></th></tr></thead>
+          <tbody id="productionItemsBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="panel-actions" style="display:flex;gap:10px;">
+      <button type="button" class="btn secondary" id="productionModalCancel">Huỷ</button>
+      <button type="submit" class="btn primary">Lưu mẻ sản xuất</button>
+    </div>
+  </form>
+</div>
+
+<!-- MODAL THÊM/SỬA NHÂN VIÊN -->
+<div class="sidebar-overlay" id="employeeModalOverlay" style="z-index:60;"></div>
+<div id="employeeModal" style="display:none;position:fixed;inset:0;align-items:center;justify-content:center;z-index:61;">
+  <form id="employeeForm" class="checkout-form" style="width:440px;max-width:92vw;">
+    <h3 id="employeeModalTitle" style="margin:0;color:var(--coffee-dark);">Thêm nhân viên</h3>
+    <input type="hidden" id="ef_id">
+    <label>Tên nhân viên<input type="text" id="ef_name" required></label>
+    <label>Số điện thoại<input type="text" id="ef_phone"></label>
+    <label>Vị trí<input type="text" id="ef_role" placeholder="Vd: Pha chế, Giao hàng"></label>
+    <label>Đơn giá công (đ/công)<input type="number" id="ef_daily_rate" min="0" required></label>
+    <label>Ngày vào làm<input type="date" id="ef_start_date"></label>
+    <label style="flex-direction:row;align-items:center;gap:8px;"><input type="checkbox" id="ef_active" style="width:auto;" checked> Đang làm việc</label>
+    <div class="panel-actions" style="display:flex;gap:10px;">
+      <button type="button" class="btn secondary" id="employeeModalCancel">Huỷ</button>
+      <button type="submit" class="btn primary">Lưu</button>
+    </div>
+  </form>
+</div>
+
+<!-- MODAL CHẤM CÔNG -->
+<div class="sidebar-overlay" id="attendanceModalOverlay" style="z-index:60;"></div>
+<div id="attendanceModal" style="display:none;position:fixed;inset:0;align-items:center;justify-content:center;z-index:61;">
+  <form id="attendanceForm" class="checkout-form" style="width:420px;max-width:92vw;">
+    <h3 style="margin:0;color:var(--coffee-dark);">Chấm công</h3>
+    <label>Nhân viên
+      <select id="atf_employee_id" required></select>
+    </label>
+    <label>Ngày<input type="date" id="atf_date" required></label>
+    <label>Công
+      <select id="atf_cong" required>
+        <option value="0.5">0.5 (nửa ngày)</option>
+        <option value="1" selected>1 (cả ngày)</option>
+        <option value="1.5">1.5 (có tăng ca)</option>
+      </select>
+    </label>
+    <label>Ghi chú<input type="text" id="atf_note"></label>
+    <div class="panel-actions" style="display:flex;gap:10px;">
+      <button type="button" class="btn secondary" id="attendanceModalCancel">Huỷ</button>
+      <button type="submit" class="btn primary">Lưu</button>
+    </div>
+  </form>
+</div>
+
+<!-- MODAL THÊM/SỬA GIAO DỊCH TÀI CHÍNH -->
+<div class="sidebar-overlay" id="financeModalOverlay" style="z-index:60;"></div>
+<div id="financeModal" style="display:none;position:fixed;inset:0;align-items:center;justify-content:center;z-index:61;">
+  <form id="financeForm" class="checkout-form" style="width:420px;max-width:92vw;">
+    <h3 id="financeModalTitle" style="margin:0;color:var(--coffee-dark);">Thêm giao dịch</h3>
+    <input type="hidden" id="ff_id">
+    <label>Loại
+      <select id="ff_type" required>
+        <option value="thu">Thu</option>
+        <option value="chi">Chi</option>
+      </select>
+    </label>
+    <label>Ngày<input type="date" id="ff_date" required></label>
+    <label>Danh mục
+      <input type="text" id="ff_category" list="financeCategoryList" required>
+      <datalist id="financeCategoryList"></datalist>
+    </label>
+    <label>Số tiền (đ)<input type="number" id="ff_amount" min="0" required></label>
+    <label>Ghi chú<input type="text" id="ff_note"></label>
+    <div class="panel-actions" style="display:flex;gap:10px;">
+      <button type="button" class="btn secondary" id="financeModalCancel">Huỷ</button>
+      <button type="submit" class="btn primary">Lưu</button>
+    </div>
+  </form>
+</div>
+
 <script src="../js/categories-data.js"></script>
 <script src="../js/products-data.js"></script>
 <script src="../js/combos-data.js"></script>
 <script src="../js/customers-data.js"></script>
 <script src="../js/ingredients-data.js"></script>
 <script src="../js/recipes-data.js"></script>
+<script src="../js/pricing.js"></script>
+<script src="../js/stock-data.js"></script>
+<script src="../js/production-data.js"></script>
+<script src="../js/employees-data.js"></script>
+<script src="../js/attendance-data.js"></script>
+<script src="../js/finance-data.js"></script>
 <script src="../js/admin.js"></script>
 </body>
 </html>

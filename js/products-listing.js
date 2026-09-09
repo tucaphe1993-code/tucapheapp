@@ -1,12 +1,12 @@
 // ===== TRANG SẢN PHẨM: lọc theo danh mục (?cat=) hoặc tìm kiếm (?q=) =====
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
   const params = new URLSearchParams(location.search);
   const cat = params.get("cat");
   const q = (params.get("q") || "").trim();
 
   renderCategoryPills(cat, q);
 
-  let items = getVisibleProducts();
+  let items = await getVisibleProducts();
   let title = "Tất cả sản phẩm";
   let sub = "Cà phê, máy pha, máy xay và thiết bị pha chế từ Tú Cà Phê.";
 

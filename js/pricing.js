@@ -1,10 +1,17 @@
 // =====================================================================
 // LOGIC GIÁ LẺ / GIÁ SỈ — hàm thuần, không phụ thuộc DOM, dễ test độc lập.
+// `buildCartLines`/`getCartTotal`/`getCartTotalKg`/`getWholesaleHint` là
+// ASYNC vì cần `await loadProducts()` (dữ liệu sản phẩm giờ lấy qua API,
+// xem js/products-data.js) — nơi gọi các hàm này phải dùng `await`.
 //
 // Quy tắc (đã xác nhận với chủ shop): ngưỡng áp giá sỉ tính theo TỔNG SỐ KG
 // của TOÀN BỘ giỏ hàng (cộng dồn mọi sản phẩm), KHÔNG phải theo từng sản
 // phẩm riêng lẻ. Với mỗi sản phẩm, nếu tổng kg cả giỏ >= wholesale_min_kg
 // của sản phẩm đó thì sản phẩm đó được tính theo wholesale_price.
+//
+// LƯU Ý: logic tính giá này được COPY lại nguyên trạng ở phía server
+// (worker/order-api.js's getUnitPrice/isWholesaleApplied) để Worker tự tính
+// lại giá khi tạo đơn — sửa quy tắc ở đây thì phải sửa cả bên đó.
 // =====================================================================
 
 // Tiền tố dùng để lưu combo trong cùng giỏ hàng {id: qty} với sản phẩm thường.
@@ -31,8 +38,8 @@ function isWholesaleApplied(product, cartTotalKg) {
 
 // Xây danh sách dòng giỏ hàng đầy đủ (giá, thành tiền) từ cart {id: qty}.
 // id có thể là id sản phẩm thường, hoặc "combo:<comboId>" cho 1 combo trọn gói.
-function buildCartLines(cart) {
-  const products = loadProducts();
+async function buildCartLines(cart) {
+  const products = await loadProducts();
   const totalKg = getCartTotalKg(cart);
   return Object.entries(cart)
     .filter(([, qty]) => qty > 0)
@@ -58,16 +65,17 @@ function buildCartLines(cart) {
     .filter(Boolean);
 }
 
-function getCartTotal(cart) {
-  return buildCartLines(cart).reduce((sum, l) => sum + l.lineTotal, 0);
+async function getCartTotal(cart) {
+  const lines = await buildCartLines(cart);
+  return lines.reduce((sum, l) => sum + l.lineTotal, 0);
 }
 
 // Thông báo tiến độ giá sỉ, dùng chung cho trang chi tiết sản phẩm / giỏ hàng.
 // Vì mỗi sản phẩm có thể có wholesale_min_kg khác nhau, lấy ngưỡng THẤP NHẤT
 // trong các sản phẩm đang có trong giỏ (hoặc sản phẩm đang xem) để đưa ra gợi ý gần nhất.
-function getWholesaleHint(cart, focusProduct) {
+async function getWholesaleHint(cart, focusProduct) {
   const totalKg = getCartTotalKg(cart);
-  const products = focusProduct ? [focusProduct] : buildCartLines(cart);
+  const products = focusProduct ? [focusProduct] : await buildCartLines(cart);
   if (!products.length) return null;
   const minThreshold = Math.min(...products.map(p => p.wholesale_min_kg));
   if (totalKg >= minThreshold) {

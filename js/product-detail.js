@@ -1,9 +1,7 @@
 const params = new URLSearchParams(location.search);
 const productId = params.get("id");
-const product = getProductById(productId);
-const isCoffee = product && product.category_id === "ca-phe";
+let product, isCoffee, selectedGrind;
 let selectedQty = 1;
-let selectedGrind = isCoffee ? product.variants.grind[0] : null;
 
 function renderDetail() {
   const main = document.getElementById("detailMain");
@@ -122,4 +120,12 @@ function updatePrice() {
   `;
 }
 
-renderDetail();
+(async () => {
+  product = await getProductById(productId);
+  // product.variants đòi hỏi thêm điều kiện vì admin hiện chưa có UI để nhập
+  // weight/grind khi tạo sản phẩm cà phê mới — phòng trường hợp thiếu dữ liệu
+  // thay vì crash trang.
+  isCoffee = product && product.category_id === "ca-phe" && !!product.variants;
+  selectedGrind = isCoffee ? product.variants.grind[0] : null;
+  renderDetail();
+})();

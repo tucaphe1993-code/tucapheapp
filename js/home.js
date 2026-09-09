@@ -1,14 +1,14 @@
 // ===== TRANG CHỦ: best sellers, combo grid, smart combo finder wizard =====
-document.addEventListener("DOMContentLoaded", () => {
-  renderBestSellers();
+document.addEventListener("DOMContentLoaded", async () => {
+  await renderBestSellers();
   renderComboGrid();
   initFinderWizard();
 });
 
-function renderBestSellers() {
+async function renderBestSellers() {
   const grid = document.getElementById("bestSellersGrid");
   if (!grid) return;
-  const items = getProductsByCategory("ca-phe").slice(0, 4);
+  const items = (await getProductsByCategory("ca-phe")).slice(0, 4);
   grid.innerHTML = items.map(p => `
     <a class="product-card-v2" href="product.html?id=${p.id}">
       <div class="product-card-v2-art">

@@ -1,0 +1,9 @@
+name = "tucaphe-order-api"
+main = "worker/order-api.js"
+compatibility_date = "2024-01-01"
+
+# Sau khi chạy `wrangler d1 create tucaphe-db`, dán database_id trả về vào đây.
+[[d1_databases]]
+binding = "DB"
+database_name = "tucaphe-db"
+database_id = "REPLACE_WITH_YOUR_D1_DATABASE_ID"

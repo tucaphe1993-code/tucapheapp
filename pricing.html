@@ -65,15 +65,18 @@
 <script src="js/cart.js"></script>
 <script src="js/ui.js"></script>
 <script>
-  document.getElementById("priceTableBody").innerHTML = getVisibleProducts().map(p => `
-    <tr>
-      <td>${p.icon} ${p.name}</td>
-      <td>${p.unit}</td>
-      <td>${money(p.retail_price)}</td>
-      <td class="wholesale-cell">${money(p.wholesale_price)}</td>
-      <td>Từ ${p.wholesale_min_kg}${p.unit} (tổng giỏ hàng)</td>
-    </tr>
-  `).join("");
+  (async () => {
+    const products = await getVisibleProducts();
+    document.getElementById("priceTableBody").innerHTML = products.map(p => `
+      <tr>
+        <td>${p.icon} ${p.name}</td>
+        <td>${p.unit}</td>
+        <td>${money(p.retail_price)}</td>
+        <td class="wholesale-cell">${money(p.wholesale_price)}</td>
+        <td>Từ ${p.wholesale_min_kg}${p.unit} (tổng giỏ hàng)</td>
+      </tr>
+    `).join("");
+  })();
 </script>
 </body>
 </html>

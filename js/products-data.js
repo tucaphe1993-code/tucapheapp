@@ -1,173 +1,70 @@
 // =====================================================================
-// SẢN PHẨM — cà phê rang mộc + thiết bị pha chế (máy pha, máy xay, dụng
-// cụ). TOÀN BỘ giá/thông số bên dưới là DỮ LIỆU MẪU (demo) để dựng giao
-// diện premium mới, lấy đúng theo ví dụ đã cung cấp cho 4 sản phẩm cà
-// phê — CHƯA phải giá bán chính thức, cần Tú Cà Phê xác nhận trước khi
-// vận hành thật. KHÔNG tự thêm thương hiệu/sản phẩm ngoài dữ liệu mẫu.
+// SẢN PHẨM — cà phê rang mộc + thiết bị pha chế. Đồng bộ thật qua Cloudflare
+// Worker + D1 (xem worker/README.md) để mọi máy/nhân viên thấy CHUNG 1 tồn
+// kho/giá, thay vì mỗi trình duyệt một bản localStorage riêng như trước.
+// TOÀN BỘ hàm đọc/ghi sản phẩm giờ là ASYNC (gọi API) — nơi gọi các hàm này
+// phải dùng `await`.
 // =====================================================================
 
-const PRODUCTS_STORE_KEY = "tcp_products_v3";
+// TODO: thay bằng URL Worker thật sau khi deploy, vd:
+// "https://tucaphe-order-api.<subdomain>.workers.dev/api"
+const API_BASE_URL = "/api";
 
-const PRODUCTS_SEED = [
-  // ---------- CÀ PHÊ ----------
-  {
-    id: "crema-blend",
-    category_id: "ca-phe",
-    name: "Crema Blend",
-    icon: "🥣",
-    image: "https://images.pexels.com/photos/27860686/pexels-photo-27860686.jpeg?w=600",
-    short_desc: "Pha trộn cân bằng, lớp crema dày, hợp pha máy espresso.",
-    description: "Công thức phối trộn theo tỷ lệ riêng của Tú Cà Phê, cho lớp crema dày và tách cà phê cân bằng giữa vị đậm và hương thơm.",
-    unit: "kg",
-    retail_price: 300000,
-    wholesale_price: 260000,
-    wholesale_min_kg: 5,
-    stock: 200,
-    variants: { weight: ["1kg", "5kg", "10kg", "20kg"], grind: ["Hạt", "Xay phin", "Xay espresso"] },
-    badge: "Bán chạy",
-    visible: true,
-  },
-  {
-    id: "honey-reserve",
-    category_id: "ca-phe",
-    name: "Honey Reserve",
-    icon: "🍯",
-    image: "https://images.pexels.com/photos/16682442/pexels-photo-16682442.jpeg?w=600",
-    short_desc: "Chế biến honey process, vị ngọt đậm, hương trái cây chín.",
-    description: "Cà phê chế biến theo phương pháp honey process, giữ lại một phần chất nhầy quả cà phê trong quá trình phơi, cho vị ngọt đậm và hương trái cây chín đặc trưng.",
-    unit: "kg",
-    retail_price: 350000,
-    wholesale_price: 275000,
-    wholesale_min_kg: 5,
-    stock: 200,
-    variants: { weight: ["1kg", "5kg", "10kg", "20kg"], grind: ["Hạt", "Xay phin", "Xay espresso"] },
-    badge: null,
-    visible: true,
-  },
-  {
-    id: "phin-moc-ban",
-    category_id: "ca-phe",
-    name: "Phin Mộc Bản",
-    icon: "☕",
-    image: "https://images.pexels.com/photos/3936163/pexels-photo-3936163.jpeg?w=600",
-    short_desc: "Rang mộc nguyên chất, đậm đà, chuyên dùng pha phin.",
-    description: "Cà phê rang mộc nguyên chất, không tẩm phụ gia, rang theo mẻ nhỏ để giữ trọn hương vị đậm đà — chuyên dùng pha phin truyền thống.",
-    unit: "kg",
-    retail_price: 300000,
-    wholesale_price: 260000,
-    wholesale_min_kg: 5,
-    stock: 200,
-    variants: { weight: ["1kg", "5kg", "10kg", "20kg"], grind: ["Hạt", "Xay phin", "Xay espresso"] },
-    badge: null,
-    visible: true,
-  },
-  {
-    id: "arabica-cau-dat",
-    category_id: "ca-phe",
-    name: "Arabica Cầu Đất",
-    icon: "🌸",
-    image: "https://images.pexels.com/photos/2036874/pexels-photo-2036874.jpeg?w=600",
-    short_desc: "Arabica vùng cao Cầu Đất, chua thanh, hương hoa trái.",
-    description: "Hạt Arabica trồng ở vùng cao Cầu Đất (Đà Lạt), rang vừa để giữ vị chua thanh đặc trưng cùng hương hoa và trái cây.",
-    unit: "kg",
-    retail_price: 450000,
-    wholesale_price: 400000,
-    wholesale_min_kg: 5,
-    stock: 150,
-    variants: { weight: ["1kg", "5kg", "10kg", "20kg"], grind: ["Hạt", "Xay phin", "Xay espresso"] },
-    badge: "Cao cấp",
-    visible: true,
-  },
+let _productsCache = null;
 
-  // ---------- MÁY PHA ----------
-  {
-    id: "may-pha-compact-15",
-    category_id: "may-pha",
-    name: "Máy pha Espresso Compact 15",
-    icon: "⚙️",
-    short_desc: "Máy pha 1 group nhỏ gọn, phù hợp xe cà phê và quán take-away.",
-    description: "Máy pha espresso 1 group, kích thước nhỏ gọn, khởi động nhanh — phù hợp mô hình xe cà phê, take-away, quán nhỏ.",
-    unit: "cái",
-    retail_price: 18000000,
-    wholesale_price: 18000000,
-    wholesale_min_kg: 1,
-    stock: 20,
-    specs: { "Số group": "1", "Áp suất bơm": "15 bar", "Công suất": "1400W", "Dung tích bình nước": "3L" },
-    badge: "Bán chạy",
-    visible: true,
-  },
-  {
-    id: "may-pha-duo-2group",
-    category_id: "may-pha",
-    name: "Máy pha Espresso Duo 2 Group",
-    icon: "⚙️",
-    short_desc: "Máy pha 2 group công suất lớn, cho quán vừa và quán chuyên nghiệp.",
-    description: "Máy pha espresso 2 group, cấp nhiệt ổn định, đáp ứng sản lượng lớn cho quán vừa và quán chuyên nghiệp.",
-    unit: "cái",
-    retail_price: 42000000,
-    wholesale_price: 42000000,
-    wholesale_min_kg: 1,
-    stock: 10,
-    specs: { "Số group": "2", "Áp suất bơm": "15 bar", "Công suất": "3200W", "Dung tích nồi hơi": "11L" },
-    badge: null,
-    visible: true,
-  },
-
-  // ---------- MÁY XAY ----------
-  {
-    id: "may-xay-chuyen-dung",
-    category_id: "may-xay",
-    name: "Máy xay cà phê chuyên dụng",
-    icon: "🌀",
-    short_desc: "Xay đều hạt, chỉnh độ mịn linh hoạt cho phin và espresso.",
-    description: "Máy xay lưỡi đĩa, chỉnh độ mịn linh hoạt, phù hợp xay cho pha phin lẫn pha máy espresso.",
-    unit: "cái",
-    retail_price: 9500000,
-    wholesale_price: 9500000,
-    wholesale_min_kg: 1,
-    stock: 15,
-    specs: { "Loại lưỡi": "Đĩa (flat burr)", "Công suất": "250W", "Tốc độ xay": "1.5g/s" },
-    badge: null,
-    visible: true,
-  },
-
-  // ---------- THIẾT BỊ ----------
-  {
-    id: "bo-dung-cu-pha-che-co-ban",
-    category_id: "thiet-bi",
-    name: "Bộ dụng cụ pha chế cơ bản",
-    icon: "🧰",
-    short_desc: "Ca đánh sữa, cân điện tử, tamper, phin lọc — đủ bộ khởi đầu.",
-    description: "Bộ dụng cụ pha chế cơ bản gồm ca đánh sữa, cân điện tử, tamper, phin lọc — đủ trang bị khởi đầu cho một quầy pha chế.",
-    unit: "bộ",
-    retail_price: 2800000,
-    wholesale_price: 2800000,
-    wholesale_min_kg: 1,
-    stock: 30,
-    specs: { "Số món": "8 món", "Chất liệu chính": "Inox 304" },
-    badge: null,
-    visible: true,
-  },
-];
-
-function loadProducts() {
-  const saved = JSON.parse(localStorage.getItem(PRODUCTS_STORE_KEY) || "null");
-  if (saved && Array.isArray(saved)) return saved;
-  const seeded = PRODUCTS_SEED.map(p => ({ ...p }));
-  localStorage.setItem(PRODUCTS_STORE_KEY, JSON.stringify(seeded));
-  return seeded;
+async function loadProducts() {
+  if (_productsCache) return _productsCache;
+  const res = await fetch(`${API_BASE_URL}/products`);
+  if (!res.ok) throw new Error("Không tải được danh sách sản phẩm từ máy chủ.");
+  _productsCache = await res.json();
+  return _productsCache;
 }
-function saveProducts(list) {
-  localStorage.setItem(PRODUCTS_STORE_KEY, JSON.stringify(list));
+// Gọi sau mỗi lần sửa/tạo/đổi tồn kho để lần đọc kế tiếp lấy dữ liệu mới nhất.
+function invalidateProductsCache() {
+  _productsCache = null;
 }
-function getVisibleProducts() {
-  return loadProducts().filter(p => p.visible);
+async function getVisibleProducts() {
+  return (await loadProducts()).filter((p) => p.visible);
 }
-function getProductsByCategory(categoryId) {
-  return getVisibleProducts().filter(p => p.category_id === categoryId);
+async function getProductsByCategory(categoryId) {
+  return (await getVisibleProducts()).filter((p) => p.category_id === categoryId);
 }
-function getProductById(id) {
-  return loadProducts().find(p => p.id === id) || null;
+async function getProductById(id) {
+  return (await loadProducts()).find((p) => p.id === id) || null;
+}
+
+// Admin — sửa field thường (KHÔNG phải "stock", Worker sẽ từ chối field đó).
+async function updateProductFields(id, fields, adminToken) {
+  const res = await fetch(`${API_BASE_URL}/products/${id}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", "X-Admin-Token": adminToken },
+    body: JSON.stringify(fields),
+  });
+  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || "Cập nhật sản phẩm thất bại.");
+  invalidateProductsCache();
+  return res.json();
+}
+// Admin — tạo sản phẩm mới.
+async function createProduct(data, adminToken) {
+  const res = await fetch(`${API_BASE_URL}/products`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "X-Admin-Token": adminToken },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || "Tạo sản phẩm thất bại.");
+  invalidateProductsCache();
+  return res.json();
+}
+// Duy nhất được phép đổi tồn kho — dùng bởi js/stock-data.js's adjustStock().
+async function adjustProductStockRemote(id, meta, adminToken) {
+  const res = await fetch(`${API_BASE_URL}/products/${id}/stock`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", "X-Admin-Token": adminToken },
+    body: JSON.stringify(meta),
+  });
+  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || "Cập nhật tồn kho thất bại.");
+  invalidateProductsCache();
+  return res.json();
 }
 
 const money = (n) => Math.round(n).toLocaleString("vi-VN") + "₫";

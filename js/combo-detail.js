@@ -2,7 +2,7 @@ const comboParams = new URLSearchParams(location.search);
 const comboId = comboParams.get("id");
 const combo = getComboById(comboId);
 
-function renderComboDetail() {
+async function renderComboDetail() {
   const main = document.getElementById("comboDetailMain");
   if (!combo || !combo.visible) {
     main.innerHTML = `<div class="empty-msg">Không tìm thấy combo này. <a href="combos.html">Xem tất cả combo →</a></div>`;
@@ -10,7 +10,7 @@ function renderComboDetail() {
   }
   document.title = combo.name + " - Combo Tú Cà Phê";
 
-  const products = loadProducts();
+  const products = await loadProducts();
   const linkedItems = combo.items.map(it => ({ ...it, product: it.product_id ? products.find(p => p.id === it.product_id) : null }));
   const allLinked = linkedItems.every(it => it.product);
   const linkedValue = linkedItems.reduce((s, it) => s + (it.product ? it.product.retail_price : 0), 0);

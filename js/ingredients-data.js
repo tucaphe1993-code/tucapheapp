@@ -9,8 +9,9 @@ const INGREDIENTS_SEED = [];
 
 function loadIngredients() {
   const saved = JSON.parse(localStorage.getItem(INGREDIENTS_STORE_KEY) || "null");
-  if (saved && Array.isArray(saved)) return saved;
-  const seeded = INGREDIENTS_SEED.map(i => ({ ...i }));
+  // Backfill "stock" cho dữ liệu cũ lưu trước khi có module Xuất nhập tồn.
+  if (saved && Array.isArray(saved)) return saved.map(i => ({ stock: 0, ...i }));
+  const seeded = INGREDIENTS_SEED.map(i => ({ stock: 0, ...i }));
   localStorage.setItem(INGREDIENTS_STORE_KEY, JSON.stringify(seeded));
   return seeded;
 }

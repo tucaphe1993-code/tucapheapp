@@ -1,21 +1,17 @@
-// ===== MÃ ĐƠN HÀNG: TCP-000001, TCP-000002... =====
-const ORDER_SEQ_KEY = "tcp_order_seq_v1";
-function nextOrderId() {
-  const seq = parseInt(localStorage.getItem(ORDER_SEQ_KEY) || "0", 10) + 1;
-  localStorage.setItem(ORDER_SEQ_KEY, String(seq));
-  return "TCP-" + String(seq).padStart(6, "0");
-}
+// =====================================================================
+// GIỎ HÀNG & ĐẶT HÀNG — đơn hàng được tạo thật trên server (Cloudflare
+// Worker + D1, xem worker/README.md): server tự sinh mã đơn, tự tính lại
+// giá/tồn kho (không tin số liệu trình duyệt gửi lên) và tự trừ kho. Trang
+// này không còn giữ bản sao đơn hàng cục bộ — muốn xem danh sách đơn hàng,
+// vào khu quản trị (đọc thẳng từ server).
+// =====================================================================
 
-// ===== NHẬT KÝ ĐƠN HÀNG CỤC BỘ (dùng cho trang Admin xem tạm khi CHƯA có backend) =====
-const ORDERS_LOG_KEY = "tcp_orders_local_v1";
-function saveOrderLocally(order) {
-  const list = JSON.parse(localStorage.getItem(ORDERS_LOG_KEY) || "[]");
-  list.unshift(order);
-  localStorage.setItem(ORDERS_LOG_KEY, JSON.stringify(list.slice(0, 300)));
-}
+// TODO: thay bằng URL Cloudflare Worker thật sau khi deploy (xem worker/README.md),
+// vd: "https://tucaphe-order-api.<subdomain>.workers.dev/api/orders"
+const ORDER_API_URL = `${API_BASE_URL}/orders`;
 
-function cartStatusHtml(cart) {
-  const lines = buildCartLines(cart);
+async function cartStatusHtml(cart) {
+  const lines = await buildCartLines(cart);
   if (!lines.length) return `<div class="cart-status-banner empty">Giỏ hàng của bạn đang trống. <a href="products.html">Xem sản phẩm →</a></div>`;
 
   // Giá sỉ chỉ áp dụng cho cà phê — bỏ qua thiết bị khi tính banner này.
@@ -30,10 +26,10 @@ function cartStatusHtml(cart) {
   return `<div class="cart-status-banner progress">Mua thêm ${nearestThreshold - totalKg}kg cà phê để được áp dụng giá sỉ (từ ${nearestThreshold}kg).</div>`;
 }
 
-function renderCart() {
+async function renderCart() {
   const cart = loadCart();
-  const lines = buildCartLines(cart);
-  document.getElementById("cartStatusBanner").innerHTML = cartStatusHtml(cart);
+  const lines = await buildCartLines(cart);
+  document.getElementById("cartStatusBanner").innerHTML = await cartStatusHtml(cart);
 
   document.getElementById("cartItems").innerHTML = lines.map(l => `
     <div class="cart-item">
@@ -53,20 +49,20 @@ function renderCart() {
   `).join("");
 
   const totalKg = getCartTotalKg(cart);
-  const totalMoney = getCartTotal(cart);
+  const totalMoney = await getCartTotal(cart);
   document.getElementById("cartSummary").style.display = lines.length ? "block" : "none";
   document.getElementById("cartTotalKg").textContent = totalKg + "kg";
   document.getElementById("cartTotalMoney").textContent = money(totalMoney);
   document.getElementById("checkoutForm").style.display = lines.length ? "flex" : "none";
 
-  document.querySelectorAll("[data-inc]").forEach(b => b.addEventListener("click", () => {
-    const c = loadCart(); setCartQty(b.dataset.inc, (c[b.dataset.inc] || 0) + 1); renderCart();
+  document.querySelectorAll("[data-inc]").forEach(b => b.addEventListener("click", async () => {
+    const c = loadCart(); setCartQty(b.dataset.inc, (c[b.dataset.inc] || 0) + 1); await renderCart();
   }));
-  document.querySelectorAll("[data-dec]").forEach(b => b.addEventListener("click", () => {
-    const c = loadCart(); setCartQty(b.dataset.dec, Math.max(0, (c[b.dataset.dec] || 0) - 1)); renderCart();
+  document.querySelectorAll("[data-dec]").forEach(b => b.addEventListener("click", async () => {
+    const c = loadCart(); setCartQty(b.dataset.dec, Math.max(0, (c[b.dataset.dec] || 0) - 1)); await renderCart();
   }));
-  document.querySelectorAll("[data-remove]").forEach(b => b.addEventListener("click", () => {
-    removeFromCart(b.dataset.remove); renderCart();
+  document.querySelectorAll("[data-remove]").forEach(b => b.addEventListener("click", async () => {
+    removeFromCart(b.dataset.remove); await renderCart();
   }));
 }
 
@@ -82,7 +78,7 @@ document.getElementById("checkoutForm").addEventListener("submit", async (e) => 
   if (isSubmitting) return;
 
   const cart = loadCart();
-  const lines = buildCartLines(cart);
+  const lines = await buildCartLines(cart);
   if (!lines.length) { showFormError("Giỏ hàng đang trống."); return; }
 
   const name = document.getElementById("custName").value.trim();
@@ -109,51 +105,37 @@ document.getElementById("checkoutForm").addEventListener("submit", async (e) => 
   submitBtn.disabled = true;
   submitBtn.textContent = "Đang xử lý...";
 
-  const totalKg = getCartTotalKg(cart);
-  const orderTotal = getCartTotal(cart);
-  const orderId = nextOrderId();
-  const order = {
-    id: orderId,
+  const orderRequest = {
     createdAt: new Date().toISOString(),
     customerName: name, customerPhone: phone, customerCompany: company,
     address, province, note,
-    lines: lines.map(l => ({
-      productId: l.id, name: l.name, unit: l.unit, qty: l.qty,
-      unitPrice: l.unitPrice, lineTotal: l.lineTotal,
-      priceType: l.isWholesale ? "wholesale" : "retail",
-    })),
-    totalKg, total: orderTotal,
-    status: "Mới",
+    lines: lines.map(l => ({ productId: l.id, qty: l.qty })),
+    delivery_status: "Chưa giao", delivery_date_planned: "", delivery_date_actual: "", shipper_name: "",
   };
 
-  // ===== GỬI ĐƠN VỀ BACKEND (Cloudflare Worker) → LARK BASE =====
-  // Backend thật CHƯA được triển khai (cần bạn deploy Worker theo worker/README.md
-  // và cập nhật ORDER_API_URL bên dưới). Trong lúc chờ, đơn được lưu tạm cục bộ để
-  // có thể test đầy đủ luồng đặt hàng ngay hôm nay — KHÔNG gọi thẳng Lark API từ đây.
-  const ORDER_API_URL = "/api/orders"; // TODO: thay bằng URL Cloudflare Worker khi đã deploy
-  let syncedToBackend = false;
+  // Server (Cloudflare Worker) tự sinh mã đơn, tự tính lại giá/tồn kho và tự
+  // trừ kho — không tin số liệu trình duyệt gửi lên. Không còn fallback lưu
+  // cục bộ: nếu request lỗi, đơn THỰC SỰ chưa được tạo, phải báo cho khách.
+  let order;
   try {
     const res = await fetch(ORDER_API_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(order),
+      body: JSON.stringify(orderRequest),
     });
-    syncedToBackend = res.ok;
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || "Đặt hàng thất bại, vui lòng thử lại.");
+    order = data;
+    invalidateProductsCache(); // đơn hàng đã trừ kho trên server — cache cũ sẽ sai tồn kho
   } catch (err) {
-    syncedToBackend = false; // chưa có backend — dự kiến sẽ lỗi cho đến khi Phase 7-8 hoàn tất
+    showFormError(err.message || "Không kết nối được tới máy chủ, vui lòng thử lại hoặc gọi 0786.51.52.53.");
+    isSubmitting = false;
+    submitBtn.disabled = false;
+    submitBtn.textContent = originalText;
+    return;
   }
-  order.syncedToBackend = syncedToBackend;
-  saveOrderLocally(order);
+
   upsertCustomerFromOrder(order);
-
-  // Trừ tồn kho cục bộ (demo) — khi có backend thật, việc trừ kho phải do backend xử lý.
-  const products = loadProducts();
-  lines.forEach(l => {
-    const p = products.find(pr => pr.id === l.id);
-    if (p && isInStock(p)) p.stock = Math.max(0, p.stock - l.qty);
-  });
-  saveProducts(products);
-
   clearCart();
   showSuccess(order);
 

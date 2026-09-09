@@ -7,7 +7,7 @@ const ORDER_STATUSES = ["Mới", "Đã xác nhận", "Đang chuẩn bị", "Đan
 // X-Admin-Token) — PHẢI khớp đúng giá trị đã đặt bằng `wrangler secret put
 // ADMIN_TOKEN` (xem worker/README.md). Đây KHÔNG phải tài khoản riêng từng
 // nhân viên, chỉ là 1 "mật khẩu API" dùng chung — không phải bảo mật thật.
-const ADMIN_TOKEN = "REPLACE_WITH_YOUR_ADMIN_TOKEN";
+const ADMIN_TOKEN = "cEPsD82i2fPzb7vKRhT-eKiK0mJE8gtq";
 const ADMIN_TOKEN_SESSION_KEY = "tcp_admin_token";
 function adminToken() {
   return sessionStorage.getItem(ADMIN_TOKEN_SESSION_KEY);

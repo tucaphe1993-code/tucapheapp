@@ -4,7 +4,9 @@
  * (bcrypt/argon2) is needed that would fail to build for `workerd`.
  */
 
-const ITERATIONS = 210_000;
+// Cloudflare Workers' WebCrypto caps PBKDF2 at 100,000 iterations
+// (NotSupportedError above that) — this is the max allowed there.
+const ITERATIONS = 100_000;
 const HASH = "SHA-256";
 const KEY_LENGTH_BITS = 256;
 

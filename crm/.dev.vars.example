@@ -1,0 +1,15 @@
+# Local-only secrets for `wrangler dev`. Copy to `.dev.vars` (already
+# gitignored) and fill in real values — NEVER commit `.dev.vars`.
+#
+# In production these are NOT set here — they are Cloudflare Worker
+# secrets set via `wrangler secret put <NAME>` (see DEPLOY.md).
+
+# One-time bootstrap token for POST /api/setup/admin (creates the very
+# first ADMIN account). Pick any long random string for local dev.
+ADMIN_SETUP_TOKEN=dev-local-bootstrap-token-change-me
+
+# Public base URL for serving uploaded report images directly from R2
+# (e.g. a bucket's r2.dev URL, or a custom domain mapped to the bucket).
+# Optional: if unset, images are served through the app's own
+# /api/report-images/[...key] proxy route instead.
+# R2_PUBLIC_BASE_URL=https://pub-xxxxxxxx.r2.dev

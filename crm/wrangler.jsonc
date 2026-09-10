@@ -1,0 +1,50 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  // Tên Worker khi deploy (đổi nếu trùng với worker khác trong account Cloudflare)
+  "name": "tucaphe-crm",
+  "main": ".open-next/worker.js",
+  "compatibility_date": "2025-09-01",
+  "compatibility_flags": ["nodejs_compat"],
+
+  // Next.js static assets (build ra bởi @opennextjs/cloudflare)
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS"
+  },
+
+  // Cloudflare D1 — database RIÊNG cho CRM nội bộ, KHÔNG dùng chung
+  // với database "tucaphe-db" của site bán hàng order.tucaphe.vn.
+  // database_id dưới đây là placeholder — phải thay bằng ID thật sau khi
+  // chạy: wrangler d1 create tucaphe-crm-db  (xem DEPLOY.md)
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "tucaphe-crm-db",
+      "database_id": "REPLACE_WITH_REAL_D1_DATABASE_ID",
+      "migrations_dir": "migrations"
+    }
+  ],
+
+  // Cloudflare R2 — lưu ảnh báo cáo đóng gói (đã watermark)
+  "r2_buckets": [
+    {
+      "binding": "REPORTS_BUCKET",
+      "bucket_name": "tucaphe-crm-reports"
+    }
+  ],
+
+  "vars": {
+    "APP_ENV": "production",
+    "APP_NAME": "Tú Cà Phê CRM"
+  },
+
+  // Domain dự kiến. Bỏ comment khi zone tucaphe.vn đã trỏ về Cloudflare
+  // và bản ghi crm.tucaphe.vn đã tạo (xem DEPLOY.md mục DNS).
+  // "routes": [
+  //   { "pattern": "crm.tucaphe.vn/*", "zone_name": "tucaphe.vn" }
+  // ],
+
+  "observability": {
+    "enabled": true
+  }
+}

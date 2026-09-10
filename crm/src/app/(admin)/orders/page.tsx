@@ -70,10 +70,8 @@ export default async function OrdersPage({ searchParams }: PageProps<"/orders">)
             <Card className="hover:border-amber-300">
               <CardContent className="flex items-center justify-between py-3">
                 <div>
-                  <div className="font-medium">{o.order_code}</div>
-                  <div className="text-sm text-stone-500">
-                    {customerNames.get(o.customer_id) ?? "—"} · {formatDate(o.created_at)}
-                  </div>
+                  <div className="font-medium">{customerNames.get(o.customer_id) ?? "—"}</div>
+                  <div className="text-sm text-stone-500">{formatDate(o.created_at)}</div>
                 </div>
                 <div className="flex items-center gap-3">
                   <div className="font-medium">{formatVnd(o.total_amount)}</div>

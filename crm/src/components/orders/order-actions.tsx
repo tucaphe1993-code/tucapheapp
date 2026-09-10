@@ -52,7 +52,7 @@ export function OrderActions({ order, hasActiveTask }: { order: OrderRow; hasAct
             <DialogHeader>
               <DialogTitle>Xác nhận xuất kho</DialogTitle>
               <DialogDescription>
-                Đơn {order.order_code} sẽ được trừ tồn kho và chuyển sang trạng thái ĐÃ GIAO. Thao tác này
+                Đơn hàng này sẽ được trừ tồn kho và chuyển sang trạng thái ĐÃ GIAO. Thao tác này
                 chỉ thực hiện được một lần.
               </DialogDescription>
             </DialogHeader>
@@ -89,7 +89,7 @@ export function OrderActions({ order, hasActiveTask }: { order: OrderRow; hasAct
             <DialogHeader>
               <DialogTitle>Hủy đơn hàng</DialogTitle>
               <DialogDescription>
-                Đơn {order.order_code} và các công việc liên quan sẽ bị hủy. Không thể hoàn tác.
+                Đơn hàng này và các công việc liên quan sẽ bị hủy. Không thể hoàn tác.
               </DialogDescription>
             </DialogHeader>
             <DialogFooter>

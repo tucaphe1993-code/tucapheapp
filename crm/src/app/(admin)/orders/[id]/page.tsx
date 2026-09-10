@@ -59,7 +59,7 @@ export default async function OrderDetailPage({ params }: PageProps<"/orders/[id
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-xl font-bold text-stone-900">{order.order_code}</h1>
+            <h1 className="text-xl font-bold text-stone-900">{customer?.name ?? "Đơn hàng"}</h1>
             <OrderStatusBadge status={order.status} />
           </div>
           <div className="text-sm text-stone-500">Tạo lúc {formatDateTime(order.created_at)}</div>
@@ -78,7 +78,6 @@ export default async function OrderDetailPage({ params }: PageProps<"/orders/[id
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-stone-200 text-left text-stone-500">
-                      <th className="py-1.5 pr-3">SKU</th>
                       <th className="py-1.5 pr-3">Sản phẩm</th>
                       <th className="py-1.5 pr-3">SL</th>
                       <th className="py-1.5 pr-3">Đơn giá</th>
@@ -88,7 +87,6 @@ export default async function OrderDetailPage({ params }: PageProps<"/orders/[id
                   <tbody>
                     {items.map((item) => (
                       <tr key={item.id} className="border-b border-stone-100">
-                        <td className="py-1.5 pr-3 font-mono text-xs">{item.sku}</td>
                         <td className="py-1.5 pr-3">
                           {item.product_name}
                           <div className="text-xs text-stone-400">

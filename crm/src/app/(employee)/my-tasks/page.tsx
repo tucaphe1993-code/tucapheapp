@@ -7,7 +7,6 @@ import { formatDateTime } from "@/lib/utils";
 import type { TaskRow } from "@/types/db";
 
 interface TaskWithOrder extends TaskRow {
-  order_code: string;
   customer_name: string;
   item_count: number;
   total_qty: number;
@@ -25,7 +24,7 @@ export default async function MyTasksPage() {
 
   const { results: tasks } = await db
     .prepare(
-      `SELECT t.*, o.order_code as order_code, c.name as customer_name,
+      `SELECT t.*, c.name as customer_name,
               (SELECT COUNT(*) FROM order_items WHERE order_id = o.id) as item_count,
               (SELECT COALESCE(SUM(quantity),0) FROM order_items WHERE order_id = o.id) as total_qty
        FROM tasks t
@@ -61,10 +60,9 @@ export default async function MyTasksPage() {
                 <Card className="active:scale-[0.99] transition-transform">
                   <CardContent className="py-3">
                     <div className="mb-1 flex items-center justify-between">
-                      <div className="font-semibold">{t.order_code}</div>
+                      <div className="font-semibold">{t.customer_name}</div>
                       <TaskPriorityBadge priority={t.priority} />
                     </div>
-                    <div className="text-sm text-stone-600">Khách hàng: {t.customer_name}</div>
                     <div className="text-sm text-stone-600">
                       {t.item_count} sản phẩm · {t.total_qty} đơn vị
                     </div>

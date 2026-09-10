@@ -6,7 +6,7 @@ import { formatDateTime } from "@/lib/utils";
 import type { TaskRow } from "@/types/db";
 
 interface TaskRowJoined extends TaskRow {
-  order_code: string;
+  customer_name: string;
   assignee_name: string;
   is_overdue: number;
 }
@@ -20,14 +20,16 @@ export default async function TasksPage({ searchParams }: PageProps<"/tasks">) {
   const stmt = status
     ? db
         .prepare(
-          `SELECT t.*, o.order_code as order_code, u.full_name as assignee_name, ${OVERDUE_SQL}
-           FROM tasks t JOIN orders o ON o.id = t.order_id JOIN users u ON u.id = t.assigned_to
+          `SELECT t.*, c.name as customer_name, u.full_name as assignee_name, ${OVERDUE_SQL}
+           FROM tasks t JOIN orders o ON o.id = t.order_id JOIN customers c ON c.id = o.customer_id
+           JOIN users u ON u.id = t.assigned_to
            WHERE t.status = ? ORDER BY t.created_at DESC`
         )
         .bind(status)
     : db.prepare(
-        `SELECT t.*, o.order_code as order_code, u.full_name as assignee_name, ${OVERDUE_SQL}
-         FROM tasks t JOIN orders o ON o.id = t.order_id JOIN users u ON u.id = t.assigned_to
+        `SELECT t.*, c.name as customer_name, u.full_name as assignee_name, ${OVERDUE_SQL}
+         FROM tasks t JOIN orders o ON o.id = t.order_id JOIN customers c ON c.id = o.customer_id
+         JOIN users u ON u.id = t.assigned_to
          ORDER BY t.created_at DESC LIMIT 300`
       );
   const { results: tasks } = await stmt.all<TaskRowJoined>();
@@ -72,7 +74,7 @@ export default async function TasksPage({ searchParams }: PageProps<"/tasks">) {
               <Card className={overdue ? "border-red-300" : undefined}>
                 <CardContent className="flex items-center justify-between py-3">
                   <div>
-                    <div className="font-medium">{t.order_code}</div>
+                    <div className="font-medium">{t.customer_name}</div>
                     <div className="text-sm text-stone-500">Giao cho: {t.assignee_name}</div>
                     {t.due_at && (
                       <div className={`text-xs ${overdue ? "text-red-600 font-medium" : "text-stone-400"}`}>

@@ -122,7 +122,7 @@ export function OrderBuilder() {
       });
       const data = await res.json();
       if (!res.ok) return toast.error(data.error ?? "Tạo đơn thất bại");
-      toast.success(`Đã tạo đơn ${data.order.order_code}`);
+      toast.success("Đã tạo đơn hàng thành công");
       router.push(`/orders/${data.order.id}`);
     } finally {
       setSubmitting(false);
@@ -238,8 +238,7 @@ export function OrderBuilder() {
               </Select>
             </div>
             {matchedVariant && (
-              <div className="rounded-lg bg-stone-50 p-2 text-sm">
-                SKU: <span className="font-mono">{matchedVariant.sku}</span> ·{" "}
+              <div className="rounded-lg bg-stone-50 p-2 text-sm font-medium">
                 {formatVnd(matchedVariant.unit_price)}
               </div>
             )}

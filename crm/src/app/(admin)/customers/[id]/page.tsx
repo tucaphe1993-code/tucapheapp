@@ -80,8 +80,7 @@ export default async function CustomerDetailPage({
               className="flex items-center justify-between rounded-lg border border-stone-200 p-3 hover:border-amber-300"
             >
               <div>
-                <div className="font-medium">{o.order_code}</div>
-                <div className="text-xs text-stone-500">{formatDate(o.created_at)}</div>
+                <div className="font-medium">{formatDate(o.created_at)}</div>
               </div>
               <div className="flex items-center gap-3">
                 <div className="font-medium">{formatVnd(o.total_amount)}</div>

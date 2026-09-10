@@ -138,7 +138,7 @@ export function TaskDetailClient({
     <div className="flex flex-col gap-4 p-4">
       <div>
         <div className="flex items-center justify-between">
-          <h1 className="text-lg font-bold">{order.order_code}</h1>
+          <h1 className="text-lg font-bold">{customer?.name ?? "Đơn hàng"}</h1>
           <TaskStatusBadge status={task.status} />
         </div>
         <div className="mt-1 flex items-center gap-2 text-sm text-stone-500">

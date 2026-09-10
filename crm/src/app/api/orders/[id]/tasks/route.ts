@@ -87,7 +87,7 @@ export async function POST(req: NextRequest, ctx: RouteContext<"/api/orders/[id]
     await sendNotification({
       userId: assignedTo,
       title: "🔔 Có đơn hàng mới",
-      body: `${order.order_code} — ${customer?.name ?? ""} — Giao cho: ${employee.full_name} — Cần đóng ${totalQty} sản phẩm`,
+      body: `Khách hàng: ${customer?.name ?? ""} — Giao cho: ${employee.full_name} — Cần đóng ${totalQty} sản phẩm`,
       type: "TASK_ASSIGNED",
       referenceType: "task",
       referenceId: taskId,

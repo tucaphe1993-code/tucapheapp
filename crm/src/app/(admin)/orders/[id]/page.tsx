@@ -5,12 +5,20 @@ import { getDb } from "@/lib/db/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { OrderStatusBadge } from "@/components/orders/order-status-badge";
 import { OrderActions } from "@/components/orders/order-actions";
+import { DebtStatusBadge } from "@/components/orders/debt-status-badge";
+import { RecordPaymentDialog } from "@/components/orders/record-payment-dialog";
+import { DueDateDialog } from "@/components/orders/due-date-dialog";
+import { InstallationDialog } from "@/components/orders/installation-dialog";
+import { InstallationStatusBadge } from "@/components/installations/installation-status-badge";
 import { TaskPriorityBadge, TaskStatusBadge } from "@/components/tasks/task-status-badge";
-import { formatDateTime, formatVnd } from "@/lib/utils";
+import { computeDebtStatus } from "@/lib/services/debts";
+import { formatDate, formatDateTime, formatVnd } from "@/lib/utils";
 import type {
   CustomerRow,
+  InstallationRow,
   OrderItemRow,
   OrderRow,
+  PaymentRow,
   ReportImageRow,
   ReportRow,
   TaskChecklistRow,
@@ -28,13 +36,37 @@ export default async function OrderDetailPage({ params }: PageProps<"/orders/[id
   const order = await db.prepare(`SELECT * FROM orders WHERE id = ?`).bind(id).first<OrderRow>();
   if (!order) notFound();
 
-  const [customer, { results: items }, { results: tasks }] = await Promise.all([
-    db.prepare(`SELECT * FROM customers WHERE id = ?`).bind(order.customer_id).first<CustomerRow>(),
-    db.prepare(`SELECT * FROM order_items WHERE order_id = ?`).bind(id).all<OrderItemRow>(),
-    db.prepare(`SELECT * FROM tasks WHERE order_id = ? ORDER BY created_at DESC`).bind(id).all<TaskRow>(),
-  ]);
+  const [customer, { results: items }, { results: tasks }, { results: payments }, { results: installations }] =
+    await Promise.all([
+      db.prepare(`SELECT * FROM customers WHERE id = ?`).bind(order.customer_id).first<CustomerRow>(),
+      db.prepare(`SELECT * FROM order_items WHERE order_id = ?`).bind(id).all<OrderItemRow>(),
+      db.prepare(`SELECT * FROM tasks WHERE order_id = ? ORDER BY created_at DESC`).bind(id).all<TaskRow>(),
+      db.prepare(`SELECT * FROM payments WHERE order_id = ? ORDER BY paid_at DESC`).bind(id).all<PaymentRow>(),
+      db
+        .prepare(`SELECT * FROM installations WHERE order_id = ? ORDER BY created_at DESC`)
+        .bind(id)
+        .all<InstallationRow>(),
+    ]);
 
   const hasActiveTask = tasks.some((t) => t.status !== "CANCELLED");
+  const paidAmount = payments.reduce((sum, p) => sum + p.amount, 0);
+  const remaining = Math.max(0, order.total_amount - paidAmount);
+  const debtStatus = computeDebtStatus({
+    totalAmount: order.total_amount,
+    paidAmount,
+    dueDate: order.payment_due_date,
+  });
+
+  const technicianIds = [...new Set(installations.map((i) => i.technician_id).filter((v): v is string => !!v))];
+  const technicianNames = new Map<string, string>();
+  if (technicianIds.length > 0) {
+    const placeholders = technicianIds.map(() => "?").join(",");
+    const { results } = await db
+      .prepare(`SELECT id, full_name FROM users WHERE id IN (${placeholders})`)
+      .bind(...technicianIds)
+      .all<{ id: string; full_name: string }>();
+    results.forEach((r) => technicianNames.set(r.id, r.full_name));
+  }
 
   const taskDetails = await Promise.all(
     tasks.map(async (task) => {
@@ -181,6 +213,80 @@ export default async function OrderDetailPage({ params }: PageProps<"/orders/[id
                 <div className="text-stone-500">Hình thức giao: {order.delivery_method}</div>
               )}
               {order.note && <div className="text-stone-500">Ghi chú: {order.note}</div>}
+            </CardContent>
+          </Card>
+
+          {order.status !== "CANCELLED" && (
+            <Card>
+              <CardHeader className="flex-row items-center justify-between space-y-0">
+                <CardTitle className="text-base">Công nợ</CardTitle>
+                <DebtStatusBadge status={debtStatus} />
+              </CardHeader>
+              <CardContent className="flex flex-col gap-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-stone-500">Tổng tiền</span>
+                  <span className="font-medium">{formatVnd(order.total_amount)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-stone-500">Đã thanh toán</span>
+                  <span className="font-medium text-emerald-700">{formatVnd(paidAmount)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-stone-500">Còn nợ</span>
+                  <span className="font-medium text-red-700">{formatVnd(remaining)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-stone-500">Hạn thanh toán</span>
+                  <span className="font-medium">
+                    {order.payment_due_date ? formatDate(order.payment_due_date) : "—"}
+                  </span>
+                </div>
+                <div className="flex flex-wrap gap-2 pt-1">
+                  {remaining > 0 && <RecordPaymentDialog orderId={order.id} />}
+                  <DueDateDialog orderId={order.id} currentDueDate={order.payment_due_date} />
+                </div>
+                {payments.length > 0 && (
+                  <div className="mt-2 flex flex-col gap-1.5 border-t border-stone-100 pt-2">
+                    {payments.map((p) => (
+                      <div key={p.id} className="flex items-center justify-between text-xs">
+                        <span className="text-stone-500">
+                          {formatDate(p.paid_at)} {p.method ? `· ${p.method}` : ""}
+                        </span>
+                        <span className="font-medium">{formatVnd(p.amount)}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
+          <Card>
+            <CardHeader className="flex-row items-center justify-between space-y-0">
+              <CardTitle className="text-base">Lắp đặt</CardTitle>
+              {order.status !== "CANCELLED" && (
+                <InstallationDialog orderId={order.id} defaultLocation={order.customer_address_snapshot} />
+              )}
+            </CardHeader>
+            <CardContent className="flex flex-col gap-2">
+              {installations.length === 0 && (
+                <div className="py-2 text-center text-sm text-stone-500">Không có lắp đặt</div>
+              )}
+              {installations.map((inst) => (
+                <Link
+                  key={inst.id}
+                  href={`/installations/${inst.id}`}
+                  className="flex items-center justify-between rounded-lg border border-stone-200 p-2.5 text-sm hover:border-amber-300"
+                >
+                  <div>
+                    <div className="font-medium">{inst.equipment}</div>
+                    <div className="text-xs text-stone-500">
+                      {technicianNames.get(inst.technician_id ?? "") ?? "Chưa phân công"}
+                    </div>
+                  </div>
+                  <InstallationStatusBadge status={inst.status} />
+                </Link>
+              ))}
             </CardContent>
           </Card>
         </div>

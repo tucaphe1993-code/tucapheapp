@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Package, Bell, User } from "lucide-react";
+import { Home, Package, Wrench, Bell, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const NAV = [
   { href: "/my-tasks", label: "Việc của tôi", icon: Home },
   { href: "/my-orders", label: "Đơn hàng", icon: Package },
+  { href: "/my-installations", label: "Lắp đặt", icon: Wrench },
   { href: "/notifications", label: "Thông báo", icon: Bell },
   { href: "/profile", label: "Cá nhân", icon: User },
 ];

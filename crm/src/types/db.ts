@@ -16,6 +16,16 @@ export type OrderStatus =
 export type TaskPriority = "LOW" | "NORMAL" | "HIGH" | "URGENT";
 export type TaskStatus = "TODO" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED";
 
+export type DebtStatus = "UNPAID" | "PARTIAL" | "PAID" | "OVERDUE";
+
+export type InstallationStatus =
+  | "PENDING"
+  | "SCHEDULED"
+  | "IN_PROGRESS"
+  | "COMPLETED"
+  | "HANDED_OVER"
+  | "CANCELLED";
+
 export type InventoryTxType = "RECEIVE" | "ISSUE" | "ADJUSTMENT";
 
 export interface UserRow {
@@ -96,6 +106,7 @@ export interface OrderRow {
   customer_address_snapshot: string | null;
   delivery_date: string | null;
   delivery_method: string | null;
+  payment_due_date: string | null;
   note: string | null;
   status: OrderStatus;
   total_amount: number;
@@ -204,6 +215,49 @@ export interface NotificationRow {
   reference_id: string | null;
   is_read: number;
   created_at: string;
+}
+
+export interface PaymentRow {
+  id: string;
+  order_id: string;
+  customer_id: string;
+  amount: number;
+  method: string | null;
+  note: string | null;
+  paid_at: string;
+  created_by: string | null;
+  created_at: string;
+}
+
+export interface InstallationRow {
+  id: string;
+  order_id: string;
+  customer_id: string;
+  equipment: string;
+  serial_number: string | null;
+  location: string | null;
+  scheduled_at: string | null;
+  technician_id: string | null;
+  assigned_by: string | null;
+  note: string | null;
+  status: InstallationStatus;
+  started_at: string | null;
+  completed_at: string | null;
+  handed_over_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface InstallationChecklistRow {
+  id: string;
+  installation_id: string;
+  label: string;
+  is_required: number;
+  is_checked: number;
+  checked_at: string | null;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface AuditLogRow {

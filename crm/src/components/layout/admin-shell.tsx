@@ -13,6 +13,8 @@ import {
   Boxes,
   UserCog,
   ScrollText,
+  Wallet,
+  Wrench,
   Menu,
   X,
   LogOut,
@@ -30,6 +32,8 @@ const NAV_GROUPS = [
       { href: "/orders", label: "Đơn hàng", icon: ClipboardList },
       { href: "/orders/new", label: "Tạo đơn", icon: PlusCircle },
       { href: "/tasks", label: "Công việc", icon: ListChecks },
+      { href: "/installations", label: "Lắp đặt", icon: Wrench },
+      { href: "/debts", label: "Công nợ", icon: Wallet },
     ],
   },
   {

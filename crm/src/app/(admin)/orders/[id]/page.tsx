@@ -179,6 +179,9 @@ export default async function OrderDetailPage({ params }: PageProps<"/orders/[id
               {order.delivery_date && (
                 <div className="text-stone-500">Ngày giao: {order.delivery_date}</div>
               )}
+              {order.delivery_method && (
+                <div className="text-stone-500">Hình thức giao: {order.delivery_method}</div>
+              )}
               {order.note && <div className="text-stone-500">Ghi chú: {order.note}</div>}
             </CardContent>
           </Card>

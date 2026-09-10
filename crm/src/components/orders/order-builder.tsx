@@ -12,6 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CustomerFormDialog } from "@/components/customers/customer-form-dialog";
 import { formatVnd } from "@/lib/utils";
+import { DELIVERY_METHODS } from "@/lib/constants";
 import type { CustomerRow, ProductRow, ProductVariantRow } from "@/types/db";
 
 type ProductWithVariants = ProductRow & { variants: ProductVariantRow[] };
@@ -43,6 +44,7 @@ export function OrderBuilder() {
 
   const [cart, setCart] = useState<CartLine[]>([]);
   const [deliveryDate, setDeliveryDate] = useState("");
+  const [deliveryMethod, setDeliveryMethod] = useState("");
   const [note, setNote] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
@@ -113,6 +115,7 @@ export function OrderBuilder() {
         body: JSON.stringify({
           customerId: customer.id,
           deliveryDate: deliveryDate || undefined,
+          deliveryMethod: deliveryMethod || undefined,
           note: note || undefined,
           items: cart.map((l) => ({ productVariantId: l.variant.id, quantity: l.quantity })),
         }),
@@ -266,6 +269,17 @@ export function OrderBuilder() {
             <div className="flex flex-col gap-1.5">
               <Label>Ngày giao</Label>
               <Input type="date" value={deliveryDate} onChange={(e) => setDeliveryDate(e.target.value)} />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label>Cách thức giao hàng</Label>
+              <Select value={deliveryMethod} onChange={(e) => setDeliveryMethod(e.target.value)}>
+                <option value="">-- Chọn cách thức giao hàng --</option>
+                {DELIVERY_METHODS.map((m) => (
+                  <option key={m} value={m}>
+                    {m}
+                  </option>
+                ))}
+              </Select>
             </div>
             <div className="flex flex-col gap-1.5">
               <Label>Ghi chú</Label>

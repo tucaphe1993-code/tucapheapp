@@ -46,6 +46,7 @@ export async function GET(_req: NextRequest, ctx: RouteContext<"/api/orders/[id]
 
 const updateSchema = z.object({
   deliveryDate: z.string().trim().optional().nullable(),
+  deliveryMethod: z.string().trim().optional().nullable(),
   note: z.string().trim().optional().nullable(),
 });
 
@@ -68,10 +69,11 @@ export async function PATCH(req: NextRequest, ctx: RouteContext<"/api/orders/[id
 
     await db
       .prepare(
-        `UPDATE orders SET delivery_date = ?, note = ?, updated_at = datetime('now') WHERE id = ?`
+        `UPDATE orders SET delivery_date = ?, delivery_method = ?, note = ?, updated_at = datetime('now') WHERE id = ?`
       )
       .bind(
         parsed.data.deliveryDate ?? order.delivery_date,
+        parsed.data.deliveryMethod ?? order.delivery_method,
         parsed.data.note ?? order.note,
         id
       )

@@ -78,6 +78,7 @@ export async function sendLarkOrderAssignedCard(params: {
   phone?: string | null;
   address?: string | null;
   deliveryDate?: string | null;
+  deliveryMethod?: string | null;
   note?: string | null;
   items: LarkOrderItemSummary[];
   appUrl?: string;
@@ -96,6 +97,7 @@ export async function sendLarkOrderAssignedCard(params: {
     params.address ? `**Địa chỉ:** ${params.address}` : null,
     `**Giao cho:** ${params.employeeName}`,
     params.deliveryDate ? `**Ngày giao:** ${params.deliveryDate}` : null,
+    params.deliveryMethod ? `**Hình thức giao:** ${params.deliveryMethod}` : null,
     "",
     "**Sản phẩm:**",
     productLines,

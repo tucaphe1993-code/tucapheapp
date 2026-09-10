@@ -100,6 +100,7 @@ export async function POST(req: NextRequest, ctx: RouteContext<"/api/orders/[id]
       phone: order.customer_phone_snapshot,
       address: order.customer_address_snapshot,
       deliveryDate: order.delivery_date,
+      deliveryMethod: order.delivery_method,
       note: order.note,
       items: items.map((i) => ({
         sku: i.sku,

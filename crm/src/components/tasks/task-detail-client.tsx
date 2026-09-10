@@ -152,6 +152,9 @@ export function TaskDetailClient({
           <div className="font-medium">{customer?.name}</div>
           <div className="text-stone-500">{order.customer_phone_snapshot}</div>
           <div className="text-stone-500">{order.customer_address_snapshot}</div>
+          {order.delivery_method && (
+            <div className="text-stone-500">Hình thức giao: {order.delivery_method}</div>
+          )}
         </CardContent>
       </Card>
 

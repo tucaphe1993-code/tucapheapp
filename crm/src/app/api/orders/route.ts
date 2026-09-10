@@ -10,6 +10,7 @@ import type { CustomerRow, OrderRow, ProductVariantRow } from "@/types/db";
 const createSchema = z.object({
   customerId: z.string().min(1),
   deliveryDate: z.string().trim().optional(),
+  deliveryMethod: z.string().trim().optional(),
   note: z.string().trim().optional(),
   items: z
     .array(
@@ -61,7 +62,7 @@ export async function POST(req: NextRequest) {
     if (!parsed.success) {
       throw new ValidationError(parsed.error.issues[0]?.message ?? "Dữ liệu không hợp lệ");
     }
-    const { customerId, deliveryDate, note, items } = parsed.data;
+    const { customerId, deliveryDate, deliveryMethod, note, items } = parsed.data;
 
     const db = getDb();
     const customer = await db
@@ -122,8 +123,8 @@ export async function POST(req: NextRequest) {
           .prepare(
             `INSERT INTO orders
                (id, order_code, customer_id, customer_phone_snapshot, customer_address_snapshot,
-                delivery_date, note, status, total_amount, created_by)
-             VALUES (?, ?, ?, ?, ?, ?, ?, 'CONFIRMED', ?, ?)`
+                delivery_date, delivery_method, note, status, total_amount, created_by)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'CONFIRMED', ?, ?)`
           )
           .bind(
             orderId,
@@ -132,6 +133,7 @@ export async function POST(req: NextRequest) {
             customer.phone,
             customer.address,
             deliveryDate || null,
+            deliveryMethod || null,
             note || null,
             totalAmount,
             session.user.id

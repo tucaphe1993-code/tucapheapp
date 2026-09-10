@@ -86,6 +86,7 @@ export interface OrderRow {
   customer_phone_snapshot: string | null;
   customer_address_snapshot: string | null;
   delivery_date: string | null;
+  delivery_method: string | null;
   note: string | null;
   status: OrderStatus;
   total_amount: number;

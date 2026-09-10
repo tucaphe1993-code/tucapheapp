@@ -67,4 +67,11 @@ interface CloudflareEnv {
   // first ADMIN account. Set via `wrangler secret put ADMIN_SETUP_TOKEN`,
   // never committed, and should be rotated/removed after first use.
   ADMIN_SETUP_TOKEN?: string;
+
+  // Lark (Feishu) group custom-bot webhook for task-assignment pings.
+  // Optional: notifications degrade to IN_APP-only when unset.
+  // Set via `wrangler secret put LARK_WEBHOOK_URL` (and LARK_SECRET if the
+  // bot has "Signature Verification" enabled in Lark).
+  LARK_WEBHOOK_URL?: string;
+  LARK_SECRET?: string;
 }

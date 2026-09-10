@@ -50,6 +50,11 @@ export async function POST(req: NextRequest, ctx: RouteContext<"/api/orders/[id]
       .prepare(`SELECT * FROM order_items WHERE order_id = ?`)
       .bind(orderId)
       .all<OrderItemRow>();
+    const customer = await db
+      .prepare(`SELECT name FROM customers WHERE id = ?`)
+      .bind(order.customer_id)
+      .first<{ name: string }>();
+    const totalQty = items.reduce((sum, i) => sum + i.quantity, 0);
 
     const taskId = newId();
     try {
@@ -81,10 +86,11 @@ export async function POST(req: NextRequest, ctx: RouteContext<"/api/orders/[id]
     await sendNotification({
       userId: assignedTo,
       title: "🔔 Có đơn hàng mới",
-      body: `${order.order_code} — cần đóng gói ${items.length} sản phẩm`,
+      body: `${order.order_code} — ${customer?.name ?? ""} — Giao cho: ${employee.full_name} — Cần đóng ${totalQty} sản phẩm`,
       type: "TASK_ASSIGNED",
       referenceType: "task",
       referenceId: taskId,
+      channels: ["IN_APP", "LARK"],
     });
 
     await writeAuditLog({

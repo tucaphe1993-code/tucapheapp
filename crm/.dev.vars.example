@@ -13,3 +13,10 @@ ADMIN_SETUP_TOKEN=dev-local-bootstrap-token-change-me
 # Optional: if unset, images are served through the app's own
 # /api/report-images/[...key] proxy route instead.
 # R2_PUBLIC_BASE_URL=https://pub-xxxxxxxx.r2.dev
+
+# Optional: Lark (Feishu) group custom-bot webhook — pings the group when
+# a task is assigned. Leave unset to skip Lark entirely (in-app
+# notifications still work). LARK_SECRET only needed if the bot has
+# "Signature Verification" enabled in Lark's group bot settings.
+# LARK_WEBHOOK_URL=https://open.larksuite.com/open-apis/bot/v2/hook/xxxxxxxx
+# LARK_SECRET=

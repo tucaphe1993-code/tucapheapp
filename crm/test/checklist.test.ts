@@ -22,25 +22,19 @@ function item(overrides: Partial<OrderItemRow>): OrderItemRow {
 }
 
 describe("packing checklist generation", () => {
-  it("creates one required line per order item plus the two fixed checks", () => {
+  it("always produces the two fixed required checks, regardless of line items", () => {
     const lines = buildChecklistLabels([item({}), item({ sku: "HR-B-ZIP-1000" })]);
-    expect(lines).toHaveLength(4);
-    expect(lines.filter((l) => l.required)).toHaveLength(4);
-    expect(lines.at(-2)?.label).toBe("Dán tem sản phẩm");
-    expect(lines.at(-1)?.label).toBe("Kiểm tra địa chỉ giao hàng");
+    expect(lines).toEqual([
+      { label: "Đủ số lượng", required: true },
+      { label: "Đã ghi tên khách hàng đầy đủ", required: true },
+    ]);
   });
 
-  it("includes the SKU and quantity in each line's label", () => {
-    const [line] = buildChecklistLabels([item({ sku: "CB-H-XANH-500", quantity: 3 })]);
-    expect(line.label).toContain("CB-H-XANH-500");
-    expect(line.label).toContain("x 3");
-  });
-
-  it("produces no checklist lines for an order with no items", () => {
+  it("produces the same two checks for an order with no items", () => {
     const lines = buildChecklistLabels([]);
     expect(lines).toEqual([
-      { label: "Dán tem sản phẩm", required: true },
-      { label: "Kiểm tra địa chỉ giao hàng", required: true },
+      { label: "Đủ số lượng", required: true },
+      { label: "Đã ghi tên khách hàng đầy đủ", required: true },
     ]);
   });
 });

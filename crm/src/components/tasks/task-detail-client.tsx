@@ -54,7 +54,7 @@ export function TaskDetailClient({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const requiredUnchecked = checklist.filter((c) => c.is_required && !c.is_checked);
-  const canComplete = task.status === "IN_PROGRESS" && requiredUnchecked.length === 0 && note.trim().length > 0;
+  const canComplete = task.status === "IN_PROGRESS" && requiredUnchecked.length === 0;
 
   async function onStart() {
     setBusy(true);
@@ -264,11 +264,13 @@ export function TaskDetailClient({
           {task.status === "IN_PROGRESS" && (
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">Ghi chú hoàn thành</CardTitle>
+                <CardTitle className="text-base">
+                  Ghi chú hoàn thành <span className="font-normal text-stone-400">(không bắt buộc)</span>
+                </CardTitle>
               </CardHeader>
               <CardContent>
                 <Textarea
-                  placeholder="Nhập ghi chú..."
+                  placeholder="Nhập ghi chú (không bắt buộc)..."
                   value={note}
                   onChange={(e) => setNote(e.target.value)}
                   rows={3}

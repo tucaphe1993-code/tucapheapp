@@ -6,7 +6,7 @@ import { writeAuditLog } from "@/lib/audit";
 import { handleApiError, ForbiddenError, NotFoundError, ValidationError } from "@/lib/api/errors";
 import type { ReportRow, TaskChecklistRow, TaskRow } from "@/types/db";
 
-const bodySchema = z.object({ note: z.string().trim().min(1, "Vui lòng nhập ghi chú hoàn thành") });
+const bodySchema = z.object({ note: z.string().trim().optional() });
 
 export async function POST(req: NextRequest, ctx: RouteContext<"/api/tasks/[id]/complete">) {
   try {
@@ -60,7 +60,7 @@ export async function POST(req: NextRequest, ctx: RouteContext<"/api/tasks/[id]/
       .prepare(
         `UPDATE reports SET note = ?, completed_at = datetime('now'), updated_at = datetime('now') WHERE id = ?`
       )
-      .bind(parsed.data.note, report.id)
+      .bind(parsed.data.note || null, report.id)
       .run();
 
     await db

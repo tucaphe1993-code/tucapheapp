@@ -179,12 +179,7 @@ async function main() {
       task1Id
     )}, ${sqlStr(order1Id)}, ${sqlStr(emp1.id)}, ${sqlStr(admin.id)}, 'Đóng gói đơn hàng DH-DEV-0001', 'NORMAL', 'TODO');`
   );
-  const checklistLabels = [
-    `Đúng SKU ${order1Items[0].sku}`,
-    `Đúng SKU ${order1Items[1].sku}`,
-    "Dán tem sản phẩm",
-    "Kiểm tra địa chỉ giao hàng",
-  ];
+  const checklistLabels = ["Đủ số lượng", "Đã ghi tên khách hàng đầy đủ"];
   checklistLabels.forEach((label, idx) => {
     lines.push(
       `INSERT INTO task_checklists (id, task_id, label, is_required, sort_order) VALUES (${sqlStr(

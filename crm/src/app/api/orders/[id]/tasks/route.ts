@@ -5,6 +5,7 @@ import { newId } from "@/lib/db/id";
 import { requireRole } from "@/lib/auth/session";
 import { writeAuditLog } from "@/lib/audit";
 import { sendNotification } from "@/lib/services/notifications";
+import { sendLarkOrderAssignedCard } from "@/lib/services/lark";
 import { createChecklistForTask } from "@/lib/services/tasks";
 import { handleApiError, ConflictError, NotFoundError, ValidationError } from "@/lib/api/errors";
 import type { OrderItemRow, OrderRow, UserRow } from "@/types/db";
@@ -90,7 +91,24 @@ export async function POST(req: NextRequest, ctx: RouteContext<"/api/orders/[id]
       type: "TASK_ASSIGNED",
       referenceType: "task",
       referenceId: taskId,
-      channels: ["IN_APP", "LARK"],
+    });
+
+    await sendLarkOrderAssignedCard({
+      orderCode: order.order_code,
+      customerName: customer?.name ?? "",
+      employeeName: employee.full_name,
+      phone: order.customer_phone_snapshot,
+      address: order.customer_address_snapshot,
+      deliveryDate: order.delivery_date,
+      note: order.note,
+      items: items.map((i) => ({
+        sku: i.sku,
+        productName: i.product_name,
+        form: i.form,
+        packaging: i.packaging,
+        weightGrams: i.weight_grams,
+        quantity: i.quantity,
+      })),
     });
 
     await writeAuditLog({

@@ -6,7 +6,9 @@ import { writeFileSync } from "node:fs";
 import { randomUUID, webcrypto } from "node:crypto";
 
 const crypto = webcrypto;
-const ITERATIONS = 210_000;
+// Must match src/lib/auth/password.ts exactly (Cloudflare Workers' WebCrypto
+// caps PBKDF2 at 100,000 iterations).
+const ITERATIONS = 100_000;
 
 function toHex(buf) {
   return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, "0")).join("");

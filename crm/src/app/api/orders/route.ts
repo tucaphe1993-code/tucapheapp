@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { getDb } from "@/lib/db/client";
-import { newId, buildOrderCode } from "@/lib/db/id";
+import { newId, nextOrderCode } from "@/lib/db/id";
 import { requireRole } from "@/lib/auth/session";
 import { writeAuditLog } from "@/lib/audit";
 import { handleApiError, NotFoundError, ValidationError } from "@/lib/api/errors";
@@ -114,41 +114,28 @@ export async function POST(req: NextRequest) {
     }
 
     const orderId = newId();
-    let orderCode = buildOrderCode();
+    const orderCode = await nextOrderCode(db);
 
-    // Retry on the rare order_code collision.
-    for (let attempt = 0; attempt < 5; attempt++) {
-      try {
-        await db
-          .prepare(
-            `INSERT INTO orders
-               (id, order_code, customer_id, customer_phone_snapshot, customer_address_snapshot,
-                delivery_date, delivery_method, note, status, total_amount, created_by)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'CONFIRMED', ?, ?)`
-          )
-          .bind(
-            orderId,
-            orderCode,
-            customer.id,
-            customer.phone,
-            customer.address,
-            deliveryDate || null,
-            deliveryMethod || null,
-            note || null,
-            totalAmount,
-            session.user.id
-          )
-          .run();
-        break;
-      } catch (e) {
-        const msg = String(e);
-        if (msg.includes("UNIQUE") && attempt < 4) {
-          orderCode = buildOrderCode();
-          continue;
-        }
-        throw e;
-      }
-    }
+    await db
+      .prepare(
+        `INSERT INTO orders
+           (id, order_code, customer_id, customer_phone_snapshot, customer_address_snapshot,
+            delivery_date, delivery_method, note, status, total_amount, created_by)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'CONFIRMED', ?, ?)`
+      )
+      .bind(
+        orderId,
+        orderCode,
+        customer.id,
+        customer.phone,
+        customer.address,
+        deliveryDate || null,
+        deliveryMethod || null,
+        note || null,
+        totalAmount,
+        session.user.id
+      )
+      .run();
 
     await db.batch(
       resolvedItems.map((item) =>

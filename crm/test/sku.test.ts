@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { buildSkuFromCode, weightSuffix, buildOrderCode } from "@/lib/db/id";
+import { buildSkuFromCode, weightSuffix, nextOrderCode } from "@/lib/db/id";
+import { createTestDb } from "./d1-shim";
 
 describe("SKU generation", () => {
   it("matches the spec example: Crema Blend, Hạt, Túi Xanh, 500g -> CB-H-XANH-500", () => {
@@ -30,13 +31,16 @@ describe("SKU generation", () => {
   });
 });
 
-describe("order code generation", () => {
-  it("produces the DH-YYMMDD-XXXX shape", () => {
-    expect(buildOrderCode()).toMatch(/^DH-\d{6}-[0-9A-Z]{4}$/);
+describe("sequential order code generation", () => {
+  it("produces the readable DH-#### shape, starting at DH-0001 on a fresh DB", async () => {
+    const db = createTestDb();
+    expect(await nextOrderCode(db)).toBe("DH-0001");
+    expect(await nextOrderCode(db)).toBe("DH-0002");
   });
 
-  it("is not trivially predictable/constant across calls", () => {
-    const codes = new Set(Array.from({ length: 20 }, () => buildOrderCode()));
-    expect(codes.size).toBeGreaterThan(1);
+  it("never repeats a number, even under concurrent calls (no collisions)", async () => {
+    const db = createTestDb();
+    const codes = await Promise.all(Array.from({ length: 20 }, () => nextOrderCode(db)));
+    expect(new Set(codes).size).toBe(20);
   });
 });

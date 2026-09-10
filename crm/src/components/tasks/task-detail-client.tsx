@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { TaskPriorityBadge, TaskStatusBadge } from "@/components/tasks/task-status-badge";
 import { applyWatermark } from "@/lib/watermark";
 import { formatDateTime, formatVnd } from "@/lib/utils";
@@ -23,6 +24,8 @@ import type {
 
 const FORM_LABEL: Record<string, string> = { HAT: "Hạt", BOT: "Bột" };
 const PACKAGING_LABEL: Record<string, string> = { TUI_XANH: "Túi Xanh", TUI_ZIP: "Túi Zip" };
+const FORM_VARIANT: Record<string, "warning" | "secondary"> = { HAT: "warning", BOT: "secondary" };
+const PACKAGING_VARIANT: Record<string, "success" | "info"> = { TUI_XANH: "success", TUI_ZIP: "info" };
 
 export function TaskDetailClient({
   task: initialTask,
@@ -164,17 +167,23 @@ export function TaskDetailClient({
         </CardHeader>
         <CardContent className="flex flex-col gap-2">
           {items.map((item) => (
-            <div key={item.id} className="flex items-center justify-between border-b border-stone-100 pb-2 text-sm last:border-0">
-              <div>
+            <div key={item.id} className="flex items-center justify-between border-b border-stone-100 pb-3 last:border-0">
+              <div className="flex flex-col gap-1.5">
                 <div className="font-medium">{item.product_name}</div>
-                <div className="text-stone-500">
-                  {FORM_LABEL[item.form]} · {PACKAGING_LABEL[item.packaging]} ·{" "}
-                  {item.weight_grams >= 1000 ? `${item.weight_grams / 1000}kg` : `${item.weight_grams}g`}
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <Badge variant={FORM_VARIANT[item.form]} className="text-sm font-bold">
+                    {FORM_LABEL[item.form]}
+                  </Badge>
+                  <Badge variant={PACKAGING_VARIANT[item.packaging]} className="text-sm font-bold">
+                    {PACKAGING_LABEL[item.packaging]}
+                  </Badge>
+                  <Badge className="text-sm font-bold">
+                    {item.weight_grams >= 1000 ? `${item.weight_grams / 1000}kg` : `${item.weight_grams}g`}
+                  </Badge>
                 </div>
-                <div className="font-mono text-xs text-stone-400">{item.sku}</div>
               </div>
               <div className="text-right">
-                <div className="font-semibold">x{item.quantity}</div>
+                <div className="text-lg font-bold">x{item.quantity}</div>
                 <div className="text-xs text-stone-400">{formatVnd(item.line_total)}</div>
               </div>
             </div>

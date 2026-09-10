@@ -34,15 +34,17 @@ export function buildSkuFromCode(
   ].join("-");
 }
 
-/** Sequential-looking human order code: DH-YYMMDD-XXXX (XXXX = random base36) */
-export function buildOrderCode(): string {
-  const d = new Date();
-  const y = String(d.getUTCFullYear()).slice(2);
-  const m = String(d.getUTCMonth() + 1).padStart(2, "0");
-  const day = String(d.getUTCDate()).padStart(2, "0");
-  const rand = Math.floor(Math.random() * 36 ** 4)
-    .toString(36)
-    .toUpperCase()
-    .padStart(4, "0");
-  return `DH-${y}${m}${day}-${rand}`;
+/**
+ * Simple sequential order code (DH-0001, DH-0002, ...) drawn from the
+ * `order_sequence` single-row counter via an atomic UPDATE...RETURNING —
+ * safe under concurrent order creation, no collision retries needed.
+ */
+export async function nextOrderCode(db: D1Database): Promise<string> {
+  const row = await db
+    .prepare(
+      `UPDATE order_sequence SET next_value = next_value + 1 WHERE id = 1
+       RETURNING next_value - 1 AS n`
+    )
+    .first<{ n: number }>();
+  return `DH-${String(row!.n).padStart(4, "0")}`;
 }

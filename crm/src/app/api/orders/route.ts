@@ -97,8 +97,14 @@ export async function POST(req: NextRequest) {
       if (!variant) {
         throw new ValidationError(`Không tìm thấy SKU cho sản phẩm đã chọn`);
       }
-      // Price is ALWAYS taken from the DB, never trusted from the client.
-      const lineTotal = variant.unit_price * item.quantity;
+      // Price is ALWAYS taken from the DB, never trusted from the client —
+      // a customer-specific price (customer_prices) wins over the default.
+      const customPrice = await db
+        .prepare(`SELECT unit_price FROM customer_prices WHERE customer_id = ? AND product_variant_id = ?`)
+        .bind(customerId, item.productVariantId)
+        .first<{ unit_price: number }>();
+      const unitPrice = customPrice?.unit_price ?? variant.unit_price;
+      const lineTotal = unitPrice * item.quantity;
       totalAmount += lineTotal;
       resolvedItems.push({
         productVariantId: variant.id,
@@ -108,7 +114,7 @@ export async function POST(req: NextRequest) {
         form: variant.form,
         packaging: variant.packaging,
         weightGrams: variant.weight_grams,
-        unitPrice: variant.unit_price,
+        unitPrice,
         lineTotal,
       });
     }

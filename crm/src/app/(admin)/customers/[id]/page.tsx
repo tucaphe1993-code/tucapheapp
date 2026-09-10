@@ -3,6 +3,8 @@ import { notFound } from "next/navigation";
 import { getDb } from "@/lib/db/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CustomerFormDialog } from "@/components/customers/customer-form-dialog";
+import { CustomerPriceDialog } from "@/components/customers/customer-price-dialog";
+import { CustomerPriceList, type CustomerPriceItem } from "@/components/customers/customer-price-list";
 import { OrderStatusBadge } from "@/components/orders/order-status-badge";
 import { Button } from "@/components/ui/button";
 import { formatDate, formatVnd } from "@/lib/utils";
@@ -24,6 +26,19 @@ export default async function CustomerDetailPage({
     .prepare(`SELECT * FROM orders WHERE customer_id = ? ORDER BY created_at DESC`)
     .bind(id)
     .all<OrderRow>();
+
+  const { results: prices } = await db
+    .prepare(
+      `SELECT cp.*, pv.form, pv.packaging, pv.weight_grams, pv.unit_price as default_unit_price,
+              p.name as product_name
+       FROM customer_prices cp
+       JOIN product_variants pv ON pv.id = cp.product_variant_id
+       JOIN products p ON p.id = pv.product_id
+       WHERE cp.customer_id = ?
+       ORDER BY p.name ASC, pv.weight_grams ASC`
+    )
+    .bind(id)
+    .all<CustomerPriceItem>();
 
   return (
     <div className="flex flex-col gap-4">
@@ -62,6 +77,16 @@ export default async function CustomerDetailPage({
               {customer.note}
             </div>
           )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="flex-row items-center justify-between space-y-0">
+          <CardTitle className="text-base">Giá riêng ({prices.length})</CardTitle>
+          <CustomerPriceDialog customerId={id} />
+        </CardHeader>
+        <CardContent>
+          <CustomerPriceList customerId={id} prices={prices} />
         </CardContent>
       </Card>
 

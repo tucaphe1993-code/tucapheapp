@@ -79,6 +79,15 @@ export interface ProductVariantRow {
   updated_at: string;
 }
 
+export interface CustomerPriceRow {
+  id: string;
+  customer_id: string;
+  product_variant_id: string;
+  unit_price: number;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface OrderRow {
   id: string;
   order_code: string;

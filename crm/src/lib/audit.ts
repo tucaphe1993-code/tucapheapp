@@ -22,7 +22,9 @@ export type AuditAction =
   | "CREATE_PRODUCT"
   | "UPDATE_PRODUCT"
   | "CREATE_VARIANT"
-  | "UPDATE_VARIANT";
+  | "UPDATE_VARIANT"
+  | "SET_CUSTOMER_PRICE"
+  | "REMOVE_CUSTOMER_PRICE";
 
 export async function writeAuditLog(params: {
   userId: string | null;

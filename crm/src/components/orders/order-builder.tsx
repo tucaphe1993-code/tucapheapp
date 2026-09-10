@@ -33,6 +33,7 @@ export function OrderBuilder() {
   const [customerQuery, setCustomerQuery] = useState("");
   const [customerResults, setCustomerResults] = useState<CustomerRow[]>([]);
   const [customer, setCustomer] = useState<CustomerRow | null>(null);
+  const [customerPrices, setCustomerPrices] = useState<Record<string, number>>({});
 
   // product picker
   const [products, setProducts] = useState<ProductWithVariants[]>([]);
@@ -62,6 +63,22 @@ export function OrderBuilder() {
     }, 250);
     return () => clearTimeout(handle);
   }, [customerQuery]);
+
+  useEffect(() => {
+    if (!customer) return;
+    fetch(`/api/customers/${customer.id}/prices`)
+      .then((r) => r.json())
+      .then((d) => {
+        const map: Record<string, number> = {};
+        for (const p of d.prices ?? []) map[p.product_variant_id] = p.unit_price;
+        setCustomerPrices(map);
+      });
+  }, [customer]);
+
+  function priceFor(variant: ProductVariantRow) {
+    if (!customer) return variant.unit_price;
+    return customerPrices[variant.id] ?? variant.unit_price;
+  }
 
   const selectedProduct = products.find((p) => p.id === productId);
   const availableWeights = useMemo(() => {
@@ -101,7 +118,7 @@ export function OrderBuilder() {
     setCart((cur) => cur.filter((l) => l.variant.id !== variantId));
   }
 
-  const total = cart.reduce((sum, l) => sum + l.variant.unit_price * l.quantity, 0);
+  const total = cart.reduce((sum, l) => sum + priceFor(l.variant) * l.quantity, 0);
 
   async function onSubmit() {
     if (!customer) return toast.error("Vui lòng chọn khách hàng");
@@ -239,7 +256,10 @@ export function OrderBuilder() {
             </div>
             {matchedVariant && (
               <div className="rounded-lg bg-stone-50 p-2 text-sm font-medium">
-                {formatVnd(matchedVariant.unit_price)}
+                {formatVnd(priceFor(matchedVariant))}
+                {customerPrices[matchedVariant.id] !== undefined && (
+                  <span className="ml-2 text-xs font-normal text-amber-700">(giá riêng khách hàng)</span>
+                )}
               </div>
             )}
             <div className="flex items-end gap-3">
@@ -308,7 +328,7 @@ export function OrderBuilder() {
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="font-medium">{formatVnd(l.variant.unit_price * l.quantity)}</span>
+                  <span className="font-medium">{formatVnd(priceFor(l.variant) * l.quantity)}</span>
                   <button onClick={() => removeLine(l.variant.id)} className="text-stone-400 hover:text-red-600">
                     <Trash2 className="h-4 w-4" />
                   </button>

@@ -86,7 +86,7 @@ export async function sendLarkOrderAssignedCard(params: {
   const productLines = params.items
     .map((i) => {
       const weight = i.weightGrams >= 1000 ? `${i.weightGrams / 1000}kg` : `${i.weightGrams}g`;
-      return `• ${i.productName} (${FORM_LABEL[i.form] ?? i.form}, ${PACKAGING_LABEL[i.packaging] ?? i.packaging}, ${weight}) — SL: **${i.quantity}** — \`${i.sku}\``;
+      return `• ${i.productName} (${FORM_LABEL[i.form] ?? i.form}, ${PACKAGING_LABEL[i.packaging] ?? i.packaging}, ${weight}) — SL: **${i.quantity}**`;
     })
     .join("\n");
 

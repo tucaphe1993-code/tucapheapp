@@ -36,6 +36,7 @@ export type AuditAction =
   | "RECEIVE_DEVICE"
   | "UPDATE_DEVICE"
   | "SELL_DEVICE"
+  | "QUICK_SELL_DEVICE"
   | "RELEASE_DEVICE"
   | "CREATE_PROTOCOL"
   | "UPDATE_PROTOCOL"

@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { randomUUID } from "node:crypto";
 import { createTestDb } from "./d1-shim";
-import { receiveDevices, sellDevice, releaseDevice, changeDeviceStatus } from "@/lib/services/devices";
+import { receiveDevices, sellDevice, releaseDevice, changeDeviceStatus, recordQuickSale } from "@/lib/services/devices";
 
 let db: D1Database;
 let userId: string;
@@ -135,6 +135,81 @@ describe("sellDevice / releaseDevice", () => {
         { deviceId: device.id, orderId: orderId2, orderItemId: orderItemId2, customerId, createdBy: userId },
         db
       )
+    ).rejects.toThrow();
+  });
+});
+
+describe("recordQuickSale", () => {
+  it("creates a minimal CONFIRMED order and sells the device to the given customer", async () => {
+    const [device] = await receiveDevices(
+      { productId, productVariantId: variantId, serials: ["LM001"], createdBy: userId },
+      db
+    );
+
+    const { orderId, orderCode } = await recordQuickSale(
+      { deviceId: device.id, customerId, createdBy: userId },
+      db
+    );
+    expect(orderCode).toMatch(/^DH-\d{4}$/);
+
+    const order = await db
+      .prepare(`SELECT * FROM orders WHERE id = ?`)
+      .bind(orderId)
+      .first<{ status: string; total_amount: number; customer_id: string }>();
+    expect(order?.status).toBe("CONFIRMED");
+    expect(order?.total_amount).toBe(45000000);
+    expect(order?.customer_id).toBe(customerId);
+
+    const { results: items } = await db
+      .prepare(`SELECT * FROM order_items WHERE order_id = ?`)
+      .bind(orderId)
+      .all<{ device_id: string; quantity: number; unit_price: number }>();
+    expect(items).toHaveLength(1);
+    expect(items[0].device_id).toBe(device.id);
+    expect(items[0].quantity).toBe(1);
+    expect(items[0].unit_price).toBe(45000000);
+
+    const sold = await db.prepare(`SELECT * FROM devices WHERE id = ?`).bind(device.id).first<{
+      status: string;
+      order_id: string;
+      customer_id: string;
+    }>();
+    expect(sold?.status).toBe("SOLD");
+    expect(sold?.order_id).toBe(orderId);
+    expect(sold?.customer_id).toBe(customerId);
+  });
+
+  it("uses a customer-specific price when one is set", async () => {
+    const [device] = await receiveDevices(
+      { productId, productVariantId: variantId, serials: ["LM001"], createdBy: userId },
+      db
+    );
+    await db
+      .prepare(`INSERT INTO customer_prices (id, customer_id, product_variant_id, unit_price) VALUES (?, ?, ?, 42000000)`)
+      .bind(randomUUID(), customerId, variantId)
+      .run();
+
+    const { orderId } = await recordQuickSale({ deviceId: device.id, customerId, createdBy: userId }, db);
+    const order = await db.prepare(`SELECT total_amount FROM orders WHERE id = ?`).bind(orderId).first<{
+      total_amount: number;
+    }>();
+    expect(order?.total_amount).toBe(42000000);
+  });
+
+  it("respects a backdated soldAt and refuses to sell a device that is no longer in stock", async () => {
+    const [device] = await receiveDevices(
+      { productId, productVariantId: variantId, serials: ["LM001"], createdBy: userId },
+      db
+    );
+    await recordQuickSale({ deviceId: device.id, customerId, soldAt: "2026-01-05 00:00:00", createdBy: userId }, db);
+
+    const sold = await db.prepare(`SELECT sold_at FROM devices WHERE id = ?`).bind(device.id).first<{
+      sold_at: string;
+    }>();
+    expect(sold?.sold_at).toBe("2026-01-05 00:00:00");
+
+    await expect(
+      recordQuickSale({ deviceId: device.id, customerId, createdBy: userId }, db)
     ).rejects.toThrow();
   });
 });

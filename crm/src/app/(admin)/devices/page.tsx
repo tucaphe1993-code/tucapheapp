@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getDb } from "@/lib/db/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { DeviceStatusBadge } from "@/components/devices/device-status-badge";
+import { QuickSaleDialog } from "@/components/devices/quick-sale-dialog";
 import { DEVICE_STATUS_LABEL } from "@/lib/services/devices";
 import { formatDate } from "@/lib/utils";
 import type { DeviceStatus } from "@/types/db";
@@ -92,21 +93,22 @@ export default async function DevicesPage({ searchParams }: PageProps<"/devices"
           </Card>
         )}
         {devices.map((d) => (
-          <Link key={d.id} href={`/devices/${d.id}`}>
-            <Card className="hover:border-amber-300">
-              <CardContent className="flex items-center justify-between py-3">
-                <div>
-                  <div className="font-mono font-medium">{d.serial_number}</div>
-                  <div className="text-sm text-stone-500">
-                    {d.product_name} ({d.sku})
-                    {d.customer_name ? ` · ${d.customer_name}` : ""}
-                  </div>
-                  {d.sold_at && <div className="text-xs text-stone-400">Bán: {formatDate(d.sold_at)}</div>}
+          <Card key={d.id} className="hover:border-amber-300">
+            <CardContent className="flex items-center justify-between gap-3 py-3">
+              <Link href={`/devices/${d.id}`} className="min-w-0 flex-1">
+                <div className="font-mono font-medium">{d.serial_number}</div>
+                <div className="truncate text-sm text-stone-500">
+                  {d.product_name} ({d.sku})
+                  {d.customer_name ? ` · ${d.customer_name}` : ""}
                 </div>
+                {d.sold_at && <div className="text-xs text-stone-400">Bán: {formatDate(d.sold_at)}</div>}
+              </Link>
+              <div className="flex shrink-0 items-center gap-2">
+                {d.status === "IN_STOCK" && <QuickSaleDialog deviceId={d.id} serialNumber={d.serial_number} />}
                 <DeviceStatusBadge status={d.status} />
-              </CardContent>
-            </Card>
-          </Link>
+              </div>
+            </CardContent>
+          </Card>
         ))}
       </div>
     </div>

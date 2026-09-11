@@ -4,6 +4,7 @@ import { getDb } from "@/lib/db/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DeviceStatusBadge } from "@/components/devices/device-status-badge";
 import { EditDeviceDialog } from "@/components/devices/edit-device-dialog";
+import { QuickSaleDialog } from "@/components/devices/quick-sale-dialog";
 import { ProtocolStatusBadge } from "@/components/protocols/protocol-status-badge";
 import { formatDate, formatDateTime, formatVnd } from "@/lib/utils";
 import type {
@@ -82,7 +83,12 @@ export default async function DeviceDetailPage({ params }: PageProps<"/devices/[
             {product?.name} {variant?.model ? `· ${variant.model}` : ""}
           </div>
         </div>
-        <EditDeviceDialog device={device} />
+        <div className="flex gap-2">
+          {device.status === "IN_STOCK" && (
+            <QuickSaleDialog deviceId={device.id} serialNumber={device.serial_number} />
+          )}
+          <EditDeviceDialog device={device} />
+        </div>
       </div>
 
       <div className="grid gap-4 lg:grid-cols-3">

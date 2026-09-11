@@ -96,6 +96,10 @@ export class D1Shim implements D1Database {
 
 export function createTestDb(): D1Database {
   const sqlite = new DatabaseSync(":memory:");
+  // D1 always enforces foreign keys (PRAGMA foreign_keys=OFF is a no-op
+  // there); matching that here is what caught a real migration bug where
+  // recreating product_variants under FK enforcement failed on production.
+  sqlite.exec("PRAGMA foreign_keys = ON;");
   const migrationsDir = join(__dirname, "..", "migrations");
   const files = readdirSync(migrationsDir).filter((f) => f.endsWith(".sql")).sort();
   for (const file of files) {

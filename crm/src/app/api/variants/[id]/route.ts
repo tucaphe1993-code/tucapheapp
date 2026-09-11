@@ -3,6 +3,7 @@ import { z } from "zod";
 import { getDb } from "@/lib/db/client";
 import { requireRole } from "@/lib/auth/session";
 import { writeAuditLog } from "@/lib/audit";
+import { variantsHaveHistory } from "@/lib/services/products";
 import { handleApiError, NotFoundError, ValidationError } from "@/lib/api/errors";
 import type { ProductVariantRow } from "@/types/db";
 
@@ -91,6 +92,45 @@ export async function PATCH(req: NextRequest, ctx: RouteContext<"/api/variants/[
       .bind(id)
       .first();
     return NextResponse.json({ variant });
+  } catch (err) {
+    return handleApiError(err);
+  }
+}
+
+// Xóa cứng khi SKU chưa từng phát sinh dữ liệu (chưa bán, chưa nhập kho,
+// chưa gán giá riêng) — ngược lại chỉ chuyển sang "Ngừng bán" để không làm
+// mất lịch sử đơn hàng/thiết bị đã gắn với SKU này.
+export async function DELETE(_req: NextRequest, ctx: RouteContext<"/api/variants/[id]">) {
+  try {
+    const session = await requireRole("ADMIN");
+    const { id } = await ctx.params;
+    const db = getDb();
+
+    const existing = await db.prepare(`SELECT id FROM product_variants WHERE id = ?`).bind(id).first();
+    if (!existing) throw new NotFoundError("Không tìm thấy SKU");
+
+    const hasHistory = await variantsHaveHistory(db, [id]);
+    if (hasHistory) {
+      await db
+        .prepare(`UPDATE product_variants SET is_active = 0, updated_at = datetime('now') WHERE id = ?`)
+        .bind(id)
+        .run();
+    } else {
+      await db.batch([
+        db.prepare(`DELETE FROM inventory WHERE product_variant_id = ?`).bind(id),
+        db.prepare(`DELETE FROM product_variants WHERE id = ?`).bind(id),
+      ]);
+    }
+
+    await writeAuditLog({
+      userId: session.user.id,
+      action: "DELETE_VARIANT",
+      entity: "product_variant",
+      entityId: id,
+      metadata: { deactivated: hasHistory },
+    });
+
+    return NextResponse.json({ ok: true, deactivated: hasHistory });
   } catch (err) {
     return handleApiError(err);
   }

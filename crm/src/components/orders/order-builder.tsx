@@ -262,7 +262,7 @@ export function OrderBuilder() {
               >
                 <option value="">-- Chọn sản phẩm --</option>
                 {PRODUCT_TYPES.map((type) => {
-                  const group = products.filter((p) => p.product_type === type);
+                  const group = products.filter((p) => p.product_type === type && p.is_active);
                   if (group.length === 0) return null;
                   return (
                     <optgroup key={type} label={PRODUCT_TYPE_LABEL[type]}>

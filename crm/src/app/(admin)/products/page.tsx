@@ -4,6 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ProductFormDialog } from "@/components/products/product-form-dialog";
 import { VariantFormDialog } from "@/components/products/variant-form-dialog";
+import { DeleteProductButton } from "@/components/products/delete-product-button";
+import { DeleteVariantButton } from "@/components/products/delete-variant-button";
 import { ReceiveDeviceDialog } from "@/components/inventory/receive-device-dialog";
 import { DEVICE_STATUS_LABEL } from "@/lib/services/devices";
 import { PRODUCT_TYPE_LABEL, PRODUCT_TYPES } from "@/lib/constants";
@@ -92,10 +94,14 @@ export default async function ProductsPage({ searchParams }: PageProps<"/product
                   </CardTitle>
                   <div className="mt-1 flex items-center gap-2">
                     <Badge variant="secondary">{PRODUCT_TYPE_LABEL[p.product_type]}</Badge>
+                    {!p.is_active && <Badge variant="secondary">Ngừng bán</Badge>}
                     {p.description && <p className="text-sm text-stone-500">{p.description}</p>}
                   </div>
                 </div>
-                <VariantFormDialog productId={p.id} productType={p.product_type as ProductType} />
+                <div className="flex items-center gap-3">
+                  <VariantFormDialog productId={p.id} productType={p.product_type as ProductType} />
+                  <DeleteProductButton productId={p.id} productName={p.name} />
+                </div>
               </CardHeader>
               <CardContent>
                 {productVariants.length === 0 ? (
@@ -111,6 +117,7 @@ export default async function ProductsPage({ searchParams }: PageProps<"/product
                           <th className="py-1.5 pr-3">Quy cách</th>
                           <th className="py-1.5 pr-3">Giá bán</th>
                           <th className="py-1.5 pr-3">Trạng thái</th>
+                          <th className="py-1.5"></th>
                         </tr>
                       </thead>
                       <tbody>
@@ -131,6 +138,9 @@ export default async function ProductsPage({ searchParams }: PageProps<"/product
                               <Badge variant={v.is_active ? "success" : "secondary"}>
                                 {v.is_active ? "Đang bán" : "Ngừng bán"}
                               </Badge>
+                            </td>
+                            <td className="py-1.5">
+                              <DeleteVariantButton variantId={v.id} sku={v.sku} />
                             </td>
                           </tr>
                         ))}
@@ -161,9 +171,12 @@ export default async function ProductsPage({ searchParams }: PageProps<"/product
                                 {v.supplier ? ` · NCC: ${v.supplier}` : ""}
                               </div>
                             </div>
-                            <Badge variant={v.is_active ? "success" : "secondary"}>
-                              {v.is_active ? "Đang bán" : "Ngừng bán"}
-                            </Badge>
+                            <div className="flex items-center gap-2">
+                              <Badge variant={v.is_active ? "success" : "secondary"}>
+                                {v.is_active ? "Đang bán" : "Ngừng bán"}
+                              </Badge>
+                              <DeleteVariantButton variantId={v.id} sku={v.sku} />
+                            </div>
                           </div>
                           {v.requires_serial ? (
                             <div className="mt-2 flex flex-wrap items-center gap-2 border-t border-stone-100 pt-2">

@@ -12,7 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CustomerFormDialog } from "@/components/customers/customer-form-dialog";
 import { formatVnd } from "@/lib/utils";
-import { DELIVERY_METHODS } from "@/lib/constants";
+import { DELIVERY_METHODS, PRODUCT_TYPES, PRODUCT_TYPE_LABEL } from "@/lib/constants";
 import type { CustomerRow, DeviceRow, ProductRow, ProductVariantRow } from "@/types/db";
 
 type ProductWithVariants = ProductRow & { variants: ProductVariantRow[] };
@@ -261,11 +261,19 @@ export function OrderBuilder() {
                 }}
               >
                 <option value="">-- Chọn sản phẩm --</option>
-                {products.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name}
-                  </option>
-                ))}
+                {PRODUCT_TYPES.map((type) => {
+                  const group = products.filter((p) => p.product_type === type);
+                  if (group.length === 0) return null;
+                  return (
+                    <optgroup key={type} label={PRODUCT_TYPE_LABEL[type]}>
+                      {group.map((p) => (
+                        <option key={p.id} value={p.id}>
+                          {p.name}
+                        </option>
+                      ))}
+                    </optgroup>
+                  );
+                })}
               </Select>
             </div>
 

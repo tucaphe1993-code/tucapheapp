@@ -32,7 +32,11 @@ export type AuditAction =
   | "START_INSTALLATION"
   | "UPDATE_INSTALLATION_CHECKLIST"
   | "COMPLETE_INSTALLATION"
-  | "HANDOVER_INSTALLATION";
+  | "HANDOVER_INSTALLATION"
+  | "RECEIVE_DEVICE"
+  | "UPDATE_DEVICE"
+  | "SELL_DEVICE"
+  | "RELEASE_DEVICE";
 
 export async function writeAuditLog(params: {
   userId: string | null;

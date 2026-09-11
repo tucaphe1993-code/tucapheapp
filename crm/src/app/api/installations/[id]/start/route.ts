@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getDb } from "@/lib/db/client";
 import { requireRole } from "@/lib/auth/session";
 import { writeAuditLog } from "@/lib/audit";
+import { changeDeviceStatus } from "@/lib/services/devices";
 import { handleApiError, ForbiddenError, NotFoundError, ValidationError } from "@/lib/api/errors";
 import type { InstallationRow } from "@/types/db";
 
@@ -31,6 +32,13 @@ export async function POST(_req: Request, ctx: RouteContext<"/api/installations/
       .bind(id)
       .run();
     if (!cas.meta.changes) throw new ValidationError("Job lắp đặt đã được bắt đầu trước đó");
+
+    if (installation.device_id) {
+      await changeDeviceStatus(
+        { deviceId: installation.device_id, toStatus: "INSTALLING", note: "Bắt đầu lắp đặt", createdBy: session.user.id },
+        db
+      );
+    }
 
     await writeAuditLog({
       userId: session.user.id,

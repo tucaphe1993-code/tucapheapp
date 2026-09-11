@@ -4,8 +4,9 @@ import { getDb } from "@/lib/db/client";
 import { newId, nextOrderCode } from "@/lib/db/id";
 import { requireRole } from "@/lib/auth/session";
 import { writeAuditLog } from "@/lib/audit";
-import { handleApiError, NotFoundError, ValidationError } from "@/lib/api/errors";
-import type { CustomerRow, OrderRow, ProductVariantRow } from "@/types/db";
+import { sellDevice } from "@/lib/services/devices";
+import { handleApiError, ConflictError, NotFoundError, ValidationError } from "@/lib/api/errors";
+import type { CustomerRow, DeviceRow, OrderRow, ProductVariantRow } from "@/types/db";
 
 const createSchema = z.object({
   customerId: z.string().min(1),
@@ -17,6 +18,7 @@ const createSchema = z.object({
       z.object({
         productVariantId: z.string().min(1),
         quantity: z.number().int().positive(),
+        deviceId: z.string().optional(),
       })
     )
     .min(1, "Đơn hàng cần ít nhất 1 sản phẩm"),
@@ -72,15 +74,17 @@ export async function POST(req: NextRequest) {
     if (!customer) throw new NotFoundError("Không tìm thấy khách hàng");
 
     type ResolvedItem = {
+      id: string;
       productVariantId: string;
       quantity: number;
       sku: string;
       productName: string;
-      form: string;
-      packaging: string;
-      weightGrams: number;
+      form: string | null;
+      packaging: string | null;
+      weightGrams: number | null;
       unitPrice: number;
       lineTotal: number;
+      deviceId: string | null;
     };
     const resolvedItems: ResolvedItem[] = [];
     let totalAmount = 0;
@@ -97,6 +101,26 @@ export async function POST(req: NextRequest) {
       if (!variant) {
         throw new ValidationError(`Không tìm thấy SKU cho sản phẩm đã chọn`);
       }
+
+      let deviceId: string | null = null;
+      if (variant.requires_serial) {
+        if (!item.deviceId) {
+          throw new ValidationError(`Vui lòng chọn Serial cho ${variant.sku}`);
+        }
+        if (item.quantity !== 1) {
+          throw new ValidationError(`Mỗi Serial chỉ tương ứng 1 thiết bị (${variant.sku})`);
+        }
+        const device = await db
+          .prepare(`SELECT * FROM devices WHERE id = ? AND product_variant_id = ?`)
+          .bind(item.deviceId, variant.id)
+          .first<DeviceRow>();
+        if (!device) throw new NotFoundError(`Không tìm thấy thiết bị đã chọn cho ${variant.sku}`);
+        if (device.status !== "IN_STOCK") {
+          throw new ConflictError(`Serial ${device.serial_number} không còn trong kho`);
+        }
+        deviceId = device.id;
+      }
+
       // Price is ALWAYS taken from the DB, never trusted from the client —
       // a customer-specific price (customer_prices) wins over the default.
       const customPrice = await db
@@ -107,6 +131,7 @@ export async function POST(req: NextRequest) {
       const lineTotal = unitPrice * item.quantity;
       totalAmount += lineTotal;
       resolvedItems.push({
+        id: newId(),
         productVariantId: variant.id,
         quantity: item.quantity,
         sku: variant.sku,
@@ -116,6 +141,7 @@ export async function POST(req: NextRequest) {
         weightGrams: variant.weight_grams,
         unitPrice,
         lineTotal,
+        deviceId,
       });
     }
 
@@ -148,11 +174,11 @@ export async function POST(req: NextRequest) {
         db
           .prepare(
             `INSERT INTO order_items
-               (id, order_id, product_variant_id, sku, product_name, form, packaging, weight_grams, quantity, unit_price, line_total)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+               (id, order_id, product_variant_id, sku, product_name, form, packaging, weight_grams, quantity, unit_price, line_total, device_id)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
           )
           .bind(
-            newId(),
+            item.id,
             orderId,
             item.productVariantId,
             item.sku,
@@ -162,10 +188,22 @@ export async function POST(req: NextRequest) {
             item.weightGrams,
             item.quantity,
             item.unitPrice,
-            item.lineTotal
+            item.lineTotal,
+            item.deviceId
           )
       )
     );
+
+    for (const item of resolvedItems) {
+      if (!item.deviceId) continue;
+      await sellDevice({
+        deviceId: item.deviceId,
+        orderId,
+        orderItemId: item.id,
+        customerId: customer.id,
+        createdBy: session.user.id,
+      });
+    }
 
     await writeAuditLog({
       userId: session.user.id,

@@ -15,6 +15,7 @@ import { computeDebtStatus } from "@/lib/services/debts";
 import { formatDate, formatDateTime, formatVnd } from "@/lib/utils";
 import type {
   CustomerRow,
+  DeviceRow,
   InstallationRow,
   OrderItemRow,
   OrderRow,
@@ -56,6 +57,17 @@ export default async function OrderDetailPage({ params }: PageProps<"/orders/[id
     paidAmount,
     dueDate: order.payment_due_date,
   });
+
+  const deviceIds = items.map((i) => i.device_id).filter((v): v is string => !!v);
+  const deviceSerials = new Map<string, string>();
+  if (deviceIds.length > 0) {
+    const placeholders = deviceIds.map(() => "?").join(",");
+    const { results } = await db
+      .prepare(`SELECT id, serial_number FROM devices WHERE id IN (${placeholders})`)
+      .bind(...deviceIds)
+      .all<Pick<DeviceRow, "id" | "serial_number">>();
+    results.forEach((r) => deviceSerials.set(r.id, r.serial_number));
+  }
 
   const technicianIds = [...new Set(installations.map((i) => i.technician_id).filter((v): v is string => !!v))];
   const technicianNames = new Map<string, string>();
@@ -122,8 +134,23 @@ export default async function OrderDetailPage({ params }: PageProps<"/orders/[id
                         <td className="py-1.5 pr-3">
                           {item.product_name}
                           <div className="text-xs text-stone-400">
-                            {FORM_LABEL[item.form]} · {PACKAGING_LABEL[item.packaging]} ·{" "}
-                            {item.weight_grams >= 1000 ? `${item.weight_grams / 1000}kg` : `${item.weight_grams}g`}
+                            {item.device_id ? (
+                              <>
+                                Serial:{" "}
+                                <Link href={`/devices/${item.device_id}`} className="text-amber-800 hover:underline">
+                                  {deviceSerials.get(item.device_id) ?? "—"}
+                                </Link>
+                              </>
+                            ) : item.form ? (
+                              <>
+                                {FORM_LABEL[item.form]} · {PACKAGING_LABEL[item.packaging!]} ·{" "}
+                                {item.weight_grams! >= 1000
+                                  ? `${item.weight_grams! / 1000}kg`
+                                  : `${item.weight_grams}g`}
+                              </>
+                            ) : (
+                              item.sku
+                            )}
                           </div>
                         </td>
                         <td className="py-1.5 pr-3">{item.quantity}</td>

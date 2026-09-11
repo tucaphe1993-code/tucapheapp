@@ -10,6 +10,12 @@ const updateSchema = z.object({
   unitPrice: z.number().int().nonnegative().optional(),
   costPrice: z.number().int().nonnegative().optional(),
   isActive: z.boolean().optional(),
+  unit: z.string().trim().optional(),
+  brand: z.string().trim().optional(),
+  model: z.string().trim().optional(),
+  supplier: z.string().trim().optional(),
+  warrantyMonths: z.number().int().nonnegative().optional(),
+  requiresSerial: z.boolean().optional(),
 });
 
 // Price/cost changes are ADMIN-only (spec §4, §31: nhân viên không được sửa giá).
@@ -30,18 +36,47 @@ export async function PATCH(req: NextRequest, ctx: RouteContext<"/api/variants/[
       .first<ProductVariantRow>();
     if (!existing) throw new NotFoundError("Không tìm thấy SKU");
 
+    if (parsed.data.requiresSerial === false && existing.requires_serial) {
+      const hasDevices = await db
+        .prepare(`SELECT id FROM devices WHERE product_variant_id = ? LIMIT 1`)
+        .bind(id)
+        .first();
+      if (hasDevices) {
+        throw new ValidationError("Không thể bỏ quản lý Serial khi SKU đã có thiết bị/Serial trong hệ thống");
+      }
+    }
+
     const next = {
       unit_price: parsed.data.unitPrice ?? existing.unit_price,
       cost_price: parsed.data.costPrice ?? existing.cost_price,
       is_active: parsed.data.isActive === undefined ? existing.is_active : parsed.data.isActive ? 1 : 0,
+      unit: parsed.data.unit ?? existing.unit,
+      brand: parsed.data.brand ?? existing.brand,
+      model: parsed.data.model ?? existing.model,
+      supplier: parsed.data.supplier ?? existing.supplier,
+      warranty_months: parsed.data.warrantyMonths ?? existing.warranty_months,
+      requires_serial:
+        parsed.data.requiresSerial === undefined ? existing.requires_serial : parsed.data.requiresSerial ? 1 : 0,
     };
 
     await db
       .prepare(
-        `UPDATE product_variants SET unit_price = ?, cost_price = ?, is_active = ?, updated_at = datetime('now')
+        `UPDATE product_variants SET unit_price = ?, cost_price = ?, is_active = ?, unit = ?, brand = ?,
+           model = ?, supplier = ?, warranty_months = ?, requires_serial = ?, updated_at = datetime('now')
          WHERE id = ?`
       )
-      .bind(next.unit_price, next.cost_price, next.is_active, id)
+      .bind(
+        next.unit_price,
+        next.cost_price,
+        next.is_active,
+        next.unit,
+        next.brand,
+        next.model,
+        next.supplier,
+        next.warranty_months,
+        next.requires_serial,
+        id
+      )
       .run();
 
     await writeAuditLog({

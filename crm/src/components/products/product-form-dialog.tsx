@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog,
@@ -16,6 +17,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { PlusCircle } from "lucide-react";
+import { PRODUCT_TYPES, PRODUCT_TYPE_LABEL } from "@/lib/constants";
 
 export function ProductFormDialog() {
   const router = useRouter();
@@ -30,6 +32,7 @@ export function ProductFormDialog() {
       name: String(form.get("name") || ""),
       code: String(form.get("code") || ""),
       description: String(form.get("description") || ""),
+      productType: String(form.get("productType") || "COFFEE"),
     };
     try {
       const res = await fetch("/api/products", {
@@ -65,6 +68,16 @@ export function ProductFormDialog() {
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="name">Tên sản phẩm *</Label>
             <Input id="name" name="name" required placeholder="Crema Blend" />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="productType">Loại sản phẩm *</Label>
+            <Select id="productType" name="productType" required defaultValue="COFFEE">
+              {PRODUCT_TYPES.map((t) => (
+                <option key={t} value={t}>
+                  {PRODUCT_TYPE_LABEL[t]}
+                </option>
+              ))}
+            </Select>
           </div>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="code">Mã SKU prefix * (VD: CB)</Label>

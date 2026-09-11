@@ -45,6 +45,7 @@ export function CustomerPriceDialog({ customerId }: { customerId: string }) {
     return selectedProduct.variants
       .filter((v) => v.form === form && v.packaging === packaging && v.is_active)
       .map((v) => v.weight_grams)
+      .filter((w): w is number => w !== null)
       .sort((a, b) => a - b);
   }, [selectedProduct, form, packaging]);
 

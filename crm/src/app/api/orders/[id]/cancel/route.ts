@@ -2,8 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { getDb } from "@/lib/db/client";
 import { requireRole } from "@/lib/auth/session";
 import { writeAuditLog } from "@/lib/audit";
+import { releaseDevice } from "@/lib/services/devices";
 import { handleApiError, NotFoundError, ValidationError } from "@/lib/api/errors";
-import type { OrderRow } from "@/types/db";
+import type { OrderItemRow, OrderRow } from "@/types/db";
 
 const CANCELLABLE: OrderRow["status"][] = ["DRAFT", "CONFIRMED", "PACKING", "PACKED"];
 
@@ -35,6 +36,14 @@ export async function POST(_req: NextRequest, ctx: RouteContext<"/api/orders/[id
       .prepare(`UPDATE tasks SET status = 'CANCELLED', updated_at = datetime('now') WHERE order_id = ? AND status IN ('TODO','IN_PROGRESS')`)
       .bind(id)
       .run();
+
+    const { results: deviceItems } = await db
+      .prepare(`SELECT * FROM order_items WHERE order_id = ? AND device_id IS NOT NULL`)
+      .bind(id)
+      .all<OrderItemRow>();
+    for (const item of deviceItems) {
+      if (item.device_id) await releaseDevice({ deviceId: item.device_id, createdBy: session.user.id }, db);
+    }
 
     await writeAuditLog({ userId: session.user.id, action: "CANCEL_ORDER", entity: "order", entityId: id });
 

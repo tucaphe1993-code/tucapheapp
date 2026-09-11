@@ -60,9 +60,9 @@ export async function sendLarkMessage(text: string): Promise<void> {
 export interface LarkOrderItemSummary {
   sku: string;
   productName: string;
-  form: string;
-  packaging: string;
-  weightGrams: number;
+  form: string | null;
+  packaging: string | null;
+  weightGrams: number | null;
   quantity: number;
 }
 
@@ -85,8 +85,12 @@ export async function sendLarkOrderAssignedCard(params: {
 }): Promise<void> {
   const productLines = params.items
     .map((i) => {
-      const weight = i.weightGrams >= 1000 ? `${i.weightGrams / 1000}kg` : `${i.weightGrams}g`;
-      return `• ${i.productName} (${FORM_LABEL[i.form] ?? i.form}, ${PACKAGING_LABEL[i.packaging] ?? i.packaging}, ${weight}) — SL: **${i.quantity}**`;
+      const detail = i.form
+        ? `${FORM_LABEL[i.form] ?? i.form}, ${PACKAGING_LABEL[i.packaging!] ?? i.packaging}, ${
+            i.weightGrams! >= 1000 ? `${i.weightGrams! / 1000}kg` : `${i.weightGrams}g`
+          }`
+        : i.sku;
+      return `• ${i.productName} (${detail}) — SL: **${i.quantity}**`;
     })
     .join("\n");
 

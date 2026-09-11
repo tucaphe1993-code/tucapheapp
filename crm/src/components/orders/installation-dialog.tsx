@@ -17,7 +17,7 @@ import {
   DialogFooter,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import type { SafeUser } from "@/types/db";
+import type { DeviceRow, OrderItemRow, SafeUser } from "@/types/db";
 
 export function InstallationDialog({
   orderId,
@@ -30,21 +30,37 @@ export function InstallationDialog({
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [technicians, setTechnicians] = useState<SafeUser[]>([]);
+  const [deviceItems, setDeviceItems] = useState<{ item: OrderItemRow; device: DeviceRow }[]>([]);
+  const [deviceId, setDeviceId] = useState("");
 
   useEffect(() => {
     if (!open) return;
     fetch("/api/users?role=EMPLOYEE")
       .then((r) => r.json())
       .then((d) => setTechnicians((d.users ?? []).filter((u: SafeUser) => u.status === "ACTIVE")));
-  }, [open]);
+    fetch(`/api/orders/${orderId}`)
+      .then((r) => r.json())
+      .then((d) => {
+        const devices: DeviceRow[] = d.devices ?? [];
+        const items: OrderItemRow[] = d.items ?? [];
+        const deviceById = new Map(devices.map((dv) => [dv.id, dv]));
+        setDeviceItems(
+          items
+            .filter((i) => i.device_id && deviceById.has(i.device_id))
+            .map((i) => ({ item: i, device: deviceById.get(i.device_id!)! }))
+        );
+      });
+  }, [open, orderId]);
+
+  const selectedDevice = deviceItems.find((d) => d.device.id === deviceId);
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setLoading(true);
     const form = new FormData(e.currentTarget);
     const payload = {
-      equipment: String(form.get("equipment") || ""),
-      serialNumber: String(form.get("serialNumber") || "") || undefined,
+      equipment: selectedDevice ? selectedDevice.item.product_name : String(form.get("equipment") || ""),
+      deviceId: selectedDevice?.device.id,
       location: String(form.get("location") || "") || undefined,
       scheduledAt: String(form.get("scheduledAt") || "") || undefined,
       technicianId: String(form.get("technicianId") || "") || undefined,
@@ -81,14 +97,25 @@ export function InstallationDialog({
           <DialogTitle>Tạo job lắp đặt</DialogTitle>
         </DialogHeader>
         <form onSubmit={onSubmit} className="flex flex-col gap-3">
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="equipment">Thiết bị *</Label>
-            <Input id="equipment" name="equipment" placeholder="VD: Máy pha cà phê Espresso" required />
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="serialNumber">Serial number</Label>
-            <Input id="serialNumber" name="serialNumber" />
-          </div>
+          {deviceItems.length > 0 && (
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="deviceId">Thiết bị đã bán trong đơn này</Label>
+              <Select id="deviceId" value={deviceId} onChange={(e) => setDeviceId(e.target.value)}>
+                <option value="">-- Nhập thiết bị khác --</option>
+                {deviceItems.map(({ item, device }) => (
+                  <option key={device.id} value={device.id}>
+                    {item.product_name} — Serial {device.serial_number}
+                  </option>
+                ))}
+              </Select>
+            </div>
+          )}
+          {!selectedDevice && (
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="equipment">Thiết bị *</Label>
+              <Input id="equipment" name="equipment" placeholder="VD: Máy pha cà phê Espresso" required />
+            </div>
+          )}
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="location">Địa điểm lắp đặt</Label>
             <Input id="location" name="location" defaultValue={defaultLocation ?? ""} />

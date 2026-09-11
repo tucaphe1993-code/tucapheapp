@@ -13,7 +13,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CustomerFormDialog } from "@/components/customers/customer-form-dialog";
 import { formatVnd } from "@/lib/utils";
 import { DELIVERY_METHODS } from "@/lib/constants";
-import type { CustomerRow, ProductRow, ProductVariantRow } from "@/types/db";
+import type { CustomerRow, DeviceRow, ProductRow, ProductVariantRow } from "@/types/db";
 
 type ProductWithVariants = ProductRow & { variants: ProductVariantRow[] };
 
@@ -21,10 +21,16 @@ interface CartLine {
   variant: ProductVariantRow;
   productName: string;
   quantity: number;
+  deviceId?: string;
+  serialNumber?: string;
 }
 
 const FORM_LABEL: Record<string, string> = { HAT: "Hạt", BOT: "Bột" };
 const PACKAGING_LABEL: Record<string, string> = { TUI_XANH: "Túi Xanh", TUI_ZIP: "Túi Zip" };
+
+function lineKey(l: CartLine) {
+  return l.deviceId ?? l.variant.id;
+}
 
 export function OrderBuilder() {
   const router = useRouter();
@@ -41,6 +47,9 @@ export function OrderBuilder() {
   const [form, setForm] = useState("HAT");
   const [packaging, setPackaging] = useState("TUI_XANH");
   const [weight, setWeight] = useState<number | "">("");
+  const [variantId, setVariantId] = useState("");
+  const [availableDevices, setAvailableDevices] = useState<DeviceRow[]>([]);
+  const [deviceId, setDeviceId] = useState("");
   const [qty, setQty] = useState(1);
 
   const [cart, setCart] = useState<CartLine[]>([]);
@@ -81,32 +90,71 @@ export function OrderBuilder() {
   }
 
   const selectedProduct = products.find((p) => p.id === productId);
+  const isCoffee = selectedProduct?.product_type === "COFFEE";
+
   const availableWeights = useMemo(() => {
-    if (!selectedProduct) return [];
+    if (!selectedProduct || !isCoffee) return [];
     return selectedProduct.variants
       .filter((v) => v.form === form && v.packaging === packaging && v.is_active)
-      .map((v) => v.weight_grams)
+      .map((v) => v.weight_grams as number)
       .sort((a, b) => a - b);
-  }, [selectedProduct, form, packaging]);
+  }, [selectedProduct, isCoffee, form, packaging]);
 
-  const matchedVariant = selectedProduct?.variants.find(
-    (v) => v.form === form && v.packaging === packaging && v.weight_grams === weight
-  );
+  const matchedVariant = isCoffee
+    ? selectedProduct?.variants.find(
+        (v) => v.form === form && v.packaging === packaging && v.weight_grams === weight
+      )
+    : selectedProduct?.variants.find((v) => v.id === variantId);
+
+  const selectedProductId = selectedProduct?.id;
+  const matchedVariantId = matchedVariant?.id;
+  const matchedVariantRequiresSerial = matchedVariant?.requires_serial;
+
+  useEffect(() => {
+    if (!selectedProductId || !matchedVariantId || !matchedVariantRequiresSerial) return;
+    fetch(`/api/products/${selectedProductId}/variants/${matchedVariantId}/devices`)
+      .then((r) => r.json())
+      .then((d) => {
+        setAvailableDevices(d.devices ?? []);
+        setDeviceId("");
+      });
+  }, [selectedProductId, matchedVariantId, matchedVariantRequiresSerial]);
 
   function addToCart() {
     if (!selectedProduct || !matchedVariant) {
-      toast.error("Vui lòng chọn đầy đủ hình thức / bao bì / quy cách");
+      toast.error("Vui lòng chọn đầy đủ thông tin sản phẩm");
       return;
     }
+    if (matchedVariant.requires_serial) {
+      const device = availableDevices.find((d) => d.id === deviceId);
+      if (!device) {
+        toast.error("Vui lòng chọn Serial");
+        return;
+      }
+      setCart((cur) => [
+        ...cur,
+        {
+          variant: matchedVariant,
+          productName: selectedProduct.name,
+          quantity: 1,
+          deviceId: device.id,
+          serialNumber: device.serial_number,
+        },
+      ]);
+      setAvailableDevices((cur) => cur.filter((d) => d.id !== device.id));
+      setDeviceId("");
+      return;
+    }
+
     if (qty <= 0) {
       toast.error("Số lượng phải lớn hơn 0");
       return;
     }
     setCart((cur) => {
-      const existing = cur.find((l) => l.variant.id === matchedVariant.id);
+      const existing = cur.find((l) => !l.deviceId && l.variant.id === matchedVariant.id);
       if (existing) {
         return cur.map((l) =>
-          l.variant.id === matchedVariant.id ? { ...l, quantity: l.quantity + qty } : l
+          !l.deviceId && l.variant.id === matchedVariant.id ? { ...l, quantity: l.quantity + qty } : l
         );
       }
       return [...cur, { variant: matchedVariant, productName: selectedProduct.name, quantity: qty }];
@@ -114,8 +162,8 @@ export function OrderBuilder() {
     setQty(1);
   }
 
-  function removeLine(variantId: string) {
-    setCart((cur) => cur.filter((l) => l.variant.id !== variantId));
+  function removeLine(key: string) {
+    setCart((cur) => cur.filter((l) => lineKey(l) !== key));
   }
 
   const total = cart.reduce((sum, l) => sum + priceFor(l.variant) * l.quantity, 0);
@@ -134,7 +182,11 @@ export function OrderBuilder() {
           deliveryDate: deliveryDate || undefined,
           deliveryMethod: deliveryMethod || undefined,
           note: note || undefined,
-          items: cart.map((l) => ({ productVariantId: l.variant.id, quantity: l.quantity })),
+          items: cart.map((l) => ({
+            productVariantId: l.variant.id,
+            quantity: l.quantity,
+            deviceId: l.deviceId,
+          })),
         }),
       });
       const data = await res.json();
@@ -199,15 +251,16 @@ export function OrderBuilder() {
           </CardHeader>
           <CardContent className="flex flex-col gap-3">
             <div className="flex flex-col gap-1.5">
-              <Label>Dòng cà phê</Label>
+              <Label>Sản phẩm</Label>
               <Select
                 value={productId}
                 onChange={(e) => {
                   setProductId(e.target.value);
                   setWeight("");
+                  setVariantId("");
                 }}
               >
-                <option value="">-- Chọn dòng cà phê --</option>
+                <option value="">-- Chọn sản phẩm --</option>
                 {products.map((p) => (
                   <option key={p.id} value={p.id}>
                     {p.name}
@@ -215,45 +268,82 @@ export function OrderBuilder() {
                 ))}
               </Select>
             </div>
-            <div className="grid grid-cols-2 gap-3">
+
+            {selectedProduct && isCoffee && (
+              <>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="flex flex-col gap-1.5">
+                    <Label>Hạt / Bột</Label>
+                    <Select
+                      value={form}
+                      onChange={(e) => {
+                        setForm(e.target.value);
+                        setWeight("");
+                      }}
+                    >
+                      <option value="HAT">Hạt</option>
+                      <option value="BOT">Bột</option>
+                    </Select>
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <Label>Bao bì</Label>
+                    <Select
+                      value={packaging}
+                      onChange={(e) => {
+                        setPackaging(e.target.value);
+                        setWeight("");
+                      }}
+                    >
+                      <option value="TUI_XANH">Túi Xanh</option>
+                      <option value="TUI_ZIP">Túi Zip</option>
+                    </Select>
+                  </div>
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <Label>Quy cách</Label>
+                  <Select value={weight} onChange={(e) => setWeight(Number(e.target.value))}>
+                    <option value="">-- Chọn quy cách --</option>
+                    {availableWeights.map((w) => (
+                      <option key={w} value={w}>
+                        {w >= 1000 ? `${w / 1000}kg` : `${w}g`}
+                      </option>
+                    ))}
+                  </Select>
+                </div>
+              </>
+            )}
+
+            {selectedProduct && !isCoffee && (
               <div className="flex flex-col gap-1.5">
-                <Label>Hạt / Bột</Label>
-                <Select
-                  value={form}
-                  onChange={(e) => {
-                    setForm(e.target.value);
-                    setWeight("");
-                  }}
-                >
-                  <option value="HAT">Hạt</option>
-                  <option value="BOT">Bột</option>
+                <Label>Biến thể / SKU</Label>
+                <Select value={variantId} onChange={(e) => setVariantId(e.target.value)}>
+                  <option value="">-- Chọn SKU --</option>
+                  {selectedProduct.variants
+                    .filter((v) => v.is_active)
+                    .map((v) => (
+                      <option key={v.id} value={v.id}>
+                        {v.sku}
+                        {v.model ? ` — ${v.model}` : ""}
+                      </option>
+                    ))}
                 </Select>
               </div>
+            )}
+
+            {matchedVariant?.requires_serial && (
               <div className="flex flex-col gap-1.5">
-                <Label>Bao bì</Label>
-                <Select
-                  value={packaging}
-                  onChange={(e) => {
-                    setPackaging(e.target.value);
-                    setWeight("");
-                  }}
-                >
-                  <option value="TUI_XANH">Túi Xanh</option>
-                  <option value="TUI_ZIP">Túi Zip</option>
+                <Label>Chọn Serial *</Label>
+                <Select value={deviceId} onChange={(e) => setDeviceId(e.target.value)}>
+                  <option value="">-- Chọn Serial ({availableDevices.length} còn trong kho) --</option>
+                  {availableDevices.map((d) => (
+                    <option key={d.id} value={d.id}>
+                      {d.serial_number}
+                    </option>
+                  ))}
                 </Select>
               </div>
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label>Quy cách</Label>
-              <Select value={weight} onChange={(e) => setWeight(Number(e.target.value))}>
-                <option value="">-- Chọn quy cách --</option>
-                {availableWeights.map((w) => (
-                  <option key={w} value={w}>
-                    {w >= 1000 ? `${w / 1000}kg` : `${w}g`}
-                  </option>
-                ))}
-              </Select>
-            </div>
+            )}
+
             {matchedVariant && (
               <div className="rounded-lg bg-stone-50 p-2 text-sm font-medium">
                 {formatVnd(priceFor(matchedVariant))}
@@ -262,17 +352,20 @@ export function OrderBuilder() {
                 )}
               </div>
             )}
+
             <div className="flex items-end gap-3">
-              <div className="flex flex-col gap-1.5">
-                <Label>Số lượng</Label>
-                <Input
-                  type="number"
-                  min={1}
-                  className="w-24"
-                  value={qty}
-                  onChange={(e) => setQty(Number(e.target.value))}
-                />
-              </div>
+              {!matchedVariant?.requires_serial && (
+                <div className="flex flex-col gap-1.5">
+                  <Label>Số lượng</Label>
+                  <Input
+                    type="number"
+                    min={1}
+                    className="w-24"
+                    value={qty}
+                    onChange={(e) => setQty(Number(e.target.value))}
+                  />
+                </div>
+              )}
               <Button onClick={addToCart} disabled={!matchedVariant}>
                 <PlusCircle className="h-4 w-4" /> Thêm sản phẩm
               </Button>
@@ -316,20 +409,30 @@ export function OrderBuilder() {
           <CardContent className="flex flex-col gap-2">
             {cart.length === 0 && <p className="text-sm text-stone-400">Chưa có sản phẩm</p>}
             {cart.map((l) => (
-              <div key={l.variant.id} className="flex items-center justify-between border-b border-stone-100 pb-2 text-sm">
+              <div key={lineKey(l)} className="flex items-center justify-between border-b border-stone-100 pb-2 text-sm">
                 <div>
                   <div className="font-medium">{l.productName}</div>
                   <div className="text-stone-500">
-                    {FORM_LABEL[l.variant.form]} · {PACKAGING_LABEL[l.variant.packaging]} ·{" "}
-                    {l.variant.weight_grams >= 1000
-                      ? `${l.variant.weight_grams / 1000}kg`
-                      : `${l.variant.weight_grams}g`}{" "}
-                    x{l.quantity}
+                    {l.serialNumber ? (
+                      <>Serial: {l.serialNumber}</>
+                    ) : l.variant.form ? (
+                      <>
+                        {FORM_LABEL[l.variant.form]} · {PACKAGING_LABEL[l.variant.packaging!]} ·{" "}
+                        {l.variant.weight_grams! >= 1000
+                          ? `${l.variant.weight_grams! / 1000}kg`
+                          : `${l.variant.weight_grams}g`}{" "}
+                        x{l.quantity}
+                      </>
+                    ) : (
+                      <>
+                        {l.variant.sku} x{l.quantity}
+                      </>
+                    )}
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="font-medium">{formatVnd(priceFor(l.variant) * l.quantity)}</span>
-                  <button onClick={() => removeLine(l.variant.id)} className="text-stone-400 hover:text-red-600">
+                  <button onClick={() => removeLine(lineKey(l))} className="text-stone-400 hover:text-red-600">
                     <Trash2 className="h-4 w-4" />
                   </button>
                 </div>

@@ -38,7 +38,18 @@ export async function GET(_req: NextRequest, ctx: RouteContext<"/api/orders/[id]
       db.prepare(`SELECT * FROM customers WHERE id = ?`).bind(order.customer_id).first(),
     ]);
 
-    return NextResponse.json({ order, items, tasks, customer });
+    const deviceIds = items.map((i) => i.device_id).filter((v): v is string => !!v);
+    const devices =
+      deviceIds.length > 0
+        ? (
+            await db
+              .prepare(`SELECT * FROM devices WHERE id IN (${deviceIds.map(() => "?").join(",")})`)
+              .bind(...deviceIds)
+              .all()
+          ).results
+        : [];
+
+    return NextResponse.json({ order, items, tasks, customer, devices });
   } catch (err) {
     return handleApiError(err);
   }

@@ -15,6 +15,7 @@ import {
   ScrollText,
   Wallet,
   Wrench,
+  Cpu,
   Menu,
   X,
   LogOut,
@@ -41,6 +42,7 @@ const NAV_GROUPS = [
     items: [
       { href: "/products", label: "Sản phẩm", icon: Coffee },
       { href: "/inventory", label: "Kho", icon: Boxes },
+      { href: "/devices", label: "Thiết bị", icon: Cpu },
     ],
   },
   {

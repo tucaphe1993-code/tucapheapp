@@ -8,10 +8,16 @@ import { CustomerPriceList, type CustomerPriceItem } from "@/components/customer
 import { OrderStatusBadge } from "@/components/orders/order-status-badge";
 import { DebtStatusBadge } from "@/components/orders/debt-status-badge";
 import { InstallationStatusBadge } from "@/components/installations/installation-status-badge";
+import { DeviceStatusBadge } from "@/components/devices/device-status-badge";
 import { Button } from "@/components/ui/button";
 import { computeDebtStatus } from "@/lib/services/debts";
 import { formatDate, formatDateTime, formatVnd } from "@/lib/utils";
-import type { CustomerRow, InstallationRow, OrderRow, PaymentRow } from "@/types/db";
+import type { CustomerRow, DeviceRow, InstallationRow, OrderRow, PaymentRow } from "@/types/db";
+
+interface CustomerDeviceRow extends DeviceRow {
+  product_name: string;
+  sku: string;
+}
 
 export default async function CustomerDetailPage({
   params,
@@ -52,6 +58,18 @@ export default async function CustomerDetailPage({
     .prepare(`SELECT * FROM installations WHERE customer_id = ? ORDER BY created_at DESC`)
     .bind(id)
     .all<InstallationRow>();
+
+  const { results: devices } = await db
+    .prepare(
+      `SELECT d.*, p.name as product_name, pv.sku
+       FROM devices d
+       JOIN products p ON p.id = d.product_id
+       JOIN product_variants pv ON pv.id = d.product_variant_id
+       WHERE d.customer_id = ?
+       ORDER BY d.sold_at DESC`
+    )
+    .bind(id)
+    .all<CustomerDeviceRow>();
 
   const paidByOrder = new Map<string, number>();
   for (const p of payments) paidByOrder.set(p.order_id, (paidByOrder.get(p.order_id) ?? 0) + p.amount);
@@ -142,6 +160,34 @@ export default async function CustomerDetailPage({
               ))}
             </div>
           )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Thiết bị đang sở hữu ({devices.length})</CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-2">
+          {devices.length === 0 && (
+            <div className="py-4 text-center text-sm text-stone-500">Chưa có thiết bị nào</div>
+          )}
+          {devices.map((d) => (
+            <Link
+              key={d.id}
+              href={`/devices/${d.id}`}
+              className="flex items-center justify-between rounded-lg border border-stone-200 p-3 hover:border-amber-300"
+            >
+              <div>
+                <div className="font-medium">
+                  {d.product_name} <span className="text-stone-400 font-normal font-mono">· {d.serial_number}</span>
+                </div>
+                <div className="text-xs text-stone-500">
+                  {d.warranty_end_date ? `Bảo hành đến ${formatDate(d.warranty_end_date)}` : "Chưa có thông tin bảo hành"}
+                </div>
+              </div>
+              <DeviceStatusBadge status={d.status} />
+            </Link>
+          ))}
         </CardContent>
       </Card>
 

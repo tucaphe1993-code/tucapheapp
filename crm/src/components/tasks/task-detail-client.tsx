@@ -171,15 +171,21 @@ export function TaskDetailClient({
               <div className="flex flex-col gap-1.5">
                 <div className="font-medium">{item.product_name}</div>
                 <div className="flex flex-wrap items-center gap-1.5">
-                  <Badge variant={FORM_VARIANT[item.form]} className="text-sm font-bold">
-                    {FORM_LABEL[item.form]}
-                  </Badge>
-                  <Badge variant={PACKAGING_VARIANT[item.packaging]} className="text-sm font-bold">
-                    {PACKAGING_LABEL[item.packaging]}
-                  </Badge>
-                  <Badge className="text-sm font-bold">
-                    {item.weight_grams >= 1000 ? `${item.weight_grams / 1000}kg` : `${item.weight_grams}g`}
-                  </Badge>
+                  {item.form ? (
+                    <>
+                      <Badge variant={FORM_VARIANT[item.form]} className="text-sm font-bold">
+                        {FORM_LABEL[item.form]}
+                      </Badge>
+                      <Badge variant={PACKAGING_VARIANT[item.packaging!]} className="text-sm font-bold">
+                        {PACKAGING_LABEL[item.packaging!]}
+                      </Badge>
+                      <Badge className="text-sm font-bold">
+                        {item.weight_grams! >= 1000 ? `${item.weight_grams! / 1000}kg` : `${item.weight_grams}g`}
+                      </Badge>
+                    </>
+                  ) : (
+                    <Badge className="text-sm font-bold">{item.sku}</Badge>
+                  )}
                 </div>
               </div>
               <div className="text-right">

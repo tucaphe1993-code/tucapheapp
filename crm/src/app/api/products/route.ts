@@ -17,6 +17,9 @@ const createSchema = z.object({
     .max(10)
     .regex(/^[A-Za-z0-9]+$/, "Mã sản phẩm chỉ gồm chữ và số"),
   description: z.string().trim().optional(),
+  productType: z
+    .enum(["COFFEE", "BREWER", "GRINDER", "EQUIPMENT", "ACCESSORY", "SERVICE"])
+    .default("COFFEE"),
 });
 
 export async function GET() {
@@ -57,7 +60,7 @@ export async function POST(req: NextRequest) {
     if (!parsed.success) {
       throw new ValidationError(parsed.error.issues[0]?.message ?? "Dữ liệu không hợp lệ");
     }
-    const { name, code, description } = parsed.data;
+    const { name, code, description, productType } = parsed.data;
 
     const db = getDb();
     const id = newId();
@@ -65,9 +68,9 @@ export async function POST(req: NextRequest) {
 
     await db
       .prepare(
-        `INSERT INTO products (id, name, slug, code, description) VALUES (?, ?, ?, ?, ?)`
+        `INSERT INTO products (id, name, slug, code, description, product_type) VALUES (?, ?, ?, ?, ?, ?)`
       )
-      .bind(id, name, slug, code.toUpperCase(), description || null)
+      .bind(id, name, slug, code.toUpperCase(), description || null, productType)
       .run();
 
     await writeAuditLog({

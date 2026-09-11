@@ -4,6 +4,19 @@ export type UserStatus = "ACTIVE" | "DISABLED";
 export type ProductForm = "HAT" | "BOT";
 export type ProductPackaging = "TUI_XANH" | "TUI_ZIP";
 
+export type ProductType = "COFFEE" | "BREWER" | "GRINDER" | "EQUIPMENT" | "ACCESSORY" | "SERVICE";
+
+export type DeviceStatus =
+  | "IN_STOCK"
+  | "SOLD"
+  | "AWAITING_INSTALL"
+  | "INSTALLING"
+  | "IN_USE"
+  | "UNDER_WARRANTY"
+  | "IN_REPAIR"
+  | "RECALLED"
+  | "RETIRED";
+
 export type OrderStatus =
   | "DRAFT"
   | "CONFIRMED"
@@ -70,6 +83,7 @@ export interface ProductRow {
   slug: string;
   code: string;
   description: string | null;
+  product_type: ProductType;
   is_active: number;
   created_at: string;
   updated_at: string;
@@ -78,15 +92,55 @@ export interface ProductRow {
 export interface ProductVariantRow {
   id: string;
   product_id: string;
-  form: ProductForm;
-  packaging: ProductPackaging;
-  weight_grams: number;
+  form: ProductForm | null;
+  packaging: ProductPackaging | null;
+  weight_grams: number | null;
   sku: string;
+  unit: string | null;
   unit_price: number;
   cost_price: number;
+  brand: string | null;
+  model: string | null;
+  supplier: string | null;
+  warranty_months: number | null;
+  requires_serial: number;
   is_active: number;
   created_at: string;
   updated_at: string;
+}
+
+export interface DeviceRow {
+  id: string;
+  product_id: string;
+  product_variant_id: string;
+  serial_number: string;
+  status: DeviceStatus;
+  supplier: string | null;
+  cost_price: number | null;
+  order_id: string | null;
+  order_item_id: string | null;
+  customer_id: string | null;
+  sold_at: string | null;
+  handed_over_at: string | null;
+  warranty_start_date: string | null;
+  warranty_end_date: string | null;
+  note: string | null;
+  received_at: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DeviceHistoryRow {
+  id: string;
+  device_id: string;
+  event_type: string;
+  from_status: string | null;
+  to_status: string | null;
+  order_id: string | null;
+  customer_id: string | null;
+  note: string | null;
+  created_by: string | null;
+  created_at: string;
 }
 
 export interface CustomerPriceRow {
@@ -122,12 +176,13 @@ export interface OrderItemRow {
   product_variant_id: string;
   sku: string;
   product_name: string;
-  form: ProductForm;
-  packaging: ProductPackaging;
-  weight_grams: number;
+  form: ProductForm | null;
+  packaging: ProductPackaging | null;
+  weight_grams: number | null;
   quantity: number;
   unit_price: number;
   line_total: number;
+  device_id: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -235,6 +290,7 @@ export interface InstallationRow {
   customer_id: string;
   equipment: string;
   serial_number: string | null;
+  device_id: string | null;
   location: string | null;
   scheduled_at: string | null;
   technician_id: string | null;

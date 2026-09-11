@@ -4,11 +4,13 @@ import { getDb } from "@/lib/db/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DeviceStatusBadge } from "@/components/devices/device-status-badge";
 import { EditDeviceDialog } from "@/components/devices/edit-device-dialog";
+import { ProtocolStatusBadge } from "@/components/protocols/protocol-status-badge";
 import { formatDate, formatDateTime, formatVnd } from "@/lib/utils";
 import type {
   CustomerRow,
   DeviceHistoryRow,
   DeviceRow,
+  HandoverProtocolRow,
   OrderRow,
   ProductRow,
   ProductVariantRow,
@@ -46,6 +48,16 @@ export default async function DeviceDetailPage({ params }: PageProps<"/devices/[
       .bind(id)
       .all<DeviceHistoryRow>(),
   ]);
+
+  const { results: protocols } = await db
+    .prepare(
+      `SELECT DISTINCT p.* FROM handover_protocols p
+       JOIN handover_protocol_devices pd ON pd.protocol_id = p.id
+       WHERE pd.device_id = ?
+       ORDER BY p.created_at DESC`
+    )
+    .bind(id)
+    .all<HandoverProtocolRow>();
 
   const actorIds = [...new Set(history.map((h) => h.created_by).filter((v): v is string => !!v))];
   const actorNames = new Map<string, string>();
@@ -95,6 +107,26 @@ export default async function DeviceDetailPage({ params }: PageProps<"/devices/[
               ))}
             </CardContent>
           </Card>
+
+          {protocols.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Biên bản lắp đặt</CardTitle>
+              </CardHeader>
+              <CardContent className="flex flex-col gap-2">
+                {protocols.map((p) => (
+                  <Link
+                    key={p.id}
+                    href={`/protocols/${p.id}`}
+                    className="flex items-center justify-between rounded-lg border border-stone-200 p-2.5 text-sm hover:border-amber-300"
+                  >
+                    <div className="font-medium">{p.protocol_code}</div>
+                    <ProtocolStatusBadge status={p.status} />
+                  </Link>
+                ))}
+              </CardContent>
+            </Card>
+          )}
         </div>
 
         <div className="flex flex-col gap-4">

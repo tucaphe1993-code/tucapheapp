@@ -36,7 +36,16 @@ export type AuditAction =
   | "RECEIVE_DEVICE"
   | "UPDATE_DEVICE"
   | "SELL_DEVICE"
-  | "RELEASE_DEVICE";
+  | "RELEASE_DEVICE"
+  | "CREATE_PROTOCOL"
+  | "UPDATE_PROTOCOL"
+  | "UPDATE_PROTOCOL_CHECKLIST"
+  | "START_PROTOCOL_INSTALL"
+  | "SUBMIT_PROTOCOL_FOR_CONFIRMATION"
+  | "SIGN_PROTOCOL"
+  | "HANDOVER_PROTOCOL"
+  | "ACTIVATE_PROTOCOL_WARRANTY"
+  | "COMPLETE_PROTOCOL";
 
 export async function writeAuditLog(params: {
   userId: string | null;

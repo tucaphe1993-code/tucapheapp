@@ -31,6 +31,16 @@ export type TaskStatus = "TODO" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED";
 
 export type DebtStatus = "UNPAID" | "PARTIAL" | "PAID" | "OVERDUE";
 
+export type ProtocolStatus =
+  | "PENDING_INSTALL"
+  | "INSTALLING"
+  | "PENDING_CONFIRMATION"
+  | "HANDED_OVER"
+  | "WARRANTY_ACTIVATED"
+  | "COMPLETED";
+
+export type ChecklistCategory = "INSTALL" | "GUIDE";
+
 export type InstallationStatus =
   | "PENDING"
   | "SCHEDULED"
@@ -314,6 +324,66 @@ export interface InstallationChecklistRow {
   sort_order: number;
   created_at: string;
   updated_at: string;
+}
+
+export interface HandoverProtocolRow {
+  id: string;
+  protocol_code: string;
+  order_id: string;
+  customer_id: string;
+  status: ProtocolStatus;
+  contact_name: string | null;
+  contact_phone: string | null;
+  install_address: string | null;
+  note: string | null;
+  technician_id: string | null;
+  installed_at: string | null;
+  device_condition: string | null;
+  exception_note: string | null;
+  handed_over_at: string | null;
+  warranty_activated_at: string | null;
+  warranty_activated_by: string | null;
+  signature_a_data: string | null;
+  signature_a_name: string | null;
+  signature_a_signed_at: string | null;
+  signature_b_data: string | null;
+  signature_b_name: string | null;
+  signature_b_signed_at: string | null;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface HandoverProtocolDeviceRow {
+  id: string;
+  protocol_id: string;
+  device_id: string | null;
+  product_name: string;
+  model: string | null;
+  serial_number: string | null;
+  quantity: number;
+  condition: string | null;
+  sort_order: number;
+}
+
+export interface HandoverProtocolAccessoryRow {
+  id: string;
+  protocol_id: string;
+  name: string;
+  quantity: number;
+  note: string | null;
+  sort_order: number;
+}
+
+export interface HandoverProtocolChecklistRow {
+  id: string;
+  protocol_id: string;
+  category: ChecklistCategory;
+  label: string;
+  is_checked: number;
+  note: string | null;
+  checked_at: string | null;
+  sort_order: number;
 }
 
 export interface AuditLogRow {

@@ -48,3 +48,14 @@ export async function nextOrderCode(db: D1Database): Promise<string> {
     .first<{ n: number }>();
   return `DH-${String(row!.n).padStart(4, "0")}`;
 }
+
+/** Sequential "Số biên bản" (BB-0001, BB-0002, ...) — same atomic-counter pattern as nextOrderCode. */
+export async function nextProtocolCode(db: D1Database): Promise<string> {
+  const row = await db
+    .prepare(
+      `UPDATE protocol_sequence SET next_value = next_value + 1 WHERE id = 1
+       RETURNING next_value - 1 AS n`
+    )
+    .first<{ n: number }>();
+  return `BB-${String(row!.n).padStart(4, "0")}`;
+}

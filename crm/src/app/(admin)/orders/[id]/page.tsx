@@ -10,12 +10,15 @@ import { RecordPaymentDialog } from "@/components/orders/record-payment-dialog";
 import { DueDateDialog } from "@/components/orders/due-date-dialog";
 import { InstallationDialog } from "@/components/orders/installation-dialog";
 import { InstallationStatusBadge } from "@/components/installations/installation-status-badge";
+import { CreateProtocolButton } from "@/components/orders/create-protocol-button";
+import { ProtocolStatusBadge } from "@/components/protocols/protocol-status-badge";
 import { TaskPriorityBadge, TaskStatusBadge } from "@/components/tasks/task-status-badge";
 import { computeDebtStatus } from "@/lib/services/debts";
 import { formatDate, formatDateTime, formatVnd } from "@/lib/utils";
 import type {
   CustomerRow,
   DeviceRow,
+  HandoverProtocolRow,
   InstallationRow,
   OrderItemRow,
   OrderRow,
@@ -37,7 +40,7 @@ export default async function OrderDetailPage({ params }: PageProps<"/orders/[id
   const order = await db.prepare(`SELECT * FROM orders WHERE id = ?`).bind(id).first<OrderRow>();
   if (!order) notFound();
 
-  const [customer, { results: items }, { results: tasks }, { results: payments }, { results: installations }] =
+  const [customer, { results: items }, { results: tasks }, { results: payments }, { results: installations }, protocol] =
     await Promise.all([
       db.prepare(`SELECT * FROM customers WHERE id = ?`).bind(order.customer_id).first<CustomerRow>(),
       db.prepare(`SELECT * FROM order_items WHERE order_id = ?`).bind(id).all<OrderItemRow>(),
@@ -47,6 +50,7 @@ export default async function OrderDetailPage({ params }: PageProps<"/orders/[id
         .prepare(`SELECT * FROM installations WHERE order_id = ? ORDER BY created_at DESC`)
         .bind(id)
         .all<InstallationRow>(),
+      db.prepare(`SELECT * FROM handover_protocols WHERE order_id = ?`).bind(id).first<HandoverProtocolRow>(),
     ]);
 
   const hasActiveTask = tasks.some((t) => t.status !== "CANCELLED");
@@ -314,6 +318,28 @@ export default async function OrderDetailPage({ params }: PageProps<"/orders/[id
                   <InstallationStatusBadge status={inst.status} />
                 </Link>
               ))}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex-row items-center justify-between space-y-0">
+              <CardTitle className="text-base">Biên bản lắp đặt</CardTitle>
+              {!protocol && items.some((i) => i.device_id) && <CreateProtocolButton orderId={order.id} />}
+            </CardHeader>
+            <CardContent>
+              {!protocol ? (
+                <div className="py-2 text-center text-sm text-stone-500">
+                  {items.some((i) => i.device_id) ? "Chưa có biên bản" : "Đơn hàng chưa có thiết bị để lập biên bản"}
+                </div>
+              ) : (
+                <Link
+                  href={`/protocols/${protocol.id}`}
+                  className="flex items-center justify-between rounded-lg border border-stone-200 p-2.5 text-sm hover:border-amber-300"
+                >
+                  <div className="font-medium">{protocol.protocol_code}</div>
+                  <ProtocolStatusBadge status={protocol.status} />
+                </Link>
+              )}
             </CardContent>
           </Card>
         </div>

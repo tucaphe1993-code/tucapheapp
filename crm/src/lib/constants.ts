@@ -10,14 +10,17 @@ export const PAYMENT_METHODS = ["Tiền mặt", "Chuyển khoản", "Khác"] as 
 
 export const PRODUCT_TYPE_LABEL: Record<string, string> = {
   COFFEE: "Cà phê",
-  BREWER: "Máy pha cà phê",
+  BREWER: "Máy pha",
   GRINDER: "Máy xay",
-  EQUIPMENT: "Thiết bị",
-  ACCESSORY: "Linh kiện / Phụ kiện",
+  ACCESSORY: "Linh kiện",
+  EQUIPMENT: "Thiết bị pha chế",
   SERVICE: "Dịch vụ",
 };
 
-export const PRODUCT_TYPES = Object.keys(PRODUCT_TYPE_LABEL) as (keyof typeof PRODUCT_TYPE_LABEL)[];
+// Thứ tự hiển thị trong bộ lọc/dropdown chọn loại sản phẩm. SERVICE vẫn
+// hợp lệ trong CSDL (không sửa schema) nhưng không hiển thị trong danh
+// sách này theo yêu cầu.
+export const PRODUCT_TYPES = ["COFFEE", "BREWER", "GRINDER", "ACCESSORY", "EQUIPMENT"] as const;
 
 export const UNIT_OPTIONS = ["Kg", "Gram", "Túi", "Máy", "Cái", "Bộ", "Chiếc", "Lần", "Dịch vụ"] as const;
 

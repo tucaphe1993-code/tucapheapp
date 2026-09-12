@@ -3,7 +3,7 @@ import { getDb } from "@/lib/db/client";
 import { getSession } from "@/lib/auth/session";
 import { COMPANY_INFO } from "@/lib/constants";
 import { PROTOCOL_STATUS_LABEL } from "@/components/protocols/protocol-status-badge";
-import { PrintButton } from "@/components/protocols/print-button";
+import { PrintButton } from "@/components/print-button";
 import { formatDate, formatDateTime } from "@/lib/utils";
 import type {
   CustomerRow,

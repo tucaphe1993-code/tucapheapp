@@ -24,11 +24,12 @@ export const PRODUCT_TYPES = ["COFFEE", "BREWER", "GRINDER", "ACCESSORY", "EQUIP
 
 export const UNIT_OPTIONS = ["Kg", "Gram", "Túi", "Máy", "Cái", "Bộ", "Chiếc", "Lần", "Dịch vụ"] as const;
 
-// Bên A trên biên bản lắp đặt/bàn giao. Chỉ có tên công ty là chắc chắn —
-// các trường còn lại là placeholder, cần cập nhật thành thông tin thật.
+// Bên A trên biên bản lắp đặt/bàn giao và phiếu bán hàng.
 export const COMPANY_INFO = {
   name: "CÔNG TY TNHH SX - TM - DV TÚ CÀ PHÊ",
-  address: "(Cập nhật địa chỉ công ty)",
-  phone: "(Cập nhật số điện thoại)",
+  brandName: "Tú Cà Phê",
+  slogan: "Giữ Trọn Hương Vị Thật",
+  address: "Long Hương, Bà Rịa",
+  phone: "0786.51.52.53",
   email: "(Cập nhật email)",
 };

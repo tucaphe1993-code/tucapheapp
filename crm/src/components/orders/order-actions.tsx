@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -14,7 +15,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { AssignTaskDialog } from "@/components/orders/assign-task-dialog";
-import { PackageCheck, Ban, CheckCircle2 } from "lucide-react";
+import { PackageCheck, Ban, CheckCircle2, Printer } from "lucide-react";
 import type { OrderRow } from "@/types/db";
 
 export function OrderActions({ order, hasActiveTask }: { order: OrderRow; hasActiveTask: boolean }) {
@@ -39,6 +40,12 @@ export function OrderActions({ order, hasActiveTask }: { order: OrderRow; hasAct
 
   return (
     <div className="flex flex-wrap items-center gap-2">
+      <Link href={`/orders/${order.id}/print`} target="_blank" rel="noopener noreferrer">
+        <Button size="sm" variant="outline">
+          <Printer className="h-4 w-4" /> In phiếu bán hàng
+        </Button>
+      </Link>
+
       {order.status === "CONFIRMED" && !hasActiveTask && <AssignTaskDialog orderId={order.id} />}
 
       {order.status === "PACKED" && (

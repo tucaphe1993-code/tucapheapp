@@ -38,6 +38,7 @@ export const COMPANY_INFO = {
   name: "CÔNG TY TNHH SX - TM - DV TÚ CÀ PHÊ",
   brandName: "Tú Cà Phê",
   slogan: "Giữ Trọn Hương Vị Thật",
+  tagline: "CUNG CẤP CÀ PHÊ & THIẾT BỊ PHA CHẾ",
   address: "Long Hương, Bà Rịa",
   phone: "0786.51.52.53",
   email: "(Cập nhật email)",

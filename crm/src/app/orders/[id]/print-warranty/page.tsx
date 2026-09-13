@@ -115,11 +115,14 @@ export default async function OrderWarrantyPrintPage({ params }: PageProps<"/ord
   const host = hdrs.get("host") ?? "";
   const proto = hdrs.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
   const warrantyLookupUrl = `${proto}://${host}/warranty/${order.id}`;
+  // Không để lỗi sinh QR (nếu có) làm hỏng cả phiếu — mất QR còn hơn mất
+  // toàn bộ thông tin bảo hành.
   const warrantyQrSvg = await QRCode.toString(warrantyLookupUrl, {
     type: "svg",
     margin: 0,
+    width: 128,
     color: { dark: GREEN, light: "#ffffff" },
-  });
+  }).catch(() => null);
 
   return (
     <div className="min-h-screen bg-stone-100 py-6 print:bg-white print:py-0">
@@ -393,12 +396,22 @@ export default async function OrderWarrantyPrintPage({ params }: PageProps<"/ord
             </div>
           </div>
           <div className="flex flex-col items-center justify-center gap-1 rounded-lg border border-stone-200 p-2 text-center">
-            <div
-              className="h-16 w-16"
-              // SVG được server tự sinh từ đúng URL tra cứu của đơn hàng này
-              // (qua thư viện qrcode), không phải nội dung do người dùng nhập.
-              dangerouslySetInnerHTML={{ __html: warrantyQrSvg }}
-            />
+            {warrantyQrSvg ? (
+              <div
+                className="h-16 w-16 [&>svg]:h-full [&>svg]:w-full"
+                // SVG được server tự sinh từ đúng URL tra cứu của đơn hàng
+                // này (qua thư viện qrcode), không phải nội dung do người
+                // dùng nhập. Ép kích thước qua CSS (thay vì chỉ dựa vào
+                // width/height trên chính thẻ <svg>) để không bị mất hình
+                // khi trình duyệt áp dụng kích thước mặc định khác nhau cho
+                // phần tử SVG rời.
+                dangerouslySetInnerHTML={{ __html: warrantyQrSvg }}
+              />
+            ) : (
+              <div className="flex h-16 w-16 items-center justify-center text-[8px] text-stone-400">
+                (không tạo được QR)
+              </div>
+            )}
             <div className="text-[9px] font-semibold uppercase text-stone-500">
               Quét QR để tra cứu bảo hành
             </div>

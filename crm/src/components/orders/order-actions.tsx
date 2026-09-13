@@ -15,10 +15,23 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { AssignTaskDialog } from "@/components/orders/assign-task-dialog";
-import { PackageCheck, Ban, CheckCircle2, Printer } from "lucide-react";
+import { PrintProtocolButton } from "@/components/orders/print-protocol-button";
+import { PackageCheck, Ban, CheckCircle2, Printer, ShieldCheck } from "lucide-react";
 import type { OrderRow } from "@/types/db";
 
-export function OrderActions({ order, hasActiveTask }: { order: OrderRow; hasActiveTask: boolean }) {
+export function OrderActions({
+  order,
+  hasActiveTask,
+  hasDeviceItems,
+  hasWarrantyItems,
+  protocolId,
+}: {
+  order: OrderRow;
+  hasActiveTask: boolean;
+  hasDeviceItems: boolean;
+  hasWarrantyItems: boolean;
+  protocolId: string | null;
+}) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
 
@@ -40,11 +53,21 @@ export function OrderActions({ order, hasActiveTask }: { order: OrderRow; hasAct
 
   return (
     <div className="flex flex-wrap items-center gap-2">
+      {hasDeviceItems && <PrintProtocolButton orderId={order.id} existingProtocolId={protocolId} />}
+
       <Link href={`/orders/${order.id}/print`} target="_blank" rel="noopener noreferrer">
         <Button size="sm" variant="outline">
           <Printer className="h-4 w-4" /> In phiếu bán hàng
         </Button>
       </Link>
+
+      {hasWarrantyItems && (
+        <Link href={`/orders/${order.id}/print-warranty`} target="_blank" rel="noopener noreferrer">
+          <Button size="sm" variant="outline">
+            <ShieldCheck className="h-4 w-4" /> In phiếu bảo hành
+          </Button>
+        </Link>
+      )}
 
       {order.status === "CONFIRMED" && !hasActiveTask && <AssignTaskDialog orderId={order.id} />}
 

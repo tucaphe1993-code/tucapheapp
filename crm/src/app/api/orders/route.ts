@@ -13,6 +13,9 @@ const createSchema = z.object({
   deliveryDate: z.string().trim().optional(),
   deliveryMethod: z.string().trim().optional(),
   note: z.string().trim().optional(),
+  vatIncluded: z.boolean().optional(),
+  depositAmount: z.number().int().nonnegative().optional(),
+  depositMethod: z.string().trim().optional(),
   items: z
     .array(
       z.object({
@@ -64,7 +67,8 @@ export async function POST(req: NextRequest) {
     if (!parsed.success) {
       throw new ValidationError(parsed.error.issues[0]?.message ?? "Dữ liệu không hợp lệ");
     }
-    const { customerId, deliveryDate, deliveryMethod, note, items } = parsed.data;
+    const { customerId, deliveryDate, deliveryMethod, note, vatIncluded, depositAmount, depositMethod, items } =
+      parsed.data;
 
     const db = getDb();
     const customer = await db
@@ -152,8 +156,8 @@ export async function POST(req: NextRequest) {
       .prepare(
         `INSERT INTO orders
            (id, order_code, customer_id, customer_phone_snapshot, customer_address_snapshot,
-            delivery_date, delivery_method, note, status, total_amount, created_by)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'CONFIRMED', ?, ?)`
+            delivery_date, delivery_method, note, status, total_amount, vat_included, created_by)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'CONFIRMED', ?, ?, ?)`
       )
       .bind(
         orderId,
@@ -165,6 +169,7 @@ export async function POST(req: NextRequest) {
         deliveryMethod || null,
         note || null,
         totalAmount,
+        vatIncluded ? 1 : 0,
         session.user.id
       )
       .run();
@@ -205,12 +210,24 @@ export async function POST(req: NextRequest) {
       });
     }
 
+    // Tiền cọc ghi nhận ngay lúc tạo đơn — vẫn là 1 dòng payments bình
+    // thường, "còn lại" vẫn luôn tính total_amount - SUM(payments.amount).
+    if (depositAmount && depositAmount > 0) {
+      await db
+        .prepare(
+          `INSERT INTO payments (id, order_id, customer_id, amount, method, note, created_by)
+           VALUES (?, ?, ?, ?, ?, ?, ?)`
+        )
+        .bind(newId(), orderId, customer.id, depositAmount, depositMethod || null, "Tiền cọc khi tạo đơn", session.user.id)
+        .run();
+    }
+
     await writeAuditLog({
       userId: session.user.id,
       action: "CREATE_ORDER",
       entity: "order",
       entityId: orderId,
-      metadata: { orderCode, totalAmount },
+      metadata: { orderCode, totalAmount, depositAmount },
     });
 
     const order = await db.prepare(`SELECT * FROM orders WHERE id = ?`).bind(orderId).first();

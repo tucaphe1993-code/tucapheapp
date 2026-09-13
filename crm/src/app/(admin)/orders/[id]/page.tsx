@@ -65,6 +65,8 @@ export default async function OrderDetailPage({ params }: PageProps<"/orders/[id
     dueDate: order.payment_due_date,
   });
 
+  const hasDeviceItems = items.some((i) => i.device_id);
+
   const deviceIds = items.map((i) => i.device_id).filter((v): v is string => !!v);
   const deviceSerials = new Map<string, string>();
   if (deviceIds.length > 0) {
@@ -75,6 +77,15 @@ export default async function OrderDetailPage({ params }: PageProps<"/orders/[id
       .all<Pick<DeviceRow, "id" | "serial_number">>();
     results.forEach((r) => deviceSerials.set(r.id, r.serial_number));
   }
+
+  const variantIds = [...new Set(items.map((i) => i.product_variant_id))];
+  const warrantyCheck = await db
+    .prepare(
+      `SELECT COUNT(*) as c FROM product_variants WHERE id IN (${variantIds.map(() => "?").join(",")}) AND warranty_months IS NOT NULL`
+    )
+    .bind(...variantIds)
+    .first<{ c: number }>();
+  const hasWarrantyItems = (warrantyCheck?.c ?? 0) > 0;
 
   const technicianIds = [...new Set(installations.map((i) => i.technician_id).filter((v): v is string => !!v))];
   const technicianNames = new Map<string, string>();
@@ -115,7 +126,13 @@ export default async function OrderDetailPage({ params }: PageProps<"/orders/[id
           </div>
           <div className="text-sm text-stone-500">Tạo lúc {formatDateTime(order.created_at)}</div>
         </div>
-        <OrderActions order={order} hasActiveTask={hasActiveTask} />
+        <OrderActions
+          order={order}
+          hasActiveTask={hasActiveTask}
+          hasDeviceItems={hasDeviceItems}
+          hasWarrantyItems={hasWarrantyItems}
+          protocolId={protocol?.id ?? null}
+        />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-3">
@@ -330,12 +347,12 @@ export default async function OrderDetailPage({ params }: PageProps<"/orders/[id
             <Card>
               <CardHeader className="flex-row items-center justify-between space-y-0">
                 <CardTitle className="text-base">Biên bản lắp đặt</CardTitle>
-                {!protocol && items.some((i) => i.device_id) && <CreateProtocolButton orderId={order.id} />}
+                {!protocol && hasDeviceItems && <CreateProtocolButton orderId={order.id} />}
               </CardHeader>
               <CardContent>
                 {!protocol ? (
                   <div className="py-2 text-center text-sm text-stone-500">
-                    {items.some((i) => i.device_id) ? "Chưa có biên bản" : "Đơn hàng chưa có thiết bị để lập biên bản"}
+                    {hasDeviceItems ? "Chưa có biên bản" : "Đơn hàng chưa có thiết bị để lập biên bản"}
                   </div>
                 ) : (
                   <Link

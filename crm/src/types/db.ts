@@ -174,6 +174,7 @@ export interface OrderRow {
   note: string | null;
   status: OrderStatus;
   total_amount: number;
+  vat_included: number;
   created_by: string;
   inventory_issued_at: string | null;
   created_at: string;

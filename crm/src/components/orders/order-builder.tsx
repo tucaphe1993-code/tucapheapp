@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CustomerFormDialog } from "@/components/customers/customer-form-dialog";
 import { formatVnd } from "@/lib/utils";
@@ -16,6 +17,7 @@ import {
   DELIVERY_METHODS,
   EQUIPMENT_DELIVERY_METHODS,
   EQUIPMENT_PRODUCT_TYPES,
+  PAYMENT_METHODS,
   PRODUCT_TYPE_LABEL,
 } from "@/lib/constants";
 import type { CustomerRow, DeviceRow, ProductRow, ProductVariantRow } from "@/types/db";
@@ -63,6 +65,9 @@ export function OrderBuilder({ mode }: { mode: "coffee" | "equipment" }) {
   const [deliveryDate, setDeliveryDate] = useState("");
   const [deliveryMethod, setDeliveryMethod] = useState("");
   const [note, setNote] = useState("");
+  const [depositAmount, setDepositAmount] = useState<number | "">("");
+  const [depositMethod, setDepositMethod] = useState("");
+  const [vatIncluded, setVatIncluded] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
@@ -189,6 +194,9 @@ export function OrderBuilder({ mode }: { mode: "coffee" | "equipment" }) {
           deliveryDate: deliveryDate || undefined,
           deliveryMethod: deliveryMethod || undefined,
           note: note || undefined,
+          vatIncluded: mode === "equipment" ? vatIncluded : undefined,
+          depositAmount: mode === "equipment" && depositAmount !== "" ? depositAmount : undefined,
+          depositMethod: mode === "equipment" ? depositMethod || undefined : undefined,
           items: cart.map((l) => ({
             productVariantId: l.variant.id,
             quantity: l.quantity,
@@ -218,6 +226,7 @@ export function OrderBuilder({ mode }: { mode: "coffee" | "equipment" }) {
                 <div>
                   <div className="font-medium">{customer.name}</div>
                   <div className="text-sm text-stone-500">{customer.phone}</div>
+                  {customer.address && <div className="text-sm text-stone-500">{customer.address}</div>}
                 </div>
                 <Button variant="ghost" size="sm" onClick={() => setCustomer(null)}>
                   Đổi
@@ -422,6 +431,47 @@ export function OrderBuilder({ mode }: { mode: "coffee" | "equipment" }) {
             </div>
           </CardContent>
         </Card>
+
+        {mode === "equipment" && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">4. Thanh toán</CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="flex flex-col gap-1.5">
+                  <Label>Khách đã cọc</Label>
+                  <Input
+                    type="number"
+                    min={0}
+                    value={depositAmount}
+                    onChange={(e) => setDepositAmount(e.target.value === "" ? "" : Number(e.target.value))}
+                    placeholder="0"
+                  />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <Label>Hình thức cọc</Label>
+                  <Select value={depositMethod} onChange={(e) => setDepositMethod(e.target.value)}>
+                    <option value="">-- Chọn --</option>
+                    {PAYMENT_METHODS.map((m) => (
+                      <option key={m} value={m}>
+                        {m}
+                      </option>
+                    ))}
+                  </Select>
+                </div>
+              </div>
+              <div className="flex items-center justify-between rounded-lg bg-stone-50 p-2.5 text-sm">
+                <span className="text-stone-500">Còn lại</span>
+                <span className="font-semibold">{formatVnd(Math.max(0, total - (Number(depositAmount) || 0)))}</span>
+              </div>
+              <label className="flex items-center gap-2 text-sm">
+                <Checkbox checked={vatIncluded} onCheckedChange={(v) => setVatIncluded(v === true)} />
+                Giá đã bao gồm VAT
+              </label>
+            </CardContent>
+          </Card>
+        )}
       </div>
 
       <div>

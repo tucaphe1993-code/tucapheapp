@@ -8,13 +8,17 @@ import { SESSION_COOKIE } from "@/lib/auth/session";
 // from app pages before any render work happens.
 const PUBLIC_PATHS = ["/login"];
 const PUBLIC_API_PREFIXES = ["/api/auth/", "/api/setup/"];
+// Trang khách quét QR trên phiếu bảo hành để tra cứu — không đăng nhập,
+// route tự giới hạn chỉ trả về thông tin bảo hành (không lộ SĐT/địa chỉ).
+const PUBLIC_PATH_PREFIXES = ["/warranty/"];
 
 export function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
   if (
     PUBLIC_PATHS.includes(pathname) ||
-    PUBLIC_API_PREFIXES.some((p) => pathname.startsWith(p))
+    PUBLIC_API_PREFIXES.some((p) => pathname.startsWith(p)) ||
+    PUBLIC_PATH_PREFIXES.some((p) => pathname.startsWith(p))
   ) {
     return NextResponse.next();
   }

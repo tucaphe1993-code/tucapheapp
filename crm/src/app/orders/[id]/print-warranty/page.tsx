@@ -1,10 +1,13 @@
+import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
+import QRCode from "qrcode";
 import { getDb } from "@/lib/db/client";
 import { getSession } from "@/lib/auth/session";
 import { COMPANY_INFO } from "@/lib/constants";
 import { PrintButton } from "@/components/print-button";
 import { formatDate } from "@/lib/utils";
-import { Phone, ClipboardList, SearchCheck, CheckCircle2, QrCode } from "lucide-react";
+import { addWarrantyMonths } from "@/lib/warranty";
+import { Phone, ClipboardList, SearchCheck, CheckCircle2 } from "lucide-react";
 import type {
   CustomerRow,
   DeviceRow,
@@ -22,12 +25,6 @@ const CREAM = "#FBF6EC";
 interface WarrantyItemJoined extends OrderItemRow {
   model: string | null;
   warranty_months: number;
-}
-
-function addMonths(iso: string, months: number): Date {
-  const d = new Date(iso.includes("T") ? iso : iso.replace(" ", "T") + "Z");
-  d.setMonth(d.getMonth() + months);
-  return d;
 }
 
 const REQUEST_STEPS = [
@@ -113,6 +110,16 @@ export default async function OrderWarrantyPrintPage({ params }: PageProps<"/ord
   const billingAddress =
     customer?.address && customer.address !== installAddress ? customer.address : null;
   const assignedStaff = technician?.full_name || employee?.full_name || "—";
+
+  const hdrs = await headers();
+  const host = hdrs.get("host") ?? "";
+  const proto = hdrs.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
+  const warrantyLookupUrl = `${proto}://${host}/warranty/${order.id}`;
+  const warrantyQrSvg = await QRCode.toString(warrantyLookupUrl, {
+    type: "svg",
+    margin: 0,
+    color: { dark: GREEN, light: "#ffffff" },
+  });
 
   return (
     <div className="min-h-screen bg-stone-100 py-6 print:bg-white print:py-0">
@@ -287,7 +294,7 @@ export default async function OrderWarrantyPrintPage({ params }: PageProps<"/ord
                 const activated = !!device?.warranty_end_date;
                 const endDate = activated
                   ? new Date(device!.warranty_end_date!.replace(" ", "T") + "Z")
-                  : addMonths(order.created_at, item.warranty_months);
+                  : addWarrantyMonths(order.created_at, item.warranty_months);
                 const condition = (device && protocolDeviceConditions.get(device.id)) ?? "—";
                 return (
                   <tr key={item.id}>
@@ -385,12 +392,16 @@ export default async function OrderWarrantyPrintPage({ params }: PageProps<"/ord
               Ký và ghi rõ họ tên
             </div>
           </div>
-          <div className="flex flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-stone-300 p-2 text-center">
-            <QrCode className="h-10 w-10 text-stone-400" />
+          <div className="flex flex-col items-center justify-center gap-1 rounded-lg border border-stone-200 p-2 text-center">
+            <div
+              className="h-16 w-16"
+              // SVG được server tự sinh từ đúng URL tra cứu của đơn hàng này
+              // (qua thư viện qrcode), không phải nội dung do người dùng nhập.
+              dangerouslySetInnerHTML={{ __html: warrantyQrSvg }}
+            />
             <div className="text-[9px] font-semibold uppercase text-stone-500">
               Quét QR để tra cứu bảo hành
             </div>
-            <div className="text-[9px] text-stone-400">(sắp tích hợp)</div>
             <div className="text-[9px] font-mono text-stone-400">{order.order_code}</div>
           </div>
         </div>

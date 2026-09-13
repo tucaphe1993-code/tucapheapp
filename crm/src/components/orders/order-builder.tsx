@@ -12,7 +12,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CustomerFormDialog } from "@/components/customers/customer-form-dialog";
 import { formatVnd } from "@/lib/utils";
-import { DELIVERY_METHODS, PRODUCT_TYPES, PRODUCT_TYPE_LABEL } from "@/lib/constants";
+import {
+  DELIVERY_METHODS,
+  EQUIPMENT_DELIVERY_METHODS,
+  EQUIPMENT_PRODUCT_TYPES,
+  PRODUCT_TYPE_LABEL,
+} from "@/lib/constants";
 import type { CustomerRow, DeviceRow, ProductRow, ProductVariantRow } from "@/types/db";
 
 type ProductWithVariants = ProductRow & { variants: ProductVariantRow[] };
@@ -32,8 +37,10 @@ function lineKey(l: CartLine) {
   return l.deviceId ?? l.variant.id;
 }
 
-export function OrderBuilder() {
+export function OrderBuilder({ mode }: { mode: "coffee" | "equipment" }) {
   const router = useRouter();
+  const productTypes = mode === "coffee" ? (["COFFEE"] as const) : EQUIPMENT_PRODUCT_TYPES;
+  const deliveryMethods = mode === "coffee" ? DELIVERY_METHODS : EQUIPMENT_DELIVERY_METHODS;
 
   // customer picker
   const [customerQuery, setCustomerQuery] = useState("");
@@ -261,19 +268,27 @@ export function OrderBuilder() {
                 }}
               >
                 <option value="">-- Chọn sản phẩm --</option>
-                {PRODUCT_TYPES.map((type) => {
-                  const group = products.filter((p) => p.product_type === type && p.is_active);
-                  if (group.length === 0) return null;
-                  return (
-                    <optgroup key={type} label={PRODUCT_TYPE_LABEL[type]}>
-                      {group.map((p) => (
+                {productTypes.length === 1
+                  ? products
+                      .filter((p) => p.product_type === productTypes[0] && p.is_active)
+                      .map((p) => (
                         <option key={p.id} value={p.id}>
                           {p.name}
                         </option>
-                      ))}
-                    </optgroup>
-                  );
-                })}
+                      ))
+                  : productTypes.map((type) => {
+                      const group = products.filter((p) => p.product_type === type && p.is_active);
+                      if (group.length === 0) return null;
+                      return (
+                        <optgroup key={type} label={PRODUCT_TYPE_LABEL[type]}>
+                          {group.map((p) => (
+                            <option key={p.id} value={p.id}>
+                              {p.name}
+                            </option>
+                          ))}
+                        </optgroup>
+                      );
+                    })}
               </Select>
             </div>
 
@@ -394,7 +409,7 @@ export function OrderBuilder() {
               <Label>Cách thức giao hàng</Label>
               <Select value={deliveryMethod} onChange={(e) => setDeliveryMethod(e.target.value)}>
                 <option value="">-- Chọn cách thức giao hàng --</option>
-                {DELIVERY_METHODS.map((m) => (
+                {deliveryMethods.map((m) => (
                   <option key={m} value={m}>
                     {m}
                   </option>

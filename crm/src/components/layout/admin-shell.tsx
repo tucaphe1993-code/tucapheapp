@@ -32,7 +32,8 @@ const NAV_GROUPS = [
     label: "Vận hành",
     items: [
       { href: "/orders", label: "Đơn hàng", icon: ClipboardList },
-      { href: "/orders/new", label: "Tạo đơn", icon: PlusCircle },
+      { href: "/orders/new", label: "Tạo đơn cà phê", icon: PlusCircle },
+      { href: "/orders/new-equipment", label: "Tạo đơn thiết bị", icon: Wrench },
       { href: "/tasks", label: "Công việc", icon: ListChecks },
       { href: "/installations", label: "Lắp đặt", icon: Wrench },
       { href: "/protocols", label: "Biên bản", icon: FileText },

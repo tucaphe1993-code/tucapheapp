@@ -6,6 +6,10 @@ export const DELIVERY_METHODS = [
   "Book Ship",
 ] as const;
 
+// Đơn thiết bị (máy pha/máy xay/thiết bị/phụ kiện) đi kèm lắp đặt, khác hẳn
+// đơn cà phê nên dùng hình thức giao hàng riêng.
+export const EQUIPMENT_DELIVERY_METHODS = ["Khách tự lắp", "Lắp đặt tận nơi"] as const;
+
 export const PAYMENT_METHODS = ["Tiền mặt", "Chuyển khoản", "Khác"] as const;
 
 export const PRODUCT_TYPE_LABEL: Record<string, string> = {
@@ -21,6 +25,11 @@ export const PRODUCT_TYPE_LABEL: Record<string, string> = {
 // hợp lệ trong CSDL (không sửa schema) nhưng không hiển thị trong danh
 // sách này theo yêu cầu.
 export const PRODUCT_TYPES = ["COFFEE", "BREWER", "GRINDER", "ACCESSORY", "EQUIPMENT"] as const;
+
+// Tạo đơn giờ tách 2 luồng riêng — đơn cà phê và đơn thiết bị (spec: mục
+// Máy Pha / Máy Xay / Thiết bị / Phụ kiện) — nên nhóm sản phẩm không-cà-phê
+// lại để dùng cho luồng "Tạo đơn thiết bị".
+export const EQUIPMENT_PRODUCT_TYPES = ["BREWER", "GRINDER", "EQUIPMENT", "ACCESSORY"] as const;
 
 export const UNIT_OPTIONS = ["Kg", "Gram", "Túi", "Máy", "Cái", "Bộ", "Chiếc", "Lần", "Dịch vụ"] as const;
 

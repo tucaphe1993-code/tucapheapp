@@ -54,6 +54,9 @@ export default async function OrderDetailPage({ params }: PageProps<"/orders/[id
     ]);
 
   const hasActiveTask = tasks.some((t) => t.status !== "CANCELLED");
+  // Chỉ COFFEE mới có form/packaging/weight_grams — dựa vào đó để biết đơn
+  // này thuần cà phê hay có thiết bị, khỏi cần join thêm bảng products.
+  const isCoffeeOnly = items.every((i) => i.form !== null);
   const paidAmount = payments.reduce((sum, p) => sum + p.amount, 0);
   const remaining = Math.max(0, order.total_amount - paidAmount);
   const debtStatus = computeDebtStatus({
@@ -292,56 +295,60 @@ export default async function OrderDetailPage({ params }: PageProps<"/orders/[id
             </Card>
           )}
 
-          <Card>
-            <CardHeader className="flex-row items-center justify-between space-y-0">
-              <CardTitle className="text-base">Lắp đặt</CardTitle>
-              {order.status !== "CANCELLED" && (
-                <InstallationDialog orderId={order.id} defaultLocation={order.customer_address_snapshot} />
-              )}
-            </CardHeader>
-            <CardContent className="flex flex-col gap-2">
-              {installations.length === 0 && (
-                <div className="py-2 text-center text-sm text-stone-500">Không có lắp đặt</div>
-              )}
-              {installations.map((inst) => (
-                <Link
-                  key={inst.id}
-                  href={`/installations/${inst.id}`}
-                  className="flex items-center justify-between rounded-lg border border-stone-200 p-2.5 text-sm hover:border-amber-300"
-                >
-                  <div>
-                    <div className="font-medium">{inst.equipment}</div>
-                    <div className="text-xs text-stone-500">
-                      {technicianNames.get(inst.technician_id ?? "") ?? "Chưa phân công"}
+          {!isCoffeeOnly && (
+            <Card>
+              <CardHeader className="flex-row items-center justify-between space-y-0">
+                <CardTitle className="text-base">Lắp đặt</CardTitle>
+                {order.status !== "CANCELLED" && (
+                  <InstallationDialog orderId={order.id} defaultLocation={order.customer_address_snapshot} />
+                )}
+              </CardHeader>
+              <CardContent className="flex flex-col gap-2">
+                {installations.length === 0 && (
+                  <div className="py-2 text-center text-sm text-stone-500">Không có lắp đặt</div>
+                )}
+                {installations.map((inst) => (
+                  <Link
+                    key={inst.id}
+                    href={`/installations/${inst.id}`}
+                    className="flex items-center justify-between rounded-lg border border-stone-200 p-2.5 text-sm hover:border-amber-300"
+                  >
+                    <div>
+                      <div className="font-medium">{inst.equipment}</div>
+                      <div className="text-xs text-stone-500">
+                        {technicianNames.get(inst.technician_id ?? "") ?? "Chưa phân công"}
+                      </div>
                     </div>
-                  </div>
-                  <InstallationStatusBadge status={inst.status} />
-                </Link>
-              ))}
-            </CardContent>
-          </Card>
+                    <InstallationStatusBadge status={inst.status} />
+                  </Link>
+                ))}
+              </CardContent>
+            </Card>
+          )}
 
-          <Card>
-            <CardHeader className="flex-row items-center justify-between space-y-0">
-              <CardTitle className="text-base">Biên bản lắp đặt</CardTitle>
-              {!protocol && items.some((i) => i.device_id) && <CreateProtocolButton orderId={order.id} />}
-            </CardHeader>
-            <CardContent>
-              {!protocol ? (
-                <div className="py-2 text-center text-sm text-stone-500">
-                  {items.some((i) => i.device_id) ? "Chưa có biên bản" : "Đơn hàng chưa có thiết bị để lập biên bản"}
-                </div>
-              ) : (
-                <Link
-                  href={`/protocols/${protocol.id}`}
-                  className="flex items-center justify-between rounded-lg border border-stone-200 p-2.5 text-sm hover:border-amber-300"
-                >
-                  <div className="font-medium">{protocol.protocol_code}</div>
-                  <ProtocolStatusBadge status={protocol.status} />
-                </Link>
-              )}
-            </CardContent>
-          </Card>
+          {!isCoffeeOnly && (
+            <Card>
+              <CardHeader className="flex-row items-center justify-between space-y-0">
+                <CardTitle className="text-base">Biên bản lắp đặt</CardTitle>
+                {!protocol && items.some((i) => i.device_id) && <CreateProtocolButton orderId={order.id} />}
+              </CardHeader>
+              <CardContent>
+                {!protocol ? (
+                  <div className="py-2 text-center text-sm text-stone-500">
+                    {items.some((i) => i.device_id) ? "Chưa có biên bản" : "Đơn hàng chưa có thiết bị để lập biên bản"}
+                  </div>
+                ) : (
+                  <Link
+                    href={`/protocols/${protocol.id}`}
+                    className="flex items-center justify-between rounded-lg border border-stone-200 p-2.5 text-sm hover:border-amber-300"
+                  >
+                    <div className="font-medium">{protocol.protocol_code}</div>
+                    <ProtocolStatusBadge status={protocol.status} />
+                  </Link>
+                )}
+              </CardContent>
+            </Card>
+          )}
         </div>
       </div>
     </div>

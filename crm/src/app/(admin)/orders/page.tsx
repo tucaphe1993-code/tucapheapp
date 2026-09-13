@@ -38,9 +38,14 @@ export default async function OrdersPage({ searchParams }: PageProps<"/orders">)
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-bold text-stone-900">Đơn hàng</h1>
-        <Link href="/orders/new" className="text-sm font-medium text-amber-800 hover:underline">
-          + Tạo đơn
-        </Link>
+        <div className="flex items-center gap-3">
+          <Link href="/orders/new" className="text-sm font-medium text-amber-800 hover:underline">
+            + Đơn cà phê
+          </Link>
+          <Link href="/orders/new-equipment" className="text-sm font-medium text-amber-800 hover:underline">
+            + Đơn thiết bị
+          </Link>
+        </div>
       </div>
 
       <div className="flex gap-2 overflow-x-auto pb-1">

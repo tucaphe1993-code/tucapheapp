@@ -1,7 +1,13 @@
 import { getDb } from "@/lib/db/client";
 import { newId } from "@/lib/db/id";
 import { ConflictError, NotFoundError, ValidationError } from "@/lib/api/errors";
+import { EQUIPMENT_DELIVERY_METHODS } from "@/lib/constants";
 import type { InventoryRow, OrderItemRow, OrderRow } from "@/types/db";
+
+// Đơn "Khách tự lắp" không cần giao việc đóng gói cho nhân viên (khách tự
+// đến lấy) — nên được xuất kho thẳng từ CONFIRMED, không cần đi qua
+// PACKING/PACKED như đơn giao hàng thông thường.
+const SELF_PICKUP_METHOD = EQUIPMENT_DELIVERY_METHODS[0];
 
 export interface StockShortfall {
   sku: string;
@@ -27,7 +33,9 @@ export async function issueInventoryForOrder(
 ): Promise<{ order: OrderRow }> {
   const order = await db.prepare(`SELECT * FROM orders WHERE id = ?`).bind(orderId).first<OrderRow>();
   if (!order) throw new NotFoundError("Không tìm thấy đơn hàng");
-  if (order.status !== "PACKED") {
+  const isSelfPickup = order.delivery_method === SELF_PICKUP_METHOD;
+  const canShip = order.status === "PACKED" || (isSelfPickup && order.status === "CONFIRMED");
+  if (!canShip) {
     throw new ConflictError("Đơn phải ở trạng thái ĐÃ ĐÓNG GÓI mới được xuất kho");
   }
   if (order.inventory_issued_at) {
@@ -71,13 +79,25 @@ export async function issueInventoryForOrder(
   const cas = await db
     .prepare(
       `UPDATE orders SET status = 'SHIPPED', inventory_issued_at = datetime('now'), updated_at = datetime('now')
-       WHERE id = ? AND status = 'PACKED' AND inventory_issued_at IS NULL`
+       WHERE id = ? AND inventory_issued_at IS NULL
+         AND (status = 'PACKED' OR (status = 'CONFIRMED' AND delivery_method = ?))`
     )
-    .bind(orderId)
+    .bind(orderId, SELF_PICKUP_METHOD)
     .run();
   if (!cas.meta.changes) {
     throw new ConflictError("Đơn hàng này đã được xuất kho trước đó (double-submit)");
   }
+
+  // Xuất kho thẳng từ CONFIRMED (đơn "Khách tự lắp") bỏ qua bước giao việc
+  // đóng gói — hủy luôn task còn dang dở (nếu admin trót giao việc trước
+  // khi đổi ý dùng lối tắt này) để nhân viên không còn thấy việc "ma".
+  await db
+    .prepare(
+      `UPDATE tasks SET status = 'CANCELLED', updated_at = datetime('now')
+       WHERE order_id = ? AND status IN ('TODO','IN_PROGRESS')`
+    )
+    .bind(orderId)
+    .run();
 
   const statements = items.flatMap((item) => [
     db

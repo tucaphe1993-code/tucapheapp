@@ -17,7 +17,13 @@ import {
 import { AssignTaskDialog } from "@/components/orders/assign-task-dialog";
 import { PrintProtocolButton } from "@/components/orders/print-protocol-button";
 import { PackageCheck, Ban, CheckCircle2, Printer, ShieldCheck } from "lucide-react";
+import { EQUIPMENT_DELIVERY_METHODS } from "@/lib/constants";
 import type { OrderRow } from "@/types/db";
+
+// Đơn "Khách tự lắp" không cần giao việc đóng gói cho nhân viên — khách tự
+// đến lấy hàng, nên cho xuất kho thẳng (khớp với issueInventoryForOrder
+// cho phép xuất kho từ CONFIRMED khi đơn dùng hình thức giao này).
+const SELF_PICKUP_METHOD = EQUIPMENT_DELIVERY_METHODS[0];
 
 export function OrderActions({
   order,
@@ -34,6 +40,7 @@ export function OrderActions({
 }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const isSelfPickup = order.delivery_method === SELF_PICKUP_METHOD;
 
   async function call(path: string, successMsg: string) {
     setLoading(true);
@@ -69,9 +76,11 @@ export function OrderActions({
         </Link>
       )}
 
-      {order.status === "CONFIRMED" && !hasActiveTask && <AssignTaskDialog orderId={order.id} />}
+      {order.status === "CONFIRMED" && !hasActiveTask && !isSelfPickup && (
+        <AssignTaskDialog orderId={order.id} />
+      )}
 
-      {order.status === "PACKED" && (
+      {(order.status === "PACKED" || (order.status === "CONFIRMED" && isSelfPickup)) && (
         <Dialog>
           <DialogTrigger asChild>
             <Button size="sm">

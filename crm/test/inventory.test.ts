@@ -8,7 +8,7 @@ let userId: string;
 let variantId: string;
 let sku: string;
 
-async function seedOrder(status: string, quantity: number) {
+async function seedOrder(status: string, quantity: number, deliveryMethod: string | null = null) {
   const orderId = randomUUID();
   const customerId = randomUUID();
   const itemId = randomUUID();
@@ -19,10 +19,10 @@ async function seedOrder(status: string, quantity: number) {
     .run();
   await db
     .prepare(
-      `INSERT INTO orders (id, order_code, customer_id, status, total_amount, created_by)
-       VALUES (?, ?, ?, ?, 0, ?)`
+      `INSERT INTO orders (id, order_code, customer_id, status, delivery_method, total_amount, created_by)
+       VALUES (?, ?, ?, ?, ?, 0, ?)`
     )
-    .bind(orderId, `DH-TEST-${orderId.slice(0, 6)}`, customerId, status, userId)
+    .bind(orderId, `DH-TEST-${orderId.slice(0, 6)}`, customerId, status, deliveryMethod, userId)
     .run();
   await db
     .prepare(
@@ -105,6 +105,40 @@ describe("issueInventoryForOrder", () => {
       .prepare(`SELECT COUNT(*) as c FROM inventory_transactions WHERE type = 'ISSUE'`)
       .first<{ c: number }>();
     expect(txCount?.c).toBe(1);
+  });
+
+  it("allows issuing directly from CONFIRMED when delivery method is Khách tự lắp", async () => {
+    const orderId = await seedOrder("CONFIRMED", 2, "Khách tự lắp");
+    const { order } = await issueInventoryForOrder(orderId, userId, db);
+    expect(order.status).toBe("SHIPPED");
+
+    const inv = await db
+      .prepare(`SELECT quantity_on_hand FROM inventory WHERE product_variant_id = ?`)
+      .bind(variantId)
+      .first<{ quantity_on_hand: number }>();
+    expect(inv?.quantity_on_hand).toBe(8); // 10 - 2
+  });
+
+  it("cancels any pending packing task when shipping directly from CONFIRMED", async () => {
+    const orderId = await seedOrder("CONFIRMED", 2, "Khách tự lắp");
+    const taskId = randomUUID();
+    await db
+      .prepare(
+        `INSERT INTO tasks (id, order_id, assigned_to, assigned_by, title, status)
+         VALUES (?, ?, ?, ?, 'Đóng gói', 'TODO')`
+      )
+      .bind(taskId, orderId, userId, userId)
+      .run();
+
+    await issueInventoryForOrder(orderId, userId, db);
+
+    const task = await db.prepare(`SELECT status FROM tasks WHERE id = ?`).bind(taskId).first<{ status: string }>();
+    expect(task?.status).toBe("CANCELLED");
+  });
+
+  it("still refuses CONFIRMED for a normal delivery method (not self-pickup)", async () => {
+    const orderId = await seedOrder("CONFIRMED", 2, "Lắp đặt tận nơi");
+    await expect(issueInventoryForOrder(orderId, userId, db)).rejects.toThrow(/ĐÃ ĐÓNG GÓI/);
   });
 
   it("refuses to issue when requested quantity exceeds stock on hand, and changes nothing", async () => {

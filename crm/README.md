@@ -11,8 +11,8 @@ intended for `crm.tucaphe.vn`.
 ## Stack
 
 - Next.js 16 (App Router) + TypeScript + Tailwind CSS v4
-- Cloudflare Workers (via `@opennextjs/cloudflare`), Cloudflare D1 (SQLite),
-  Cloudflare R2 (report photo storage)
+- Cloudflare Workers (via `@opennextjs/cloudflare`), Cloudflare D1 (SQLite;
+  also stores watermarked report photos as base64 — no R2 dependency)
 - Session-based auth (PBKDF2-SHA256 password hashing via Web Crypto, no
   plaintext passwords, no client-exposed secrets)
 - PWA (installable, mobile-first employee UI with bottom navigation)
@@ -39,7 +39,7 @@ Open http://localhost:3000 and log in with one of the seeded accounts
 
 | Script | What it does |
 | --- | --- |
-| `npm run dev` | Next.js dev server (D1/R2 bindings proxied via `wrangler`) |
+| `npm run dev` | Next.js dev server (D1 binding proxied via `wrangler`) |
 | `npm run build` | Production Next.js build |
 | `npm run lint` / `npm run typecheck` | ESLint / `tsc --noEmit` |
 | `npm test` | Vitest — business logic (inventory idempotency, RBAC data-shape, checklist/SKU generation, password hashing) |

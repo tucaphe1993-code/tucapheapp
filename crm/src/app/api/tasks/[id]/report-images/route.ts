@@ -1,18 +1,37 @@
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { getDb } from "@/lib/db/client";
 import { newId } from "@/lib/db/id";
 import { requireRole } from "@/lib/auth/session";
-import { uploadReportImage } from "@/lib/services/r2";
 import { writeAuditLog } from "@/lib/audit";
 import { handleApiError, ForbiddenError, NotFoundError, ValidationError } from "@/lib/api/errors";
 import type { ReportRow, TaskRow } from "@/types/db";
 
-const ALLOWED_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
+// Watermarked report photos are stored as a base64 data URL directly in D1
+// (R2 isn't enabled for this deployment — same reasoning as protocol
+// e-signatures). watermark.ts downscales to keep well under this cap.
+const MAX_REPORT_IMAGE_BYTES = 1_500_000;
+
+const bodySchema = z.object({
+  imageDataUrl: z
+    .string()
+    .trim()
+    .regex(/^data:image\/(jpeg|png|webp);base64,/, "Định dạng ảnh không hợp lệ (chỉ nhận JPEG/PNG/WebP)"),
+});
 
 export async function POST(req: NextRequest, ctx: RouteContext<"/api/tasks/[id]/report-images">) {
   try {
     const session = await requireRole("ADMIN", "EMPLOYEE");
     const { id } = await ctx.params;
+
+    const json = await req.json().catch(() => null);
+    const parsed = bodySchema.safeParse(json);
+    if (!parsed.success) {
+      throw new ValidationError(parsed.error.issues[0]?.message ?? "Dữ liệu không hợp lệ");
+    }
+    if (parsed.data.imageDataUrl.length > MAX_REPORT_IMAGE_BYTES) {
+      throw new ValidationError("Ảnh quá lớn, vui lòng thử lại");
+    }
 
     const db = getDb();
     const task = await db.prepare(`SELECT * FROM tasks WHERE id = ?`).bind(id).first<TaskRow>();
@@ -30,33 +49,13 @@ export async function POST(req: NextRequest, ctx: RouteContext<"/api/tasks/[id]/
       .first<ReportRow>();
     if (!report) throw new ValidationError("Không tìm thấy báo cáo cho công việc này");
 
-    const form = await req.formData().catch(() => null);
-    const file = form?.get("image");
-    if (!file || !(file instanceof File)) {
-      throw new ValidationError("Thiếu file ảnh");
-    }
-    if (!ALLOWED_TYPES.has(file.type)) {
-      throw new ValidationError("Định dạng ảnh không hợp lệ (chỉ nhận JPEG/PNG/WebP)");
-    }
-    if (!/\.(jpe?g|png|webp)$/i.test(file.name || "")) {
-      throw new ValidationError("Tên file ảnh không hợp lệ");
-    }
-
-    const bytes = await file.arrayBuffer();
-    const { key, url } = await uploadReportImage({
-      orderId: task.order_id,
-      taskId: task.id,
-      bytes,
-      contentType: file.type,
-    });
-
     const imageId = newId();
     await db
       .prepare(
         `INSERT INTO report_images (id, report_id, order_id, task_id, r2_key, image_url, uploaded_by)
          VALUES (?, ?, ?, ?, ?, ?, ?)`
       )
-      .bind(imageId, report.id, task.order_id, task.id, key, url, session.user.id)
+      .bind(imageId, report.id, task.order_id, task.id, "", parsed.data.imageDataUrl, session.user.id)
       .run();
 
     await writeAuditLog({

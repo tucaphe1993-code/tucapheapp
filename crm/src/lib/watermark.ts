@@ -1,11 +1,19 @@
 /**
  * Client-side (Canvas API) watermark engine — runs entirely in the
- * employee's browser before the photo ever leaves the device, so only
- * watermarked images reach R2 (spec §14). Kept as a small, swappable
- * module (single `applyWatermark` entry point + a `WatermarkOptions`
- * shape) so the layout/branding can be adjusted later without touching
- * call sites.
+ * employee's browser before the photo ever leaves the device. The result
+ * is stored as a base64 data URL directly in D1 (R2 isn't enabled for
+ * this deployment — same reasoning as protocol e-signatures), so the
+ * image is also downscaled here to keep each row well within D1's
+ * per-value size limits. Kept as a small, swappable module (single
+ * `applyWatermark` entry point + a `WatermarkOptions` shape) so the
+ * layout/branding can be adjusted later without touching call sites.
  */
+
+// Report photos are proof-of-packing snapshots, not prints — capping the
+// longest edge keeps the watermarked JPEG comfortably small (well under
+// MAX_REPORT_IMAGE_BYTES in the upload route) without visible quality loss
+// on a phone screen.
+const MAX_DIMENSION = 1440;
 
 export interface WatermarkOptions {
   brand?: string;
@@ -27,15 +35,22 @@ function formatVnDateTime(d: Date): string {
 export async function applyWatermark(
   file: File,
   options: WatermarkOptions
-): Promise<Blob> {
+): Promise<string> {
   const bitmap = await createImageBitmap(file);
+  let { width, height } = bitmap;
+  if (width > MAX_DIMENSION || height > MAX_DIMENSION) {
+    const scale = MAX_DIMENSION / Math.max(width, height);
+    width = Math.round(width * scale);
+    height = Math.round(height * scale);
+  }
+
   const canvas = document.createElement("canvas");
-  canvas.width = bitmap.width;
-  canvas.height = bitmap.height;
+  canvas.width = width;
+  canvas.height = height;
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("Canvas không khả dụng trên trình duyệt này");
 
-  ctx.drawImage(bitmap, 0, 0);
+  ctx.drawImage(bitmap, 0, 0, width, height);
 
   const lines = [
     options.brand ?? "TÚ CÀ PHÊ",
@@ -46,7 +61,10 @@ export async function applyWatermark(
 
   const padding = Math.max(12, Math.round(canvas.width * 0.015));
   const fontSize = Math.max(14, Math.round(canvas.width * 0.028));
-  const lineHeight = fontSize * 135 / 1000;
+  // Vietnamese diacritics (ệ, ữ, ố...) stack taller/deeper than plain
+  // Latin glyphs, so this needs more headroom than a typical 1.2-1.35
+  // line-height or descenders/accents from one line bleed into the next.
+  const lineHeight = fontSize * 1.7;
 
   ctx.textBaseline = "bottom";
   ctx.textAlign = "left";
@@ -69,11 +87,5 @@ export async function applyWatermark(
     ctx.fillText(line, padding, y);
   });
 
-  return new Promise((resolve, reject) => {
-    canvas.toBlob(
-      (blob) => (blob ? resolve(blob) : reject(new Error("Không thể xử lý watermark"))),
-      "image/jpeg",
-      0.9
-    );
-  });
+  return canvas.toDataURL("image/jpeg", 0.82);
 }

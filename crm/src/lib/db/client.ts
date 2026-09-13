@@ -15,14 +15,6 @@ export function getDb(): D1Database {
   return env.DB;
 }
 
-export function getReportsBucket(): R2Bucket {
-  const { env } = getCloudflareContext();
-  if (!env.REPORTS_BUCKET) {
-    throw new Error("R2 binding 'REPORTS_BUCKET' is not available.");
-  }
-  return env.REPORTS_BUCKET;
-}
-
 export function getEnv(): CloudflareEnv {
   return getCloudflareContext().env;
 }

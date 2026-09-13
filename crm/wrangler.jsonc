@@ -25,14 +25,6 @@
     }
   ],
 
-  // Cloudflare R2 — lưu ảnh báo cáo đóng gói (đã watermark)
-  "r2_buckets": [
-    {
-      "binding": "REPORTS_BUCKET",
-      "bucket_name": "tucaphe-crm-reports"
-    }
-  ],
-
   "vars": {
     "APP_ENV": "production",
     "APP_NAME": "Tú Cà Phê CRM"

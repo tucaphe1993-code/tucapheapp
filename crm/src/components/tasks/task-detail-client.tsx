@@ -92,15 +92,14 @@ export function TaskDetailClient({
     setUploadingCount(files.length);
     for (const file of files) {
       try {
-        const watermarked = await applyWatermark(file, {
+        const imageDataUrl = await applyWatermark(file, {
           orderCode: order.order_code,
           employeeName,
         });
-        const form = new FormData();
-        form.append("image", watermarked, `report-${Date.now()}.jpg`);
         const res = await fetch(`/api/tasks/${task.id}/report-images`, {
           method: "POST",
-          body: form,
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ imageDataUrl }),
         });
         const data = await res.json();
         if (!res.ok) {

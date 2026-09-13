@@ -13,7 +13,7 @@ is left, and the exact commands to finish.
 - [x] Full D1 schema + versioned migrations (`migrations/001..003`)
 - [x] Auth (PBKDF2 password hashing, server-side sessions, RBAC)
 - [x] Customers, Products/Variants/SKU, Orders, Tasks, Checklist, Reports,
-      R2 image upload + client-side watermark, Inventory (with
+      watermarked report photos (stored in D1), Inventory (with
       double-issue and negative-stock guards), Dashboard, Notifications,
       Audit log
 - [x] PWA manifest + service worker (app-shell only, no sensitive caching)
@@ -55,19 +55,7 @@ This is a **separate database** from the existing `tucaphe-db` used by the
 customer-facing order site at `order.tucaphe.vn` — the two apps are
 intentionally isolated (different users, different data).
 
-### 3. Create the R2 bucket
-
-```bash
-npx wrangler r2 bucket create tucaphe-crm-reports
-```
-
-Optional but recommended: enable public access (or bind a custom domain to
-the bucket) so report photos load without going through the app's proxy
-route, then set `R2_PUBLIC_BASE_URL` (step 5) to that URL. If you skip
-this, images still work — they're served through
-`/api/report-images/[...key]`, just with one extra hop.
-
-### 4. Run migrations against the real (remote) database
+### 3. Run migrations against the real (remote) database
 
 ```bash
 npm run db:migrate:remote
@@ -79,17 +67,14 @@ re-running is safe (already-applied migrations are skipped). **Do not**
 hand-edit an already-applied migration file; add a new
 `004_*.sql` instead.
 
-### 5. Set secrets
+### 4. Set secrets
 
 ```bash
 npx wrangler secret put ADMIN_SETUP_TOKEN
 # paste a long random value when prompted, e.g. `openssl rand -hex 32`
 ```
 
-If you enabled public R2 access in step 3, also add the URL to
-`wrangler.jsonc` → `vars.R2_PUBLIC_BASE_URL` (not secret, just a URL).
-
-### 6. Deploy
+### 5. Deploy
 
 ```bash
 npm run cf:deploy
@@ -99,14 +84,14 @@ This runs `opennextjs-cloudflare build && opennextjs-cloudflare deploy`,
 which builds the Next.js app, bundles it for Workers, and pushes it live.
 Wrangler will print the `*.workers.dev` URL it deployed to.
 
-### 7. Create the first ADMIN account
+### 6. Create the first ADMIN account
 
 The app has **no hard-coded password** anywhere in source (spec §32). Once
 deployed, create the first admin via the one-time bootstrap endpoint:
 
 ```bash
 curl -X POST https://<your-worker>.workers.dev/api/setup/admin \
-  -H "Authorization: Bearer <the ADMIN_SETUP_TOKEN you set in step 5>" \
+  -H "Authorization: Bearer <the ADMIN_SETUP_TOKEN you set in step 4>" \
   -H "Content-Type: application/json" \
   -d '{"email":"admin@tucaphe.vn","password":"<a strong password>","fullName":"Quản trị viên"}'
 ```
@@ -116,7 +101,7 @@ cannot be used to mint extra admins later. Create additional employee/admin
 accounts afterward from the app itself (Nhân viên → Thêm tài khoản), while
 logged in as this first admin.
 
-### 8. Point `crm.tucaphe.vn` at the Worker
+### 7. Point `crm.tucaphe.vn` at the Worker
 
 In `wrangler.jsonc`, uncomment:
 
@@ -139,12 +124,12 @@ Then redeploy (`npm run cf:deploy`) so the route takes effect. This
 session does **not** modify DNS or the domain registrar — you'll need to
 add that record yourself in the Cloudflare dashboard for `tucaphe.vn`.
 
-### 9. Seed data — production vs. development
+### 8. Seed data — production vs. development
 
 **Do not** run `npm run db:seed:local` (or its underlying SQL) against the
 remote/production database — it inserts sample customers/orders/test
 accounts and is explicitly development-only (spec §33). Production starts
-empty; the first admin (step 7) creates real products, customers, and
+empty; the first admin (step 6) creates real products, customers, and
 employee accounts through the app itself.
 
 ## Local development
@@ -155,7 +140,7 @@ npm install
 npm run db:migrate:local   # applies migrations to a local simulated D1
 npm run db:seed:local      # dev-only sample data + prints test logins
 cp .dev.vars.example .dev.vars   # fill in ADMIN_SETUP_TOKEN for local use
-npm run dev                 # next dev, with live D1/R2 bindings via
+npm run dev                 # next dev, with live D1 bindings via
                              # initOpenNextCloudflareForDev()
 ```
 

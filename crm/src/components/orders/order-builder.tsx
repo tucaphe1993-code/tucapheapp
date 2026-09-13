@@ -49,6 +49,8 @@ export function OrderBuilder({ mode }: { mode: "coffee" | "equipment" }) {
   const [customerResults, setCustomerResults] = useState<CustomerRow[]>([]);
   const [customer, setCustomer] = useState<CustomerRow | null>(null);
   const [customerPrices, setCustomerPrices] = useState<Record<string, number>>({});
+  const [contactPhone, setContactPhone] = useState("");
+  const [contactAddress, setContactAddress] = useState("");
 
   // product picker
   const [products, setProducts] = useState<ProductWithVariants[]>([]);
@@ -191,6 +193,8 @@ export function OrderBuilder({ mode }: { mode: "coffee" | "equipment" }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           customerId: customer.id,
+          customerPhone: mode === "equipment" ? contactPhone || undefined : undefined,
+          customerAddress: mode === "equipment" ? contactAddress || undefined : undefined,
           deliveryDate: deliveryDate || undefined,
           deliveryMethod: deliveryMethod || undefined,
           note: note || undefined,
@@ -222,15 +226,38 @@ export function OrderBuilder({ mode }: { mode: "coffee" | "equipment" }) {
           </CardHeader>
           <CardContent className="flex flex-col gap-2">
             {customer ? (
-              <div className="flex items-center justify-between rounded-lg border border-amber-300 bg-amber-50 p-3">
-                <div>
+              <div className="flex flex-col gap-2 rounded-lg border border-amber-300 bg-amber-50 p-3">
+                <div className="flex items-center justify-between">
                   <div className="font-medium">{customer.name}</div>
-                  <div className="text-sm text-stone-500">{customer.phone}</div>
-                  {customer.address && <div className="text-sm text-stone-500">{customer.address}</div>}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setCustomer(null);
+                      setContactPhone("");
+                      setContactAddress("");
+                    }}
+                  >
+                    Đổi
+                  </Button>
                 </div>
-                <Button variant="ghost" size="sm" onClick={() => setCustomer(null)}>
-                  Đổi
-                </Button>
+                {mode === "equipment" ? (
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="flex flex-col gap-1">
+                      <Label className="text-xs text-stone-500">Số điện thoại liên hệ</Label>
+                      <Input value={contactPhone} onChange={(e) => setContactPhone(e.target.value)} />
+                    </div>
+                    <div className="col-span-2 flex flex-col gap-1">
+                      <Label className="text-xs text-stone-500">Địa chỉ lắp đặt</Label>
+                      <Input value={contactAddress} onChange={(e) => setContactAddress(e.target.value)} />
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <div className="text-sm text-stone-500">{customer.phone}</div>
+                    {customer.address && <div className="text-sm text-stone-500">{customer.address}</div>}
+                  </>
+                )}
               </div>
             ) : (
               <>
@@ -248,7 +275,11 @@ export function OrderBuilder({ mode }: { mode: "coffee" | "equipment" }) {
                     <button
                       key={c.id}
                       className="rounded-lg border border-stone-200 p-2 text-left text-sm hover:border-amber-300"
-                      onClick={() => setCustomer(c)}
+                      onClick={() => {
+                        setCustomer(c);
+                        setContactPhone(c.phone ?? "");
+                        setContactAddress(c.address ?? "");
+                      }}
                     >
                       <div className="font-medium">{c.name}</div>
                       <div className="text-stone-500">{c.phone}</div>

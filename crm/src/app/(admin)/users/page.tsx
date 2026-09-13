@@ -4,6 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { UserFormDialog } from "@/components/users/user-form-dialog";
 import { UserStatusToggle } from "@/components/users/user-status-toggle";
+import { EditUserDialog } from "@/components/users/edit-user-dialog";
 import type { SafeUser } from "@/types/db";
 
 export default async function UsersPage() {
@@ -39,7 +40,10 @@ export default async function UsersPage() {
                   {u.email} {u.phone ? `· ${u.phone}` : ""}
                 </div>
               </div>
-              <UserStatusToggle user={u} isSelf={u.id === session!.user.id} />
+              <div className="flex items-center gap-2">
+                <EditUserDialog user={u} />
+                <UserStatusToggle user={u} isSelf={u.id === session!.user.id} />
+              </div>
             </CardContent>
           </Card>
         ))}

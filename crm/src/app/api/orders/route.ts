@@ -10,6 +10,8 @@ import type { CustomerRow, DeviceRow, OrderRow, ProductVariantRow } from "@/type
 
 const createSchema = z.object({
   customerId: z.string().min(1),
+  customerPhone: z.string().trim().optional(),
+  customerAddress: z.string().trim().optional(),
   deliveryDate: z.string().trim().optional(),
   deliveryMethod: z.string().trim().optional(),
   note: z.string().trim().optional(),
@@ -67,8 +69,18 @@ export async function POST(req: NextRequest) {
     if (!parsed.success) {
       throw new ValidationError(parsed.error.issues[0]?.message ?? "Dữ liệu không hợp lệ");
     }
-    const { customerId, deliveryDate, deliveryMethod, note, vatIncluded, depositAmount, depositMethod, items } =
-      parsed.data;
+    const {
+      customerId,
+      customerPhone,
+      customerAddress,
+      deliveryDate,
+      deliveryMethod,
+      note,
+      vatIncluded,
+      depositAmount,
+      depositMethod,
+      items,
+    } = parsed.data;
 
     const db = getDb();
     const customer = await db
@@ -163,8 +175,8 @@ export async function POST(req: NextRequest) {
         orderId,
         orderCode,
         customer.id,
-        customer.phone,
-        customer.address,
+        customerPhone || customer.phone,
+        customerAddress || customer.address,
         deliveryDate || null,
         deliveryMethod || null,
         note || null,

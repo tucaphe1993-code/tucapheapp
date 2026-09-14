@@ -93,6 +93,24 @@ describe("Test Case 1: Nhập 500kg nhân xanh", () => {
   });
 });
 
+describe("Người rang là tên tự do, không phải tài khoản hệ thống", () => {
+  it("cho phép nhập tên bất kỳ (không phải user id) mà không lỗi FOREIGN KEY", async () => {
+    await receiveInventory({ productVariantId: greenVariantId, quantity: 500, createdBy: userId }, db);
+    const draft = await createRoastBatchDraft(
+      {
+        greenVariantId,
+        roastedVariantId,
+        inputKg: 18,
+        shrinkagePercent: 20,
+        roastedBy: "tiến",
+        createdBy: userId,
+      },
+      db
+    );
+    expect(draft.roasted_by).toBe("tiến");
+  });
+});
+
 describe("Test Case 2: Rang 100kg, hao hụt 20%", () => {
   it("green -100kg, roasted +80kg, shrinkage 20kg — chỉ áp dụng khi CONFIRMED", async () => {
     await receiveInventory({ productVariantId: greenVariantId, quantity: 500, createdBy: userId }, db);

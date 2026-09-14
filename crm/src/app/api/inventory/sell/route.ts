@@ -1,21 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import { getDb } from "@/lib/db/client";
 import { requireRole } from "@/lib/auth/session";
-import { receiveInventory } from "@/lib/services/inventory";
+import { sellFinishedCoffee } from "@/lib/services/inventory";
 import { writeAuditLog } from "@/lib/audit";
 import { handleApiError, ValidationError } from "@/lib/api/errors";
 
 const bodySchema = z.object({
-  productVariantId: z.string().min(1),
-  // Số nguyên hay thập phân tùy loại SKU — kiểm tra thực sự nằm ở
-  // receiveInventory() (chỉ nhóm tồn theo KG lẻ mới được số lẻ).
-  quantity: z.number().positive(),
-  note: z.string().trim().optional(),
-  // Hóa đơn đầu vào — tùy chọn, chỉ để lưu vết.
-  supplier: z.string().trim().optional(),
+  finishedVariantId: z.string().min(1),
+  finishedKg: z.number().positive(),
+  customerId: z.string().min(1).optional(),
+  unitPrice: z.number().nonnegative().optional(),
+  vatIncluded: z.boolean().optional(),
+  vatPercent: z.number().min(0).max(100).optional(),
   invoiceNumber: z.string().trim().optional(),
   invoiceDate: z.string().trim().optional(),
-  unitPrice: z.number().nonnegative().optional(),
+  note: z.string().trim().optional(),
 });
 
 export async function POST(req: NextRequest) {
@@ -27,17 +27,22 @@ export async function POST(req: NextRequest) {
       throw new ValidationError(parsed.error.issues[0]?.message ?? "Dữ liệu không hợp lệ");
     }
 
-    await receiveInventory({ ...parsed.data, createdBy: session.user.id });
+    const db = getDb();
+    const result = await sellFinishedCoffee({ ...parsed.data, createdBy: session.user.id }, db);
 
     await writeAuditLog({
       userId: session.user.id,
-      action: "RECEIVE_INVENTORY",
+      action: "SELL_FINISHED_COFFEE",
       entity: "product_variant",
-      entityId: parsed.data.productVariantId,
-      metadata: { quantity: parsed.data.quantity },
+      entityId: parsed.data.finishedVariantId,
+      metadata: {
+        finishedKg: parsed.data.finishedKg,
+        greenKgConsumed: result.greenKgConsumed,
+        lineTotal: result.lineTotal,
+      },
     });
 
-    return NextResponse.json({ ok: true });
+    return NextResponse.json({ result });
   } catch (err) {
     return handleApiError(err);
   }

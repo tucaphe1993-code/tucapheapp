@@ -10,14 +10,17 @@ const TYPE_LABEL: Record<string, string> = {
   RECEIVE: "Nhập kho",
   ISSUE: "Xuất kho (bán hàng)",
   ADJUSTMENT: "Điều chỉnh",
-  ROAST_PRODUCTION: "Thành phẩm rang",
-  ROAST_CONSUMPTION: "Tiêu thụ rang",
+  SALE: "Bán hàng (thành phẩm)",
+  // Lịch sử — không còn phát sinh mới, giữ nhãn để hiển thị đúng dữ liệu cũ.
+  ROAST_PRODUCTION: "Thành phẩm rang (cũ)",
+  ROAST_CONSUMPTION: "Tiêu thụ rang (cũ)",
 };
 
 const TYPE_BADGE: Record<string, "success" | "danger" | "warning" | "info" | "secondary"> = {
   RECEIVE: "success",
   ISSUE: "danger",
   ADJUSTMENT: "warning",
+  SALE: "danger",
   ROAST_PRODUCTION: "success",
   ROAST_CONSUMPTION: "danger",
 };
@@ -33,6 +36,11 @@ interface TxRow {
   created_by_name: string | null;
   product_type: string;
   coffee_stage: string | null;
+  finished_kg: number | null;
+  finished_sku: string | null;
+  customer_name: string | null;
+  invoice_number: string | null;
+  supplier: string | null;
 }
 
 export default async function InventoryTransactionsPage({
@@ -41,34 +49,26 @@ export default async function InventoryTransactionsPage({
   const { type } = await searchParams;
   const db = getDb();
 
+  const baseSelect = `SELECT t.id, t.sku, p.name as product_name, t.quantity, t.type, t.note, t.created_at,
+                u.full_name as created_by_name, p.product_type, p.coffee_stage,
+                t.finished_kg, fpv.sku as finished_sku, c.name as customer_name, t.invoice_number, t.supplier
+         FROM inventory_transactions t
+         JOIN product_variants pv ON pv.id = t.product_variant_id
+         JOIN products p ON p.id = pv.product_id
+         LEFT JOIN users u ON u.id = t.created_by
+         LEFT JOIN product_variants fpv ON fpv.id = t.finished_variant_id
+         LEFT JOIN customers c ON c.id = t.customer_id`;
   const stmt = type
-    ? db.prepare(
-        `SELECT t.id, t.sku, p.name as product_name, t.quantity, t.type, t.note, t.created_at,
-                u.full_name as created_by_name, p.product_type, p.coffee_stage
-         FROM inventory_transactions t
-         JOIN product_variants pv ON pv.id = t.product_variant_id
-         JOIN products p ON p.id = pv.product_id
-         LEFT JOIN users u ON u.id = t.created_by
-         WHERE t.type = ?
-         ORDER BY t.created_at DESC LIMIT 200`
-      ).bind(type)
-    : db.prepare(
-        `SELECT t.id, t.sku, p.name as product_name, t.quantity, t.type, t.note, t.created_at,
-                u.full_name as created_by_name, p.product_type, p.coffee_stage
-         FROM inventory_transactions t
-         JOIN product_variants pv ON pv.id = t.product_variant_id
-         JOIN products p ON p.id = pv.product_id
-         LEFT JOIN users u ON u.id = t.created_by
-         ORDER BY t.created_at DESC LIMIT 200`
-      );
+    ? db.prepare(`${baseSelect} WHERE t.type = ? ORDER BY t.created_at DESC LIMIT 200`).bind(type)
+    : db.prepare(`${baseSelect} ORDER BY t.created_at DESC LIMIT 200`);
   const { results } = await stmt.all<TxRow>();
 
   const tabs = [
     { label: "Tất cả", value: "" },
     { label: "Nhập kho", value: "RECEIVE" },
     { label: "Xuất kho", value: "ISSUE" },
+    { label: "Bán hàng", value: "SALE" },
     { label: "Điều chỉnh", value: "ADJUSTMENT" },
-    { label: "Rang", value: "ROAST_PRODUCTION" },
   ];
 
   return (
@@ -110,6 +110,19 @@ export default async function InventoryTransactionsPage({
               <tbody>
                 {results.map((r) => {
                   const bulkWeight = isBulkWeightProduct(r.product_type, r.coffee_stage);
+                  const detailParts: string[] = [];
+                  if (r.type === "SALE") {
+                    if (r.finished_sku && r.finished_kg != null) {
+                      detailParts.push(`Bán ${formatKg(r.finished_kg)} ${r.finished_sku}`);
+                    }
+                    if (r.customer_name) detailParts.push(`KH: ${r.customer_name}`);
+                    if (r.invoice_number) detailParts.push(`HĐ ${r.invoice_number}`);
+                  }
+                  if (r.type === "RECEIVE") {
+                    if (r.supplier) detailParts.push(`NCC: ${r.supplier}`);
+                    if (r.invoice_number) detailParts.push(`HĐ ${r.invoice_number}`);
+                  }
+                  const detail = detailParts.join(" · ");
                   return (
                     <tr key={r.id} className="border-b border-stone-100">
                       <td className="p-3 whitespace-nowrap text-stone-500">{formatDateTime(r.created_at)}</td>
@@ -122,7 +135,10 @@ export default async function InventoryTransactionsPage({
                         {r.quantity > 0 ? "+" : ""}
                         {bulkWeight ? formatKg(r.quantity) : r.quantity}
                       </td>
-                      <td className="p-3 text-stone-500">{r.note ?? "—"}</td>
+                      <td className="p-3 text-stone-500">
+                        {detail || r.note || "—"}
+                        {detail && r.note && <div className="text-xs text-stone-400">{r.note}</div>}
+                      </td>
                       <td className="p-3 text-stone-500">{r.created_by_name ?? "—"}</td>
                     </tr>
                   );

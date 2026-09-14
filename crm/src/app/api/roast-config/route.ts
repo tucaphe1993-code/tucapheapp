@@ -18,11 +18,6 @@ export async function GET() {
 
 const updateSchema = z.object({
   defaultShrinkagePercent: z.number().min(0).max(99.99),
-  gasCostPerKgGreen: z.number().int().nonnegative(),
-  packagingCostPerKgFinished: z.number().int().nonnegative(),
-  laborCostMode: z.enum(["PER_KG_FINISHED", "PER_KG_GREEN", "PER_HOUR", "PER_DAY"]),
-  laborCostValue: z.number().int().nonnegative(),
-  otherCostPerKgFinished: z.number().int().nonnegative(),
 });
 
 export async function PUT(req: NextRequest) {
@@ -39,20 +34,10 @@ export async function PUT(req: NextRequest) {
     await db
       .prepare(
         `UPDATE roast_cost_config SET
-           default_shrinkage_percent = ?, gas_cost_per_kg_green = ?, packaging_cost_per_kg_finished = ?,
-           labor_cost_mode = ?, labor_cost_value = ?, other_cost_per_kg_finished = ?,
-           updated_at = datetime('now'), updated_by = ?
+           default_shrinkage_percent = ?, updated_at = datetime('now'), updated_by = ?
          WHERE id = 1`
       )
-      .bind(
-        d.defaultShrinkagePercent,
-        d.gasCostPerKgGreen,
-        d.packagingCostPerKgFinished,
-        d.laborCostMode,
-        d.laborCostValue,
-        d.otherCostPerKgFinished,
-        session.user.id
-      )
+      .bind(d.defaultShrinkagePercent, session.user.id)
       .run();
 
     await writeAuditLog({

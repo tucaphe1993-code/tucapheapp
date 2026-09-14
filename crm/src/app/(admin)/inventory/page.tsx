@@ -50,8 +50,10 @@ export default async function InventoryOverviewPage() {
   ]);
 
   const greenKg = coffeeStageRows.results.find((r) => r.coffee_stage === "GREEN")?.total_kg ?? 0;
-  const roastedKg = coffeeStageRows.results.find((r) => r.coffee_stage === "ROASTED")?.total_kg ?? 0;
-  const productionCapacity = greenKg * (1 - config.default_shrinkage_percent / 100);
+  // KHÔNG còn tồn kho thành phẩm riêng — "sản lượng khả dụng" là số kg
+  // thành phẩm CÓ THỂ bán nếu quy đổi hết tồn nhân xanh hiện có, tính
+  // TỨC THỜI từ tồn nhân xanh (không lưu trạng thái trung gian nào).
+  const sellableCapacity = greenKg * (1 - config.default_shrinkage_percent / 100);
 
   // Cảnh báo riêng cho từng SKU nhân xanh — KHÔNG trộn với cà phê rang.
   const { results: greenLowStock } = await db
@@ -69,13 +71,12 @@ export default async function InventoryOverviewPage() {
     { label: "Tổng giá trị tồn kho", value: formatVnd(stockValue?.total_value ?? 0) },
     { label: "Tổng số SKU", value: String(stockValue?.total_sku ?? 0) },
     { label: "Tồn cà phê nhân xanh", value: formatKg(greenKg) },
-    { label: "Tồn cà phê rang thành phẩm", value: formatKg(roastedKg) },
     { label: "Tổng số máy/thiết bị", value: String(deviceCounts?.total_devices ?? 0) },
     { label: "Máy đang tồn (IN STOCK)", value: String(deviceCounts?.in_stock_devices ?? 0) },
     { label: "SKU sắp hết hàng", value: String(lowStockCount?.c ?? 0) },
     {
-      label: `Sản lượng rang khả dụng (hao hụt ${config.default_shrinkage_percent}%)`,
-      value: formatKg(productionCapacity),
+      label: `Sản lượng thành phẩm có thể bán (hao hụt ${config.default_shrinkage_percent}%)`,
+      value: formatKg(sellableCapacity),
     },
   ];
 

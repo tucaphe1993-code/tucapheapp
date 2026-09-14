@@ -138,19 +138,23 @@ export default async function InventoryStockPage() {
                         <Badge variant={low ? "warning" : "success"}>{low ? "Sắp hết" : "Đủ hàng"}</Badge>
                       </td>
                       <td className="p-3">
-                        <div className="flex gap-2">
-                          <ReceiveInventoryDialog
-                            productVariantId={r.product_variant_id}
-                            sku={r.sku}
-                            allowDecimal={bulkWeight}
-                            unit={r.unit ?? ""}
-                          />
-                          <AdjustInventoryDialog
-                            productVariantId={r.product_variant_id}
-                            sku={r.sku}
-                            allowDecimal={bulkWeight}
-                          />
-                        </div>
+                        {r.coffee_stage === "ROASTED" ? (
+                          <span className="text-xs text-stone-400">Thành phẩm — xem tại Bán hàng</span>
+                        ) : (
+                          <div className="flex gap-2">
+                            <ReceiveInventoryDialog
+                              productVariantId={r.product_variant_id}
+                              sku={r.sku}
+                              allowDecimal={bulkWeight}
+                              unit={r.unit ?? ""}
+                            />
+                            <AdjustInventoryDialog
+                              productVariantId={r.product_variant_id}
+                              sku={r.sku}
+                              allowDecimal={bulkWeight}
+                            />
+                          </div>
+                        )}
                       </td>
                     </tr>
                   );

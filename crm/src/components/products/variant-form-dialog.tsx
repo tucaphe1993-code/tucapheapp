@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/dialog";
 import { PlusCircle } from "lucide-react";
 import { UNIT_OPTIONS, isBulkWeightProduct } from "@/lib/constants";
-import type { CoffeeStage, ProductType } from "@/types/db";
+import type { CoffeeStage, ProductRow, ProductType, ProductVariantRow } from "@/types/db";
 
 export function VariantFormDialog({
   productId,
@@ -37,6 +37,22 @@ export function VariantFormDialog({
   // cách như cà phê đóng gói, không cần Serial, không cần thương hiệu/bảo hành.
   const isBulkWeight = isBulkWeightProduct(productType, coffeeStage);
   const isCoffee = productType === "COFFEE" && !isBulkWeight;
+  const isFinished = coffeeStage === "ROASTED";
+
+  // Cà phê thành phẩm (ROASTED) phải khai báo quy đổi từ SKU nhân xanh
+  // nào — nạp danh sách SKU nhân xanh hiện có để chọn (§ Bán hàng).
+  const [greenOptions, setGreenOptions] = useState<{ id: string; sku: string; productName: string }[]>([]);
+  useEffect(() => {
+    if (!isFinished || !open) return;
+    fetch("/api/products")
+      .then((r) => r.json())
+      .then((d: { products?: (ProductRow & { variants: ProductVariantRow[] })[] }) => {
+        const options = (d.products ?? [])
+          .filter((p) => p.product_type === "COFFEE" && p.coffee_stage === "GREEN")
+          .flatMap((p) => p.variants.map((v) => ({ id: v.id, sku: v.sku, productName: p.name })));
+        setGreenOptions(options);
+      });
+  }, [isFinished, open]);
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -63,6 +79,7 @@ export function VariantFormDialog({
           warrantyMonths: form.get("warrantyMonths") ? Number(form.get("warrantyMonths")) : undefined,
           requiresSerial,
           lowStockThreshold: Number(form.get("lowStockThreshold") || 10),
+          sourceGreenVariantId: isFinished ? String(form.get("sourceGreenVariantId") || "") || undefined : undefined,
         };
     try {
       const res = await fetch(`/api/products/${productId}/variants`, {
@@ -136,6 +153,24 @@ export function VariantFormDialog({
                   placeholder={isBulkWeight ? "VD: NX-HONEY, CR-HONEY" : "VD: LAMVITA-2GROUP"}
                 />
               </div>
+              {isFinished && (
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="sourceGreenVariantId">Nguyên liệu nhân xanh nguồn *</Label>
+                  <Select id="sourceGreenVariantId" name="sourceGreenVariantId" required defaultValue="">
+                    <option value="" disabled>
+                      -- Chọn SKU nhân xanh --
+                    </option>
+                    {greenOptions.map((v) => (
+                      <option key={v.id} value={v.id}>
+                        {v.sku} — {v.productName}
+                      </option>
+                    ))}
+                  </Select>
+                  <p className="text-xs text-stone-400">
+                    Khi bán SKU thành phẩm này, hệ thống sẽ tự trừ tồn vào đúng SKU nhân xanh chọn ở đây.
+                  </p>
+                </div>
+              )}
               {!isBulkWeight && (
                 <div className="grid grid-cols-2 gap-3">
                   <div className="flex flex-col gap-1.5">

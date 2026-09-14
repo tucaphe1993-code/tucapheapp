@@ -44,6 +44,10 @@ export function ReceiveInventoryDialog({
           productVariantId,
           quantity: Number(form.get("quantity")),
           note: String(form.get("note") || ""),
+          supplier: String(form.get("supplier") || "") || undefined,
+          invoiceNumber: String(form.get("invoiceNumber") || "") || undefined,
+          invoiceDate: String(form.get("invoiceDate") || "") || undefined,
+          unitPrice: form.get("unitPrice") ? Number(form.get("unitPrice")) : undefined,
         }),
       });
       const data = await res.json();
@@ -79,6 +83,26 @@ export function ReceiveInventoryDialog({
               placeholder={allowDecimal ? "VD: 3.5" : undefined}
             />
             <p className="text-xs text-stone-400">Nhập đúng số lượng thực tế — hệ thống không tự trừ hao hụt.</p>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="flex flex-col gap-1.5">
+              <Label>Nhà cung cấp</Label>
+              <Input name="supplier" />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label>Đơn giá nhập (đ)</Label>
+              <Input name="unitPrice" type="number" min={0} />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="flex flex-col gap-1.5">
+              <Label>Số hóa đơn</Label>
+              <Input name="invoiceNumber" />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label>Ngày hóa đơn</Label>
+              <Input name="invoiceDate" type="date" />
+            </div>
           </div>
           <div className="flex flex-col gap-1.5">
             <Label>Ghi chú</Label>

@@ -2,7 +2,8 @@ import { getDb } from "@/lib/db/client";
 import { newId } from "@/lib/db/id";
 import { ConflictError, NotFoundError, ValidationError } from "@/lib/api/errors";
 import { EQUIPMENT_DELIVERY_METHODS, isBulkWeightProduct } from "@/lib/constants";
-import type { InventoryRow, OrderItemRow, OrderRow } from "@/types/db";
+import { getRoastCostConfig } from "@/lib/services/roasting";
+import type { InventoryRow, OrderItemRow, OrderRow, ProductVariantRow } from "@/types/db";
 
 /**
  * Chỉ SKU thuộc nhóm tồn theo KG lẻ (nhân xanh, cà phê rang rời) mới được
@@ -154,6 +155,12 @@ export async function receiveInventory(
     quantity: number;
     createdBy: string;
     note?: string;
+    // Nhập hàng (hóa đơn đầu vào) — tất cả đều tùy chọn, chỉ để lưu vết,
+    // không ảnh hưởng công thức tồn kho.
+    supplier?: string;
+    invoiceNumber?: string;
+    invoiceDate?: string;
+    unitPrice?: number;
   },
   db: D1Database = getDb()
 ) {
@@ -169,10 +176,22 @@ export async function receiveInventory(
     db
       .prepare(
         `INSERT INTO inventory_transactions
-           (id, product_variant_id, sku, quantity, type, reference_type, reference_id, created_by, note)
-         VALUES (?, ?, ?, ?, 'RECEIVE', 'MANUAL', NULL, ?, ?)`
+           (id, product_variant_id, sku, quantity, type, reference_type, reference_id, created_by, note,
+            supplier, invoice_number, invoice_date, unit_price)
+         VALUES (?, ?, ?, ?, 'RECEIVE', 'MANUAL', NULL, ?, ?, ?, ?, ?, ?)`
       )
-      .bind(newId(), params.productVariantId, inv.sku, params.quantity, params.createdBy, params.note ?? null),
+      .bind(
+        newId(),
+        params.productVariantId,
+        inv.sku,
+        params.quantity,
+        params.createdBy,
+        params.note ?? null,
+        params.supplier ?? null,
+        params.invoiceNumber ?? null,
+        params.invoiceDate ?? null,
+        params.unitPrice ?? null
+      ),
     db
       .prepare(
         `UPDATE inventory SET quantity_on_hand = quantity_on_hand + ?, updated_at = datetime('now')
@@ -180,6 +199,134 @@ export async function receiveInventory(
       )
       .bind(params.quantity, params.productVariantId),
   ]);
+}
+
+export interface SellFinishedCoffeeResult {
+  greenVariantId: string;
+  greenSku: string;
+  greenKgConsumed: number;
+  unitPrice: number;
+  lineTotal: number;
+  vatAmount: number;
+}
+
+/**
+ * Bán hàng cà phê thành phẩm: KHÔNG có tồn kho thành phẩm riêng — nhập
+ * đúng 1 số duy nhất là KG thành phẩm bán ra, hệ thống tự quy đổi ngược
+ * ra KG nhân xanh tiêu hao (theo tỷ lệ ở roast_cost_config.
+ * default_shrinkage_percent, VD hao hụt 20% => 1kg thành phẩm cần
+ * 1/0.8 = 1.25kg nhân xanh) và trừ THẲNG vào tồn nhân xanh trong CÙNG một
+ * giao dịch — không qua bước "mẻ rang"/xuất kho riêng nào khác, không thể
+ * trừ 2 lần cho cùng 1 lần bán vì mỗi lần gọi luôn tạo giao dịch mới.
+ */
+export async function sellFinishedCoffee(
+  params: {
+    finishedVariantId: string;
+    finishedKg: number;
+    createdBy: string;
+    customerId?: string;
+    unitPrice?: number;
+    vatIncluded?: boolean;
+    vatPercent?: number;
+    invoiceNumber?: string;
+    invoiceDate?: string;
+    note?: string;
+  },
+  db: D1Database = getDb()
+): Promise<SellFinishedCoffeeResult> {
+  if (params.finishedKg <= 0) throw new ValidationError("Số kg thành phẩm bán phải lớn hơn 0");
+
+  const finished = await db
+    .prepare(
+      `SELECT pv.*, p.product_type as product_type, p.coffee_stage as coffee_stage FROM product_variants pv
+       JOIN products p ON p.id = pv.product_id
+       WHERE pv.id = ?`
+    )
+    .bind(params.finishedVariantId)
+    .first<ProductVariantRow & { product_type: string; coffee_stage: string | null }>();
+  if (!finished) throw new NotFoundError("Không tìm thấy SKU cà phê thành phẩm");
+  if (finished.product_type !== "COFFEE" || finished.coffee_stage !== "ROASTED") {
+    throw new ValidationError("SKU phải thuộc nhóm cà phê rang thành phẩm");
+  }
+  if (!finished.source_green_variant_id) {
+    throw new ValidationError(
+      `SKU ${finished.sku} chưa được cấu hình nguyên liệu nhân xanh nguồn — vào Sản phẩm để thiết lập`
+    );
+  }
+
+  const config = await getRoastCostConfig(db);
+  const shrinkagePercent = config.default_shrinkage_percent;
+  if (shrinkagePercent < 0 || shrinkagePercent >= 100) {
+    throw new ValidationError("Tỷ lệ hao hụt/chuyển đổi đang cấu hình không hợp lệ");
+  }
+  const ratio = 1 - shrinkagePercent / 100;
+  const greenKgConsumed = Math.round((params.finishedKg / ratio) * 1000) / 1000;
+
+  const greenInv = await db
+    .prepare(`SELECT * FROM inventory WHERE product_variant_id = ?`)
+    .bind(finished.source_green_variant_id)
+    .first<InventoryRow>();
+  if (!greenInv || greenInv.quantity_on_hand < greenKgConsumed) {
+    throw new ConflictError(
+      `Không đủ tồn nhân xanh để bán: cần ${greenKgConsumed}kg, còn ${greenInv?.quantity_on_hand ?? 0}kg`
+    );
+  }
+
+  const greenSku = await db
+    .prepare(`SELECT sku FROM product_variants WHERE id = ?`)
+    .bind(finished.source_green_variant_id)
+    .first<{ sku: string }>();
+
+  const unitPrice = params.unitPrice ?? finished.unit_price;
+  const subtotal = Math.round(unitPrice * params.finishedKg);
+  const vatPercent = params.vatIncluded ? (params.vatPercent ?? 0) : 0;
+  const vatAmount = params.vatIncluded ? Math.round((subtotal * vatPercent) / 100) : 0;
+  const lineTotal = subtotal + vatAmount;
+
+  const txId = newId();
+  await db.batch([
+    db
+      .prepare(
+        `INSERT INTO inventory_transactions
+           (id, product_variant_id, sku, quantity, type, reference_type, reference_id, created_by, note,
+            finished_variant_id, finished_kg, customer_id, unit_price, line_total, vat_percent, vat_amount,
+            invoice_number, invoice_date)
+         VALUES (?, ?, ?, ?, 'SALE', 'SALE', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      )
+      .bind(
+        txId,
+        finished.source_green_variant_id,
+        greenSku!.sku,
+        -greenKgConsumed,
+        txId,
+        params.createdBy,
+        params.note ?? null,
+        finished.id,
+        params.finishedKg,
+        params.customerId ?? null,
+        unitPrice,
+        lineTotal,
+        params.vatIncluded ? vatPercent : null,
+        params.vatIncluded ? vatAmount : null,
+        params.invoiceNumber ?? null,
+        params.invoiceDate ?? null
+      ),
+    db
+      .prepare(
+        `UPDATE inventory SET quantity_on_hand = quantity_on_hand - ?, updated_at = datetime('now')
+         WHERE product_variant_id = ?`
+      )
+      .bind(greenKgConsumed, finished.source_green_variant_id),
+  ]);
+
+  return {
+    greenVariantId: finished.source_green_variant_id,
+    greenSku: greenSku!.sku,
+    greenKgConsumed,
+    unitPrice,
+    lineTotal,
+    vatAmount,
+  };
 }
 
 export async function adjustInventory(

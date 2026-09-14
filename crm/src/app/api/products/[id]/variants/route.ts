@@ -31,6 +31,9 @@ const nonCoffeeSchema = z.object({
   warrantyMonths: z.number().int().nonnegative().optional(),
   requiresSerial: z.boolean().default(false),
   lowStockThreshold: z.number().int().nonnegative().default(10),
+  // Chỉ có ý nghĩa khi coffee_stage = ROASTED (§ Bán hàng — quy đổi tự
+  // động): SKU nhân xanh sẽ bị trừ tồn khi bán SKU thành phẩm này.
+  sourceGreenVariantId: z.string().trim().optional(),
 });
 
 export async function POST(req: NextRequest, ctx: RouteContext<"/api/products/[id]/variants">) {
@@ -87,19 +90,46 @@ export async function POST(req: NextRequest, ctx: RouteContext<"/api/products/[i
       if (!parsed.success) {
         throw new ValidationError(parsed.error.issues[0]?.message ?? "Dữ liệu không hợp lệ");
       }
-      const { unit, unitPrice, costPrice, brand, model, supplier, warrantyMonths, requiresSerial: reqSerial, lowStockThreshold } =
-        parsed.data;
+      const {
+        unit,
+        unitPrice,
+        costPrice,
+        brand,
+        model,
+        supplier,
+        warrantyMonths,
+        requiresSerial: reqSerial,
+        lowStockThreshold,
+        sourceGreenVariantId,
+      } = parsed.data;
       sku = parsed.data.sku.toUpperCase();
       requiresSerial = reqSerial;
 
       const dup = await db.prepare(`SELECT id FROM product_variants WHERE sku = ?`).bind(sku).first();
       if (dup) throw new ConflictError(`SKU ${sku} đã tồn tại`);
 
+      // Cà phê rang rời (thành phẩm) PHẢI khai báo nó quy đổi từ SKU nhân
+      // xanh nào — đây là dữ liệu duy nhất cần để "Bán hàng" tự trừ tồn.
+      if (product.coffee_stage === "ROASTED") {
+        if (!sourceGreenVariantId) {
+          throw new ValidationError("Vui lòng chọn SKU nhân xanh nguồn cho cà phê thành phẩm");
+        }
+        const green = await db
+          .prepare(
+            `SELECT pv.id FROM product_variants pv JOIN products p ON p.id = pv.product_id
+             WHERE pv.id = ? AND p.product_type = 'COFFEE' AND p.coffee_stage = 'GREEN'`
+          )
+          .bind(sourceGreenVariantId)
+          .first();
+        if (!green) throw new ValidationError("SKU nhân xanh nguồn không hợp lệ");
+      }
+
       await db
         .prepare(
           `INSERT INTO product_variants
-             (id, product_id, sku, unit, unit_price, cost_price, brand, model, supplier, warranty_months, requires_serial)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+             (id, product_id, sku, unit, unit_price, cost_price, brand, model, supplier, warranty_months,
+              requires_serial, source_green_variant_id)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
         )
         .bind(
           variantId,
@@ -112,7 +142,8 @@ export async function POST(req: NextRequest, ctx: RouteContext<"/api/products/[i
           model || null,
           supplier || null,
           warrantyMonths ?? null,
-          requiresSerial ? 1 : 0
+          requiresSerial ? 1 : 0,
+          product.coffee_stage === "ROASTED" ? sourceGreenVariantId : null
         )
         .run();
 

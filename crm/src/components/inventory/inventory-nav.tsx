@@ -3,7 +3,7 @@ import Link from "next/link";
 const TABS = [
   { href: "/inventory", label: "Tổng quan" },
   { href: "/inventory/stock", label: "Tồn kho" },
-  { href: "/inventory/roasting", label: "Rang / Sản xuất" },
+  { href: "/inventory/sell", label: "Bán hàng" },
   { href: "/inventory/count", label: "Kiểm kê" },
   { href: "/inventory/transactions", label: "Lịch sử giao dịch" },
   { href: "/devices", label: "Máy & Serial" },

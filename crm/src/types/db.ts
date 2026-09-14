@@ -57,7 +57,13 @@ export type InstallationStatus =
   | "HANDED_OVER"
   | "CANCELLED";
 
-export type InventoryTxType = "RECEIVE" | "ISSUE" | "ADJUSTMENT" | "ROAST_PRODUCTION" | "ROAST_CONSUMPTION";
+export type InventoryTxType =
+  | "RECEIVE"
+  | "ISSUE"
+  | "ADJUSTMENT"
+  | "ROAST_PRODUCTION"
+  | "ROAST_CONSUMPTION"
+  | "SALE";
 
 export interface UserRow {
   id: string;
@@ -123,6 +129,10 @@ export interface ProductVariantRow {
   supplier: string | null;
   warranty_months: number | null;
   requires_serial: number;
+  // Chỉ có ý nghĩa khi coffee_stage = 'ROASTED': SKU nhân xanh sẽ bị trừ
+  // tồn khi bán SKU thành phẩm này (§ Bán hàng — quy đổi tự động, xem
+  // sellFinishedCoffee trong lib/services/inventory.ts).
+  source_green_variant_id: string | null;
   is_active: number;
   created_at: string;
   updated_at: string;
@@ -278,6 +288,20 @@ export interface InventoryTransactionRow {
   created_by: string;
   note: string | null;
   created_at: string;
+  // Nhập hàng (RECEIVE): thông tin hóa đơn đầu vào, chỉ tham khảo/lưu vết.
+  supplier: string | null;
+  invoice_number: string | null;
+  invoice_date: string | null;
+  unit_price: number | null;
+  // Bán hàng (SALE): product_variant_id/sku/quantity ở trên luôn là SKU
+  // NHÂN XANH bị trừ tồn — các cột dưới đây ghi lại SKU thành phẩm thực
+  // bán, KG thành phẩm, khách hàng, giá và VAT phục vụ hóa đơn/lịch sử.
+  finished_variant_id: string | null;
+  finished_kg: number | null;
+  customer_id: string | null;
+  line_total: number | null;
+  vat_percent: number | null;
+  vat_amount: number | null;
 }
 
 export interface NotificationRow {

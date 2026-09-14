@@ -8,7 +8,7 @@ import { DeleteProductButton } from "@/components/products/delete-product-button
 import { DeleteVariantButton } from "@/components/products/delete-variant-button";
 import { ReceiveDeviceDialog } from "@/components/inventory/receive-device-dialog";
 import { DEVICE_STATUS_LABEL } from "@/lib/services/devices";
-import { PRODUCT_TYPE_LABEL, PRODUCT_TYPES } from "@/lib/constants";
+import { PRODUCT_TYPE_LABEL, PRODUCT_TYPES, COFFEE_STAGE_LABEL, isBulkWeightProduct } from "@/lib/constants";
 import { formatVnd } from "@/lib/utils";
 import type { DeviceStatus, ProductRow, ProductType, ProductVariantRow } from "@/types/db";
 
@@ -84,7 +84,10 @@ export default async function ProductsPage({ searchParams }: PageProps<"/product
         )}
         {products.map((p) => {
           const productVariants = variants.filter((v) => v.product_id === p.id);
-          const isCoffee = p.product_type === "COFFEE";
+          const isBulkWeight = isBulkWeightProduct(p.product_type, p.coffee_stage);
+          // Bảng theo hình thức/bao bì/quy cách chỉ hợp với cà phê ĐÓNG GÓI —
+          // nhân xanh/rang rời (tồn theo KG lẻ) dùng khung SKU chung như máy/thiết bị.
+          const isCoffee = p.product_type === "COFFEE" && !isBulkWeight;
           return (
             <Card key={p.id}>
               <CardHeader className="flex-row items-center justify-between space-y-0">
@@ -94,12 +97,17 @@ export default async function ProductsPage({ searchParams }: PageProps<"/product
                   </CardTitle>
                   <div className="mt-1 flex items-center gap-2">
                     <Badge variant="secondary">{PRODUCT_TYPE_LABEL[p.product_type]}</Badge>
+                    {p.coffee_stage && <Badge variant="secondary">{COFFEE_STAGE_LABEL[p.coffee_stage]}</Badge>}
                     {!p.is_active && <Badge variant="secondary">Ngừng bán</Badge>}
                     {p.description && <p className="text-sm text-stone-500">{p.description}</p>}
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
-                  <VariantFormDialog productId={p.id} productType={p.product_type as ProductType} />
+                  <VariantFormDialog
+                    productId={p.id}
+                    productType={p.product_type as ProductType}
+                    coffeeStage={p.coffee_stage}
+                  />
                   <DeleteProductButton productId={p.id} productName={p.name} />
                 </div>
               </CardHeader>

@@ -17,22 +17,25 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { PlusCircle } from "lucide-react";
-import { PRODUCT_TYPES, PRODUCT_TYPE_LABEL } from "@/lib/constants";
+import { PRODUCT_TYPES, PRODUCT_TYPE_LABEL, COFFEE_STAGES, COFFEE_STAGE_LABEL } from "@/lib/constants";
 
 export function ProductFormDialog() {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [productType, setProductType] = useState<string>("COFFEE");
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setLoading(true);
     const form = new FormData(e.currentTarget);
+    const coffeeStage = String(form.get("coffeeStage") || "PACKAGED");
     const payload = {
       name: String(form.get("name") || ""),
       code: String(form.get("code") || ""),
       description: String(form.get("description") || ""),
       productType: String(form.get("productType") || "COFFEE"),
+      coffeeStage: coffeeStage === "PACKAGED" ? undefined : coffeeStage,
     };
     try {
       const res = await fetch("/api/products", {
@@ -71,7 +74,13 @@ export function ProductFormDialog() {
           </div>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="productType">Loại sản phẩm *</Label>
-            <Select id="productType" name="productType" required defaultValue="COFFEE">
+            <Select
+              id="productType"
+              name="productType"
+              required
+              defaultValue="COFFEE"
+              onChange={(e) => setProductType(e.target.value)}
+            >
               {PRODUCT_TYPES.map((t) => (
                 <option key={t} value={t}>
                   {PRODUCT_TYPE_LABEL[t]}
@@ -79,6 +88,21 @@ export function ProductFormDialog() {
               ))}
             </Select>
           </div>
+          {productType === "COFFEE" && (
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="coffeeStage">Công đoạn cà phê *</Label>
+              <Select id="coffeeStage" name="coffeeStage" required defaultValue="PACKAGED">
+                {COFFEE_STAGES.map((s) => (
+                  <option key={s} value={s}>
+                    {COFFEE_STAGE_LABEL[s]}
+                  </option>
+                ))}
+              </Select>
+              <p className="text-xs text-stone-400">
+                Nhân xanh/rang rời tồn theo KG lẻ (cho phép số thập phân), khác với cà phê đóng gói theo túi.
+              </p>
+            </div>
+          )}
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="code">Mã SKU prefix * (VD: CB)</Label>
             <Input id="code" name="code" required maxLength={10} placeholder="CB" />

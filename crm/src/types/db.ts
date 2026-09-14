@@ -6,6 +6,14 @@ export type ProductPackaging = "TUI_XANH" | "TUI_ZIP";
 
 export type ProductType = "COFFEE" | "BREWER" | "GRINDER" | "EQUIPMENT" | "ACCESSORY" | "SERVICE";
 
+// Công đoạn của cà phê (chỉ áp dụng khi product_type = 'COFFEE'):
+// NULL = đóng gói (hành vi mặc định/hiện tại), GREEN = nhân xanh, ROASTED =
+// đã rang nhưng còn rời (chưa đóng gói). Cả hai đều tồn theo KG lẻ.
+export type CoffeeStage = "GREEN" | "ROASTED" | null;
+
+export type RoastBatchStatus = "DRAFT" | "CONFIRMED";
+export type LaborCostMode = "PER_KG_FINISHED" | "PER_KG_GREEN" | "PER_HOUR" | "PER_DAY";
+
 export type DeviceStatus =
   | "IN_STOCK"
   | "SOLD"
@@ -49,7 +57,7 @@ export type InstallationStatus =
   | "HANDED_OVER"
   | "CANCELLED";
 
-export type InventoryTxType = "RECEIVE" | "ISSUE" | "ADJUSTMENT";
+export type InventoryTxType = "RECEIVE" | "ISSUE" | "ADJUSTMENT" | "ROAST_PRODUCTION" | "ROAST_CONSUMPTION";
 
 export interface UserRow {
   id: string;
@@ -94,6 +102,7 @@ export interface ProductRow {
   code: string;
   description: string | null;
   product_type: ProductType;
+  coffee_stage: CoffeeStage;
   is_active: number;
   created_at: string;
   updated_at: string;
@@ -395,4 +404,42 @@ export interface AuditLogRow {
   entity_id: string | null;
   metadata: string | null;
   created_at: string;
+}
+
+export interface RoastCostConfigRow {
+  id: number;
+  default_shrinkage_percent: number;
+  gas_cost_per_kg_green: number;
+  packaging_cost_per_kg_finished: number;
+  labor_cost_mode: LaborCostMode;
+  labor_cost_value: number;
+  other_cost_per_kg_finished: number;
+  updated_at: string;
+  updated_by: string | null;
+}
+
+export interface RoastBatchRow {
+  id: string;
+  batch_code: string;
+  green_variant_id: string;
+  roasted_variant_id: string;
+  input_kg: number;
+  shrinkage_percent: number;
+  finished_kg: number;
+  shrinkage_kg: number;
+  green_bean_cost: number;
+  gas_cost: number;
+  labor_cost: number;
+  packaging_cost: number;
+  other_cost: number;
+  total_cost: number;
+  cost_per_kg: number;
+  labor_hours: number | null;
+  status: RoastBatchStatus;
+  roasted_by: string | null;
+  note: string | null;
+  confirmed_at: string | null;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
 }

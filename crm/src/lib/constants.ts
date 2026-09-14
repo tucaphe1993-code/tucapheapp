@@ -26,6 +26,21 @@ export const PRODUCT_TYPE_LABEL: Record<string, string> = {
 // sách này theo yêu cầu.
 export const PRODUCT_TYPES = ["COFFEE", "BREWER", "GRINDER", "ACCESSORY", "EQUIPMENT"] as const;
 
+// Công đoạn cà phê — chỉ áp dụng khi product_type = COFFEE. "PACKAGED" là
+// giá trị hiển thị/gửi lên form cho coffee_stage = NULL (đóng gói, hành vi
+// mặc định/hiện tại) — GREEN/ROASTED tồn theo KG lẻ.
+export const COFFEE_STAGE_LABEL: Record<string, string> = {
+  PACKAGED: "Đóng gói (theo túi/quy cách)",
+  GREEN: "Nhân xanh (nguyên liệu thô)",
+  ROASTED: "Rang rời (chưa đóng gói)",
+};
+export const COFFEE_STAGES = ["PACKAGED", "GREEN", "ROASTED"] as const;
+
+/** SKU tồn theo KG lẻ (nhập/điều chỉnh được phép số thập phân, vd 3.5kg) — chỉ nhân xanh và cà phê rang rời. */
+export function isBulkWeightProduct(productType: string, coffeeStage: string | null): boolean {
+  return productType === "COFFEE" && (coffeeStage === "GREEN" || coffeeStage === "ROASTED");
+}
+
 // Tạo đơn giờ tách 2 luồng riêng — đơn cà phê và đơn thiết bị (spec: mục
 // Máy Pha / Máy Xay / Thiết bị / Phụ kiện) — nên nhóm sản phẩm không-cà-phê
 // lại để dùng cho luồng "Tạo đơn thiết bị".

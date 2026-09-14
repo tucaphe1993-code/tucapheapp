@@ -17,15 +17,26 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { PlusCircle } from "lucide-react";
-import { UNIT_OPTIONS } from "@/lib/constants";
-import type { ProductType } from "@/types/db";
+import { UNIT_OPTIONS, isBulkWeightProduct } from "@/lib/constants";
+import type { CoffeeStage, ProductType } from "@/types/db";
 
-export function VariantFormDialog({ productId, productType }: { productId: string; productType: ProductType }) {
+export function VariantFormDialog({
+  productId,
+  productType,
+  coffeeStage,
+}: {
+  productId: string;
+  productType: ProductType;
+  coffeeStage: CoffeeStage;
+}) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [requiresSerial, setRequiresSerial] = useState(false);
-  const isCoffee = productType === "COFFEE";
+  // Nhân xanh / cà phê rang rời: tồn theo KG lẻ, không có form/bao bì/quy
+  // cách như cà phê đóng gói, không cần Serial, không cần thương hiệu/bảo hành.
+  const isBulkWeight = isBulkWeightProduct(productType, coffeeStage);
+  const isCoffee = productType === "COFFEE" && !isBulkWeight;
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -118,32 +129,43 @@ export function VariantFormDialog({ productId, productType }: { productId: strin
             <>
               <div className="flex flex-col gap-1.5">
                 <Label htmlFor="sku">SKU *</Label>
-                <Input id="sku" name="sku" required placeholder="VD: LAMVITA-2GROUP" />
+                <Input
+                  id="sku"
+                  name="sku"
+                  required
+                  placeholder={isBulkWeight ? "VD: NX-HONEY, CR-HONEY" : "VD: LAMVITA-2GROUP"}
+                />
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="flex flex-col gap-1.5">
-                  <Label htmlFor="brand">Thương hiệu</Label>
-                  <Input id="brand" name="brand" placeholder="LAMVITA" />
+              {!isBulkWeight && (
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="flex flex-col gap-1.5">
+                    <Label htmlFor="brand">Thương hiệu</Label>
+                    <Input id="brand" name="brand" placeholder="LAMVITA" />
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <Label htmlFor="model">Model</Label>
+                    <Input id="model" name="model" placeholder="2 GROUP" />
+                  </div>
                 </div>
-                <div className="flex flex-col gap-1.5">
-                  <Label htmlFor="model">Model</Label>
-                  <Input id="model" name="model" placeholder="2 GROUP" />
-                </div>
-              </div>
+              )}
               <div className="grid grid-cols-2 gap-3">
                 <div className="flex flex-col gap-1.5">
                   <Label htmlFor="supplier">Nhà cung cấp</Label>
                   <Input id="supplier" name="supplier" />
                 </div>
-                <div className="flex flex-col gap-1.5">
-                  <Label htmlFor="warrantyMonths">Bảo hành (tháng)</Label>
-                  <Input id="warrantyMonths" name="warrantyMonths" type="number" min={0} />
-                </div>
+                {!isBulkWeight && (
+                  <div className="flex flex-col gap-1.5">
+                    <Label htmlFor="warrantyMonths">Bảo hành (tháng)</Label>
+                    <Input id="warrantyMonths" name="warrantyMonths" type="number" min={0} />
+                  </div>
+                )}
               </div>
-              <label className="flex items-center gap-2 text-sm">
-                <Checkbox checked={requiresSerial} onCheckedChange={(v) => setRequiresSerial(v === true)} />
-                Quản lý theo Serial (mỗi thiết bị 1 số Serial riêng)
-              </label>
+              {!isBulkWeight && (
+                <label className="flex items-center gap-2 text-sm">
+                  <Checkbox checked={requiresSerial} onCheckedChange={(v) => setRequiresSerial(v === true)} />
+                  Quản lý theo Serial (mỗi thiết bị 1 số Serial riêng)
+                </label>
+              )}
             </>
           )}
           <div className="grid grid-cols-2 gap-3">
@@ -158,7 +180,7 @@ export function VariantFormDialog({ productId, productType }: { productId: strin
           </div>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="unit">Đơn vị tính</Label>
-            <Select id="unit" name="unit" defaultValue={isCoffee ? "Túi" : "Cái"}>
+            <Select id="unit" name="unit" defaultValue={isCoffee ? "Túi" : isBulkWeight ? "Kg" : "Cái"}>
               {UNIT_OPTIONS.map((u) => (
                 <option key={u} value={u}>
                   {u}

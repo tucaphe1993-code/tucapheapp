@@ -69,6 +69,14 @@ beforeEach(async () => {
     .run();
 });
 
+describe("receiveInventory: số lượng thập phân theo nhóm hàng", () => {
+  it("từ chối số lẻ cho SKU thường (cà phê đóng gói, máy...) — chỉ nhóm KG lẻ mới được số thập phân", async () => {
+    await expect(
+      receiveInventory({ productVariantId: variantId, quantity: 3.5, createdBy: userId }, db)
+    ).rejects.toThrow(/số nguyên/);
+  });
+});
+
 describe("issueInventoryForOrder", () => {
   it("refuses to issue an order that is not yet PACKED", async () => {
     const orderId = await seedOrder("CONFIRMED", 2);

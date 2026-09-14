@@ -7,7 +7,9 @@ import { handleApiError, ValidationError } from "@/lib/api/errors";
 
 const bodySchema = z.object({
   productVariantId: z.string().min(1),
-  delta: z.number().int(),
+  // Số nguyên hay thập phân tùy loại SKU — kiểm tra thực sự nằm ở
+  // adjustInventory() (chỉ nhóm tồn theo KG lẻ mới được số lẻ).
+  delta: z.number(),
   note: z.string().trim().min(1, "Vui lòng nhập lý do điều chỉnh"),
 });
 

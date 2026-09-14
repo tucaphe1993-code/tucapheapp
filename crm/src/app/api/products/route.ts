@@ -20,6 +20,9 @@ const createSchema = z.object({
   productType: z
     .enum(["COFFEE", "BREWER", "GRINDER", "EQUIPMENT", "ACCESSORY", "SERVICE"])
     .default("COFFEE"),
+  // Chỉ có ý nghĩa khi productType = COFFEE — phân biệt đóng gói (mặc
+  // định, không gửi field này) / nhân xanh / cà phê rang rời.
+  coffeeStage: z.enum(["GREEN", "ROASTED"]).optional(),
 });
 
 export async function GET() {
@@ -60,7 +63,10 @@ export async function POST(req: NextRequest) {
     if (!parsed.success) {
       throw new ValidationError(parsed.error.issues[0]?.message ?? "Dữ liệu không hợp lệ");
     }
-    const { name, code, description, productType } = parsed.data;
+    const { name, code, description, productType, coffeeStage } = parsed.data;
+    if (coffeeStage && productType !== "COFFEE") {
+      throw new ValidationError("Công đoạn cà phê chỉ áp dụng cho loại sản phẩm Cà phê");
+    }
 
     const db = getDb();
     const id = newId();
@@ -68,9 +74,9 @@ export async function POST(req: NextRequest) {
 
     await db
       .prepare(
-        `INSERT INTO products (id, name, slug, code, description, product_type) VALUES (?, ?, ?, ?, ?, ?)`
+        `INSERT INTO products (id, name, slug, code, description, product_type, coffee_stage) VALUES (?, ?, ?, ?, ?, ?, ?)`
       )
-      .bind(id, name, slug, code.toUpperCase(), description || null, productType)
+      .bind(id, name, slug, code.toUpperCase(), description || null, productType, coffeeStage ?? null)
       .run();
 
     await writeAuditLog({

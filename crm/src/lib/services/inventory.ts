@@ -1,8 +1,28 @@
 import { getDb } from "@/lib/db/client";
 import { newId } from "@/lib/db/id";
 import { ConflictError, NotFoundError, ValidationError } from "@/lib/api/errors";
-import { EQUIPMENT_DELIVERY_METHODS } from "@/lib/constants";
+import { EQUIPMENT_DELIVERY_METHODS, isBulkWeightProduct } from "@/lib/constants";
 import type { InventoryRow, OrderItemRow, OrderRow } from "@/types/db";
+
+/**
+ * Chỉ SKU thuộc nhóm tồn theo KG lẻ (nhân xanh, cà phê rang rời) mới được
+ * nhập số lượng thập phân — SKU đóng gói/máy/linh kiện vẫn bắt buộc số
+ * nguyên (không có "1.5 túi" hay "1.5 máy").
+ */
+async function assertValidQuantity(db: D1Database, productVariantId: string, quantity: number) {
+  if (Number.isInteger(quantity)) return;
+  const row = await db
+    .prepare(
+      `SELECT p.product_type as product_type, p.coffee_stage as coffee_stage FROM product_variants pv
+       JOIN products p ON p.id = pv.product_id
+       WHERE pv.id = ?`
+    )
+    .bind(productVariantId)
+    .first<{ product_type: string; coffee_stage: string | null }>();
+  if (!row || !isBulkWeightProduct(row.product_type, row.coffee_stage)) {
+    throw new ValidationError("Số lượng phải là số nguyên cho loại sản phẩm này");
+  }
+}
 
 // Đơn "Khách tự lắp" không cần giao việc đóng gói cho nhân viên (khách tự
 // đến lấy) — nên được xuất kho thẳng từ CONFIRMED, không cần đi qua
@@ -138,6 +158,7 @@ export async function receiveInventory(
   db: D1Database = getDb()
 ) {
   if (params.quantity <= 0) throw new ValidationError("Số lượng nhập kho phải lớn hơn 0");
+  await assertValidQuantity(db, params.productVariantId, params.quantity);
   const inv = await db
     .prepare(`SELECT * FROM inventory WHERE product_variant_id = ?`)
     .bind(params.productVariantId)
@@ -172,6 +193,7 @@ export async function adjustInventory(
 ) {
   if (params.delta === 0) throw new ValidationError("Số lượng điều chỉnh phải khác 0");
   if (!params.note?.trim()) throw new ValidationError("Điều chỉnh tồn kho bắt buộc phải có ghi chú lý do");
+  await assertValidQuantity(db, params.productVariantId, params.delta);
   const inv = await db
     .prepare(`SELECT * FROM inventory WHERE product_variant_id = ?`)
     .bind(params.productVariantId)

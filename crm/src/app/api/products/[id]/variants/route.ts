@@ -51,7 +51,12 @@ export async function POST(req: NextRequest, ctx: RouteContext<"/api/products/[i
     let sku: string;
     let requiresSerial = false;
 
-    if (product.product_type === "COFFEE") {
+    // Cà phê ĐÓNG GÓI (coffee_stage NULL) dùng schema hạt/bao bì/quy cách
+    // như cũ — nhân xanh/rang rời (coffee_stage GREEN/ROASTED) tồn theo KG
+    // lẻ, đi qua nhánh nonCoffeeSchema (SKU nhập tay, không form/bao bì).
+    const isPackagedCoffee = product.product_type === "COFFEE" && !product.coffee_stage;
+
+    if (isPackagedCoffee) {
       const parsed = coffeeSchema.safeParse(json);
       if (!parsed.success) {
         throw new ValidationError(parsed.error.issues[0]?.message ?? "Dữ liệu không hợp lệ");

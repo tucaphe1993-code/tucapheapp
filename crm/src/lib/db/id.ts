@@ -59,3 +59,14 @@ export async function nextProtocolCode(db: D1Database): Promise<string> {
     .first<{ n: number }>();
   return `BB-${String(row!.n).padStart(4, "0")}`;
 }
+
+/** Sequential "Mã mẻ rang" (MR-0001, MR-0002, ...) — same atomic-counter pattern as nextOrderCode. */
+export async function nextRoastBatchCode(db: D1Database): Promise<string> {
+  const row = await db
+    .prepare(
+      `UPDATE roast_batch_sequence SET next_value = next_value + 1 WHERE id = 1
+       RETURNING next_value - 1 AS n`
+    )
+    .first<{ n: number }>();
+  return `MR-${String(row!.n).padStart(4, "0")}`;
+}

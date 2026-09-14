@@ -17,7 +17,17 @@ import {
 } from "@/components/ui/dialog";
 import { ArrowDownToLine, SlidersHorizontal } from "lucide-react";
 
-export function ReceiveInventoryDialog({ productVariantId, sku }: { productVariantId: string; sku: string }) {
+export function ReceiveInventoryDialog({
+  productVariantId,
+  sku,
+  allowDecimal = false,
+  unit = "",
+}: {
+  productVariantId: string;
+  sku: string;
+  allowDecimal?: boolean;
+  unit?: string;
+}) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -59,8 +69,16 @@ export function ReceiveInventoryDialog({ productVariantId, sku }: { productVaria
         </DialogHeader>
         <form onSubmit={onSubmit} className="flex flex-col gap-3">
           <div className="flex flex-col gap-1.5">
-            <Label>Số lượng nhập *</Label>
-            <Input name="quantity" type="number" min={1} required />
+            <Label>Số lượng nhập {unit ? `(${unit})` : ""} *</Label>
+            <Input
+              name="quantity"
+              type="number"
+              min={allowDecimal ? 0.01 : 1}
+              step={allowDecimal ? "0.01" : 1}
+              required
+              placeholder={allowDecimal ? "VD: 3.5" : undefined}
+            />
+            <p className="text-xs text-stone-400">Nhập đúng số lượng thực tế — hệ thống không tự trừ hao hụt.</p>
           </div>
           <div className="flex flex-col gap-1.5">
             <Label>Ghi chú</Label>
@@ -77,7 +95,15 @@ export function ReceiveInventoryDialog({ productVariantId, sku }: { productVaria
   );
 }
 
-export function AdjustInventoryDialog({ productVariantId, sku }: { productVariantId: string; sku: string }) {
+export function AdjustInventoryDialog({
+  productVariantId,
+  sku,
+  allowDecimal = false,
+}: {
+  productVariantId: string;
+  sku: string;
+  allowDecimal?: boolean;
+}) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -120,7 +146,13 @@ export function AdjustInventoryDialog({ productVariantId, sku }: { productVarian
         <form onSubmit={onSubmit} className="flex flex-col gap-3">
           <div className="flex flex-col gap-1.5">
             <Label>Số lượng thay đổi (+/-) *</Label>
-            <Input name="delta" type="number" required placeholder="VD: -5 hoặc 10" />
+            <Input
+              name="delta"
+              type="number"
+              step={allowDecimal ? "0.01" : 1}
+              required
+              placeholder={allowDecimal ? "VD: -2.5 hoặc 3.5" : "VD: -5 hoặc 10"}
+            />
           </div>
           <div className="flex flex-col gap-1.5">
             <Label>Lý do điều chỉnh *</Label>

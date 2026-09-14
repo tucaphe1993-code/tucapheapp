@@ -48,7 +48,12 @@ export type AuditAction =
   | "SIGN_PROTOCOL"
   | "HANDOVER_PROTOCOL"
   | "ACTIVATE_PROTOCOL_WARRANTY"
-  | "COMPLETE_PROTOCOL";
+  | "COMPLETE_PROTOCOL"
+  | "CREATE_ROAST_BATCH_DRAFT"
+  | "DELETE_ROAST_BATCH_DRAFT"
+  | "CONFIRM_ROAST_BATCH"
+  | "UPDATE_ROAST_CONFIG"
+  | "STOCK_COUNT_ADJUSTMENT";
 
 export async function writeAuditLog(params: {
   userId: string | null;

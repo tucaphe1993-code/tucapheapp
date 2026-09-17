@@ -169,6 +169,7 @@ export interface ProductVariantRow {
   // Nhóm hàng + mã vạch — chỉ hiển thị/lọc, không ràng buộc gì (§ Danh mục).
   category: string | null;
   barcode: string | null;
+  note: string | null;
   is_active: number;
   created_at: string;
   updated_at: string;

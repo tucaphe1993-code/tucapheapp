@@ -17,6 +17,12 @@ const updateSchema = z.object({
   supplier: z.string().trim().optional(),
   warrantyMonths: z.number().int().nonnegative().optional(),
   requiresSerial: z.boolean().optional(),
+  // Danh mục Hàng hóa (§ Sửa hàng hóa) — nhóm hàng/mã vạch/ghi chú chỉ để
+  // hiển thị/lọc, ngưỡng cảnh báo sắp hết nằm ở bảng inventory riêng.
+  category: z.string().trim().optional(),
+  barcode: z.string().trim().optional(),
+  note: z.string().trim().optional(),
+  lowStockThreshold: z.number().int().nonnegative().optional(),
 });
 
 // Price/cost changes are ADMIN-only (spec §4, §31: nhân viên không được sửa giá).
@@ -47,6 +53,14 @@ export async function PATCH(req: NextRequest, ctx: RouteContext<"/api/variants/[
       }
     }
 
+    if (parsed.data.barcode) {
+      const dupBarcode = await db
+        .prepare(`SELECT id FROM product_variants WHERE barcode = ? AND id != ?`)
+        .bind(parsed.data.barcode, id)
+        .first();
+      if (dupBarcode) throw new ValidationError(`Mã vạch ${parsed.data.barcode} đã được dùng cho SKU khác`);
+    }
+
     const next = {
       unit_price: parsed.data.unitPrice ?? existing.unit_price,
       cost_price: parsed.data.costPrice ?? existing.cost_price,
@@ -58,12 +72,16 @@ export async function PATCH(req: NextRequest, ctx: RouteContext<"/api/variants/[
       warranty_months: parsed.data.warrantyMonths ?? existing.warranty_months,
       requires_serial:
         parsed.data.requiresSerial === undefined ? existing.requires_serial : parsed.data.requiresSerial ? 1 : 0,
+      category: parsed.data.category === undefined ? existing.category : parsed.data.category || null,
+      barcode: parsed.data.barcode === undefined ? existing.barcode : parsed.data.barcode || null,
+      note: parsed.data.note === undefined ? existing.note : parsed.data.note || null,
     };
 
     await db
       .prepare(
         `UPDATE product_variants SET unit_price = ?, cost_price = ?, is_active = ?, unit = ?, brand = ?,
-           model = ?, supplier = ?, warranty_months = ?, requires_serial = ?, updated_at = datetime('now')
+           model = ?, supplier = ?, warranty_months = ?, requires_serial = ?, category = ?, barcode = ?,
+           note = ?, updated_at = datetime('now')
          WHERE id = ?`
       )
       .bind(
@@ -76,9 +94,19 @@ export async function PATCH(req: NextRequest, ctx: RouteContext<"/api/variants/[
         next.supplier,
         next.warranty_months,
         next.requires_serial,
+        next.category,
+        next.barcode,
+        next.note,
         id
       )
       .run();
+
+    if (parsed.data.lowStockThreshold !== undefined) {
+      await db
+        .prepare(`UPDATE inventory SET low_stock_threshold = ? WHERE product_variant_id = ?`)
+        .bind(parsed.data.lowStockThreshold, id)
+        .run();
+    }
 
     await writeAuditLog({
       userId: session.user.id,

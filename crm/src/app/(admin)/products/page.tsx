@@ -7,10 +7,12 @@ import { VariantFormDialog } from "@/components/products/variant-form-dialog";
 import { DeleteProductButton } from "@/components/products/delete-product-button";
 import { DeleteVariantButton } from "@/components/products/delete-variant-button";
 import { ReceiveDeviceDialog } from "@/components/inventory/receive-device-dialog";
+import { HangHoaTable } from "@/components/products/hang-hoa-table";
+import type { HangHoaItem } from "@/components/products/variant-edit-dialog";
 import { DEVICE_STATUS_LABEL } from "@/lib/services/devices";
 import { PRODUCT_TYPE_LABEL, PRODUCT_TYPES, COFFEE_STAGE_LABEL, isBulkWeightProduct } from "@/lib/constants";
 import { formatVnd } from "@/lib/utils";
-import type { DeviceStatus, ProductRow, ProductType, ProductVariantRow } from "@/types/db";
+import type { DeviceStatus, InventoryRow, ProductRow, ProductType, ProductVariantRow } from "@/types/db";
 
 const FORM_LABEL: Record<string, string> = { HAT: "Hạt", BOT: "Bột" };
 const PACKAGING_LABEL: Record<string, string> = { TUI_XANH: "Túi Xanh", TUI_ZIP: "Túi Zip" };
@@ -22,7 +24,7 @@ interface DeviceCount {
 }
 
 export default async function ProductsPage({ searchParams }: PageProps<"/products">) {
-  const { type } = await searchParams;
+  const { type, view } = await searchParams;
   const db = getDb();
 
   const stmt = type
@@ -37,6 +39,7 @@ export default async function ProductsPage({ searchParams }: PageProps<"/product
       `SELECT product_variant_id, status, COUNT(*) as c FROM devices GROUP BY product_variant_id, status`
     )
     .all<DeviceCount>();
+  const { results: inventory } = await db.prepare(`SELECT * FROM inventory`).all<InventoryRow>();
 
   const countsByVariant = new Map<string, DeviceCount[]>();
   for (const dc of deviceCounts) {
@@ -45,16 +48,58 @@ export default async function ProductsPage({ searchParams }: PageProps<"/product
     countsByVariant.set(dc.product_variant_id, arr);
   }
 
+  const inventoryByVariant = new Map(inventory.map((i) => [i.product_variant_id, i]));
+  const productsById = new Map(products.map((p) => [p.id, p]));
+  // Danh mục "Hàng hóa" phẳng — mỗi dòng 1 SKU, tôn trọng bộ lọc loại sản
+  // phẩm hiện tại (Tất cả/Cà phê/Máy pha/...) như tab "Theo dòng sản phẩm".
+  const hangHoaItems: HangHoaItem[] = variants
+    .filter((v) => productsById.has(v.product_id))
+    .map((v) => ({
+      id: v.id,
+      sku: v.sku,
+      productName: productsById.get(v.product_id)!.name,
+      category: v.category,
+      unit: v.unit,
+      barcode: v.barcode,
+      unitPrice: v.unit_price,
+      costPrice: v.cost_price,
+      lowStockThreshold: inventoryByVariant.get(v.id)?.low_stock_threshold ?? null,
+      isActive: v.is_active,
+      note: v.note,
+      requiresSerial: v.requires_serial,
+    }));
+
+  const isGroupView = view === "group";
+
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold text-stone-900">Sản phẩm</h1>
+        <h1 className="text-xl font-bold text-stone-900">Hàng hóa / Sản phẩm</h1>
         <ProductFormDialog />
       </div>
 
       <div className="flex gap-2 overflow-x-auto pb-1">
         <Link
-          href="/products"
+          href={type ? `/products?type=${type}` : "/products"}
+          className={`whitespace-nowrap rounded-full px-3 py-1.5 text-sm ${
+            !isGroupView ? "bg-amber-800 text-white" : "bg-white text-stone-600 border border-stone-200"
+          }`}
+        >
+          Danh sách hàng hóa
+        </Link>
+        <Link
+          href={type ? `/products?type=${type}&view=group` : "/products?view=group"}
+          className={`whitespace-nowrap rounded-full px-3 py-1.5 text-sm ${
+            isGroupView ? "bg-amber-800 text-white" : "bg-white text-stone-600 border border-stone-200"
+          }`}
+        >
+          Theo dòng sản phẩm (thêm SKU mới)
+        </Link>
+      </div>
+
+      <div className="flex gap-2 overflow-x-auto pb-1">
+        <Link
+          href={isGroupView ? "/products?view=group" : "/products"}
           className={`whitespace-nowrap rounded-full px-3 py-1.5 text-sm ${
             !type ? "bg-amber-800 text-white" : "bg-white text-stone-600 border border-stone-200"
           }`}
@@ -64,7 +109,7 @@ export default async function ProductsPage({ searchParams }: PageProps<"/product
         {PRODUCT_TYPES.map((t) => (
           <Link
             key={t}
-            href={`/products?type=${t}`}
+            href={isGroupView ? `/products?type=${t}&view=group` : `/products?type=${t}`}
             className={`whitespace-nowrap rounded-full px-3 py-1.5 text-sm ${
               type === t ? "bg-amber-800 text-white" : "bg-white text-stone-600 border border-stone-200"
             }`}
@@ -74,6 +119,9 @@ export default async function ProductsPage({ searchParams }: PageProps<"/product
         ))}
       </div>
 
+      {!isGroupView ? (
+        <HangHoaTable items={hangHoaItems} />
+      ) : (
       <div className="grid gap-4">
         {products.length === 0 && (
           <Card>
@@ -222,6 +270,7 @@ export default async function ProductsPage({ searchParams }: PageProps<"/product
           );
         })}
       </div>
+      )}
     </div>
   );
 }

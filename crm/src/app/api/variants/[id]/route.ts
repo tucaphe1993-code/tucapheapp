@@ -23,6 +23,11 @@ const updateSchema = z.object({
   barcode: z.string().trim().optional(),
   note: z.string().trim().optional(),
   lowStockThreshold: z.number().int().nonnegative().optional(),
+  // Mã hàng (SKU) sửa được từ đây — inventory.sku là bản sao, phải đồng
+  // bộ theo. Tên hàng hóa thực ra nằm ở dòng sản phẩm cha (products.name),
+  // sửa ở đây sẽ đổi tên chung cho MỌI SKU cùng dòng sản phẩm.
+  sku: z.string().trim().min(1).optional(),
+  productName: z.string().trim().min(1).optional(),
 });
 
 // Price/cost changes are ADMIN-only (spec §4, §31: nhân viên không được sửa giá).
@@ -61,6 +66,15 @@ export async function PATCH(req: NextRequest, ctx: RouteContext<"/api/variants/[
       if (dupBarcode) throw new ValidationError(`Mã vạch ${parsed.data.barcode} đã được dùng cho SKU khác`);
     }
 
+    const nextSku = parsed.data.sku ? parsed.data.sku.toUpperCase() : existing.sku;
+    if (nextSku !== existing.sku) {
+      const dupSku = await db
+        .prepare(`SELECT id FROM product_variants WHERE sku = ? AND id != ?`)
+        .bind(nextSku, id)
+        .first();
+      if (dupSku) throw new ValidationError(`Mã hàng ${nextSku} đã tồn tại`);
+    }
+
     const next = {
       unit_price: parsed.data.unitPrice ?? existing.unit_price,
       cost_price: parsed.data.costPrice ?? existing.cost_price,
@@ -75,13 +89,14 @@ export async function PATCH(req: NextRequest, ctx: RouteContext<"/api/variants/[
       category: parsed.data.category === undefined ? existing.category : parsed.data.category || null,
       barcode: parsed.data.barcode === undefined ? existing.barcode : parsed.data.barcode || null,
       note: parsed.data.note === undefined ? existing.note : parsed.data.note || null,
+      sku: nextSku,
     };
 
     await db
       .prepare(
         `UPDATE product_variants SET unit_price = ?, cost_price = ?, is_active = ?, unit = ?, brand = ?,
            model = ?, supplier = ?, warranty_months = ?, requires_serial = ?, category = ?, barcode = ?,
-           note = ?, updated_at = datetime('now')
+           note = ?, sku = ?, updated_at = datetime('now')
          WHERE id = ?`
       )
       .bind(
@@ -97,14 +112,31 @@ export async function PATCH(req: NextRequest, ctx: RouteContext<"/api/variants/[
         next.category,
         next.barcode,
         next.note,
+        next.sku,
         id
       )
       .run();
+
+    if (nextSku !== existing.sku) {
+      await db
+        .prepare(`UPDATE inventory SET sku = ? WHERE product_variant_id = ?`)
+        .bind(nextSku, id)
+        .run();
+    }
 
     if (parsed.data.lowStockThreshold !== undefined) {
       await db
         .prepare(`UPDATE inventory SET low_stock_threshold = ? WHERE product_variant_id = ?`)
         .bind(parsed.data.lowStockThreshold, id)
+        .run();
+    }
+
+    // Tên hàng hóa thực ra nằm ở dòng sản phẩm cha — sửa ở đây đổi tên
+    // chung cho mọi SKU cùng dòng (đúng với cách trang Sản phẩm hiển thị).
+    if (parsed.data.productName) {
+      await db
+        .prepare(`UPDATE products SET name = ?, updated_at = datetime('now') WHERE id = ?`)
+        .bind(parsed.data.productName, existing.product_id)
         .run();
     }
 

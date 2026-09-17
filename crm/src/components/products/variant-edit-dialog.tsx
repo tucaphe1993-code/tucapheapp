@@ -15,7 +15,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Pencil } from "lucide-react";
+import { Pencil, Trash2 } from "lucide-react";
 import type { UnitRow } from "@/types/db";
 
 export interface HangHoaItem {
@@ -33,13 +33,14 @@ export interface HangHoaItem {
   requiresSerial: number;
 }
 
-// Modal "Sửa hàng hóa" dùng chung cho mọi loại (cà phê/máy/thiết bị) — Mã
-// hàng/Tên hàng hóa cố định (đổi ở dòng sản phẩm), các thuộc tính danh mục
-// (nhóm/ĐVT/barcode/giá/tồn tối thiểu/trạng thái/ghi chú) sửa tại đây.
+// Modal "Sửa hàng hóa" dùng chung cho mọi loại (cà phê/máy/thiết bị) — sửa
+// được cả Mã hàng và Tên hàng hóa (Tên hàng hóa thực ra nằm ở dòng sản
+// phẩm cha, đổi ở đây sẽ đổi tên chung cho mọi SKU cùng dòng sản phẩm).
 export function VariantEditDialog({ item }: { item: HangHoaItem }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [units, setUnits] = useState<UnitRow[]>([]);
 
   useEffect(() => {
@@ -54,6 +55,8 @@ export function VariantEditDialog({ item }: { item: HangHoaItem }) {
     setLoading(true);
     const form = new FormData(e.currentTarget);
     const payload: Record<string, unknown> = {
+      sku: String(form.get("sku") || ""),
+      productName: String(form.get("productName") || ""),
       category: String(form.get("category") || ""),
       unit: String(form.get("unit") || ""),
       barcode: String(form.get("barcode") || ""),
@@ -84,6 +87,26 @@ export function VariantEditDialog({ item }: { item: HangHoaItem }) {
     }
   }
 
+  async function onDelete() {
+    if (!confirm(`Xóa hàng hóa "${item.sku}"? Nếu đã từng bán/nhập kho, hệ thống sẽ chuyển sang Ngừng bán thay vì xóa hẳn.`)) {
+      return;
+    }
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/variants/${item.id}`, { method: "DELETE" });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast.error(data.error ?? "Xóa hàng hóa thất bại");
+        return;
+      }
+      toast.success(data.deactivated ? "Đã chuyển sang Ngừng bán (đã có lịch sử)" : "Đã xóa hàng hóa");
+      setOpen(false);
+      router.refresh();
+    } finally {
+      setDeleting(false);
+    }
+  }
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <Button size="sm" variant="outline" onClick={() => setOpen(true)}>
@@ -96,12 +119,12 @@ export function VariantEditDialog({ item }: { item: HangHoaItem }) {
         <form onSubmit={onSubmit} className="flex flex-col gap-3">
           <div className="grid grid-cols-2 gap-3">
             <div className="flex flex-col gap-1.5">
-              <Label>Mã hàng</Label>
-              <Input value={item.sku} disabled className="font-mono" />
+              <Label htmlFor="sku">Mã hàng *</Label>
+              <Input id="sku" name="sku" required defaultValue={item.sku} className="font-mono" />
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label>Tên hàng hóa</Label>
-              <Input value={item.productName} disabled />
+              <Label htmlFor="productName">Tên hàng *</Label>
+              <Input id="productName" name="productName" required defaultValue={item.productName} />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
@@ -159,8 +182,16 @@ export function VariantEditDialog({ item }: { item: HangHoaItem }) {
             <Label htmlFor="note">Ghi chú</Label>
             <Textarea id="note" name="note" defaultValue={item.note ?? ""} />
           </div>
-          <DialogFooter>
-            <Button type="submit" disabled={loading}>
+          <DialogFooter className="sm:justify-between">
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={onDelete}
+              disabled={loading || deleting}
+            >
+              <Trash2 className="h-4 w-4" /> {deleting ? "Đang xóa..." : "Xóa"}
+            </Button>
+            <Button type="submit" disabled={loading || deleting}>
               {loading ? "Đang lưu..." : "Lưu"}
             </Button>
           </DialogFooter>

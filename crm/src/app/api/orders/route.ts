@@ -18,6 +18,7 @@ const createSchema = z.object({
   description: z.string().trim().optional(),
   paymentMethodCode: z.string().trim().optional(),
   vatIncluded: z.boolean().optional(),
+  discountAmount: z.number().int().nonnegative().optional(),
   depositAmount: z.number().int().nonnegative().optional(),
   depositMethod: z.string().trim().optional(),
   items: z
@@ -83,6 +84,7 @@ export async function POST(req: NextRequest) {
       description,
       paymentMethodCode,
       vatIncluded,
+      discountAmount,
       depositAmount,
       depositMethod,
       items,
@@ -175,6 +177,11 @@ export async function POST(req: NextRequest) {
       });
     }
 
+    // Giảm giá cấp đơn — trừ thẳng vào tổng tiền sau khi đã cộng hết các
+    // dòng hàng (khác CK% từng dòng, đây là mức chiết khấu chung cho đơn).
+    const discount = Math.min(discountAmount ?? 0, totalAmount);
+    const finalTotal = totalAmount - discount;
+
     const orderId = newId();
     const orderCode = await nextOrderCode(db);
 
@@ -182,8 +189,8 @@ export async function POST(req: NextRequest) {
       .prepare(
         `INSERT INTO orders
            (id, order_code, customer_id, customer_phone_snapshot, customer_address_snapshot,
-            delivery_date, delivery_method, note, description, payment_method_code, status, total_amount, vat_included, created_by)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'CONFIRMED', ?, ?, ?)`
+            delivery_date, delivery_method, note, description, payment_method_code, status, total_amount, discount_amount, vat_included, created_by)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'CONFIRMED', ?, ?, ?, ?)`
       )
       .bind(
         orderId,
@@ -196,7 +203,8 @@ export async function POST(req: NextRequest) {
         note || null,
         description || null,
         paymentMethodCode || null,
-        totalAmount,
+        finalTotal,
+        discount,
         vatIncluded ? 1 : 0,
         session.user.id
       )
@@ -257,7 +265,7 @@ export async function POST(req: NextRequest) {
       action: "CREATE_ORDER",
       entity: "order",
       entityId: orderId,
-      metadata: { orderCode, totalAmount, depositAmount },
+      metadata: { orderCode, totalAmount: finalTotal, discountAmount: discount, depositAmount },
     });
 
     const order = await db.prepare(`SELECT * FROM orders WHERE id = ?`).bind(orderId).first();

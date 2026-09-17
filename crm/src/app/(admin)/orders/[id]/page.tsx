@@ -282,6 +282,12 @@ export default async function OrderDetailPage({ params }: PageProps<"/orders/[id
                 <DebtStatusBadge status={debtStatus} />
               </CardHeader>
               <CardContent className="flex flex-col gap-2 text-sm">
+                {order.discount_amount > 0 && (
+                  <div className="flex justify-between">
+                    <span className="text-stone-500">Giảm giá</span>
+                    <span className="font-medium text-red-600">-{formatVnd(order.discount_amount)}</span>
+                  </div>
+                )}
                 <div className="flex justify-between">
                   <span className="text-stone-500">Tổng tiền</span>
                   <span className="font-medium">{formatVnd(order.total_amount)}</span>

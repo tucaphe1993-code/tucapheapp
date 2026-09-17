@@ -232,6 +232,9 @@ export interface OrderRow {
   description: string | null;
   status: OrderStatus;
   total_amount: number;
+  // Giảm giá cấp đơn (§ Tạo đơn bán hàng) — số tiền cố định đã trừ thẳng
+  // vào total_amount lúc tạo đơn, tách biệt với CK% từng dòng hàng.
+  discount_amount: number;
   vat_included: number;
   // Chỉ để hiển thị cột "PTTT" trên danh sách đơn — không ảnh hưởng tính
   // công nợ (vẫn luôn tính từ payments, xem migration 007/016).

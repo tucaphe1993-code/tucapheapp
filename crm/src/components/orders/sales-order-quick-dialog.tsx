@@ -68,6 +68,8 @@ export function SalesOrderQuickDialog() {
   const [description, setDescription] = useState("");
   const [note, setNote] = useState("");
   const [lines, setLines] = useState<QuickLine[]>([emptyLine()]);
+  const [discountAmount, setDiscountAmount] = useState<number | "">(0);
+  const [depositAmount, setDepositAmount] = useState<number | "">(0);
 
   useEffect(() => {
     if (!open) return;
@@ -132,7 +134,11 @@ export function SalesOrderQuickDialog() {
     return Math.round(afterDiscount * (1 + line.taxPercent / 100));
   }
 
-  const total = lines.reduce((sum, l) => sum + lineTotal(l), 0);
+  const subtotal = lines.reduce((sum, l) => sum + lineTotal(l), 0);
+  const discount = Math.min(Number(discountAmount) || 0, subtotal);
+  const total = subtotal - discount;
+  const deposit = Math.min(Number(depositAmount) || 0, total);
+  const remaining = total - deposit;
 
   function updateLine(key: string, patch: Partial<QuickLine>) {
     setLines((cur) => cur.map((l) => (l.key === key ? { ...l, ...patch } : l)));
@@ -178,6 +184,9 @@ export function SalesOrderQuickDialog() {
           paymentMethodCode: paymentMethodCode || undefined,
           description: description || undefined,
           note: note || undefined,
+          discountAmount: discount || undefined,
+          depositAmount: deposit || undefined,
+          depositMethod: paymentMethods.find((m) => m.code === paymentMethodCode)?.name,
           items: validLines.map((l) => ({
             productVariantId: l.variantId,
             quantity: l.quantity,
@@ -196,6 +205,8 @@ export function SalesOrderQuickDialog() {
       setDescription("");
       setNote("");
       setPaymentMethodCode("");
+      setDiscountAmount(0);
+      setDepositAmount(0);
       router.push(`/orders/${data.order.id}`);
     } finally {
       setSubmitting(false);
@@ -351,8 +362,54 @@ export function SalesOrderQuickDialog() {
             </Button>
           </div>
 
-          <div className="flex justify-end border-t border-stone-100 pt-3 text-base font-bold text-amber-800">
-            <span>Tổng thanh toán: {formatVnd(total)}</span>
+          <div className="grid grid-cols-2 gap-3 border-t border-stone-100 pt-3">
+            <div className="flex flex-col gap-1.5">
+              <Label>Giảm giá (đ)</Label>
+              <Input
+                type="number"
+                min={0}
+                value={discountAmount}
+                onChange={(e) => setDiscountAmount(e.target.value === "" ? "" : Number(e.target.value))}
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label>Đã cọc (đ)</Label>
+              <Input
+                type="number"
+                min={0}
+                value={depositAmount}
+                onChange={(e) => setDepositAmount(e.target.value === "" ? "" : Number(e.target.value))}
+              />
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-1 text-sm">
+            <div className="flex justify-between text-stone-500">
+              <span>Tiền hàng</span>
+              <span>{formatVnd(subtotal)}</span>
+            </div>
+            {discount > 0 && (
+              <div className="flex justify-between text-stone-500">
+                <span>Giảm giá</span>
+                <span>-{formatVnd(discount)}</span>
+              </div>
+            )}
+            <div className="flex justify-between text-base font-bold text-amber-800">
+              <span>Tổng thanh toán</span>
+              <span>{formatVnd(total)}</span>
+            </div>
+            {deposit > 0 && (
+              <>
+                <div className="flex justify-between text-stone-500">
+                  <span>Đã cọc</span>
+                  <span>{formatVnd(deposit)}</span>
+                </div>
+                <div className="flex justify-between font-medium text-red-600">
+                  <span>Còn lại</span>
+                  <span>{formatVnd(remaining)}</span>
+                </div>
+              </>
+            )}
           </div>
         </div>
         <DialogFooter>

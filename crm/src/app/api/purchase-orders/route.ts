@@ -44,6 +44,7 @@ const createSchema = z.object({
   supplierId: z.string().min(1),
   paymentMethodCode: z.string().trim().optional(),
   note: z.string().trim().optional(),
+  vatPercent: z.number().min(0).max(100).optional(),
   items: z
     .array(
       z.object({

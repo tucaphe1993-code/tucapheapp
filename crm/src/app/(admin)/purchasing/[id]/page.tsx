@@ -87,6 +87,12 @@ export default async function PurchaseOrderDetailPage({ params }: PageProps<"/pu
             <CardTitle className="text-base">Công nợ</CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col gap-2 text-sm">
+            {po.vat_percent > 0 && (
+              <div className="flex justify-between">
+                <span className="text-stone-500">VAT ({po.vat_percent}%)</span>
+                <span>{formatVnd(po.vat_amount)}</span>
+              </div>
+            )}
             <div className="flex justify-between">
               <span className="text-stone-500">Tổng tiền</span>
               <span className="font-medium">{formatVnd(po.total_amount)}</span>

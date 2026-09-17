@@ -378,6 +378,9 @@ export interface PurchaseOrderRow {
   payment_method_code: string | null;
   note: string | null;
   total_amount: number;
+  // VAT nhập lúc tạo đơn (§ Tạo đơn mua hàng) — vat_amount đã cộng sẵn vào total_amount.
+  vat_percent: number;
+  vat_amount: number;
   inventory_received_at: string | null;
   created_by: string;
   created_at: string;

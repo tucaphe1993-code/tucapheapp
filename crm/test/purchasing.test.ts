@@ -106,6 +106,16 @@ describe("Đơn mua — nháp chưa đụng tồn kho, xác nhận mới nhập 
     await expect(deletePurchaseOrderDraft(confirmed.id, db)).rejects.toThrow();
   });
 
+  it("tính đúng VAT 8%: cộng vào tổng tiền, lưu lại % và số tiền thuế", async () => {
+    const po = await createPurchaseOrderDraft(
+      { supplierId, vatPercent: 8, items: [{ productVariantId: variantId, quantity: 100, unitCost: 23500 }], createdBy: userId },
+      db
+    );
+    expect(po.vat_percent).toBe(8);
+    expect(po.vat_amount).toBe(188000); // 2.350.000 * 8%
+    expect(po.total_amount).toBe(2538000); // 2.350.000 + 188.000
+  });
+
   it("cho phép số lượng thập phân cho SKU tồn theo kg lẻ (nhân xanh)", async () => {
     const greenProductId = randomUUID();
     await db

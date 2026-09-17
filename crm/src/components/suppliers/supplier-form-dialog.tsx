@@ -18,7 +18,18 @@ import {
 import { PlusCircle } from "lucide-react";
 import type { SupplierRow } from "@/types/db";
 
-export function SupplierFormDialog({ supplier, trigger }: { supplier?: SupplierRow; trigger?: React.ReactNode }) {
+export function SupplierFormDialog({
+  supplier,
+  trigger,
+  onCreated,
+}: {
+  supplier?: SupplierRow;
+  trigger?: React.ReactNode;
+  /** Gọi sau khi tạo mới (không gọi khi sửa) — dùng để cập nhật ngay dropdown
+   * chọn NCC đang hiển thị ở nơi khác (VD tạo đơn mua) mà không cần chờ
+   * router.refresh() làm mới lại server component. */
+  onCreated?: (supplier: SupplierRow) => void;
+}) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -49,6 +60,7 @@ export function SupplierFormDialog({ supplier, trigger }: { supplier?: SupplierR
       }
       toast.success(isEdit ? "Đã cập nhật nhà cung cấp" : `Đã tạo nhà cung cấp ${data.supplier.code}`);
       setOpen(false);
+      if (!isEdit) onCreated?.(data.supplier);
       router.refresh();
     } finally {
       setLoading(false);

@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Search, Trash2, PlusCircle } from "lucide-react";
+import { Trash2, PlusCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -28,8 +28,7 @@ export function PurchaseOrderBuilder() {
   const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
 
-  const [supplierQuery, setSupplierQuery] = useState("");
-  const [supplierResults, setSupplierResults] = useState<SupplierRow[]>([]);
+  const [allSuppliers, setAllSuppliers] = useState<SupplierRow[]>([]);
   const [supplier, setSupplier] = useState<SupplierRow | null>(null);
 
   const [products, setProducts] = useState<ProductWithVariants[]>([]);
@@ -41,6 +40,7 @@ export function PurchaseOrderBuilder() {
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethodRow[]>([]);
   const [paymentMethodCode, setPaymentMethodCode] = useState("");
   const [note, setNote] = useState("");
+  const [vatPercent, setVatPercent] = useState<number | "">(8);
 
   useEffect(() => {
     fetch("/api/products")
@@ -49,16 +49,15 @@ export function PurchaseOrderBuilder() {
     fetch("/api/payment-methods")
       .then((r) => r.json())
       .then((d) => setPaymentMethods(d.paymentMethods ?? []));
+    fetch("/api/suppliers")
+      .then((r) => r.json())
+      .then((d) => setAllSuppliers(d.suppliers ?? []));
   }, []);
 
-  useEffect(() => {
-    const handle = setTimeout(async () => {
-      if (!supplierQuery) return setSupplierResults([]);
-      const res = await fetch(`/api/suppliers?q=${encodeURIComponent(supplierQuery)}`);
-      if (res.ok) setSupplierResults((await res.json()).suppliers);
-    }, 250);
-    return () => clearTimeout(handle);
-  }, [supplierQuery]);
+  const sortedSuppliers = useMemo(
+    () => [...allSuppliers].sort((a, b) => a.name.localeCompare(b.name, "vi")),
+    [allSuppliers]
+  );
 
   const allVariants = products.flatMap((p) => p.variants.map((v) => ({ ...v, productName: p.name })));
   const selectedVariant = allVariants.find((v) => v.id === variantId);
@@ -99,7 +98,9 @@ export function PurchaseOrderBuilder() {
     setCart((cur) => cur.filter((l) => l.variantId !== variantId));
   }
 
-  const total = cart.reduce((sum, l) => sum + l.quantity * l.unitCost, 0);
+  const subtotal = cart.reduce((sum, l) => sum + l.quantity * l.unitCost, 0);
+  const vatAmount = Math.round((subtotal * (Number(vatPercent) || 0)) / 100);
+  const total = subtotal + vatAmount;
 
   async function onSubmit() {
     if (!supplier) return toast.error("Vui lòng chọn nhà cung cấp");
@@ -114,6 +115,7 @@ export function PurchaseOrderBuilder() {
           supplierId: supplier.id,
           paymentMethodCode: paymentMethodCode || undefined,
           note: note || undefined,
+          vatPercent: Number(vatPercent) || 0,
           items: cart.map((l) => ({ productVariantId: l.variantId, quantity: l.quantity, unitCost: l.unitCost })),
         }),
       });
@@ -148,30 +150,28 @@ export function PurchaseOrderBuilder() {
               </div>
             ) : (
               <>
-                <div className="relative">
-                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-stone-400" />
-                  <Input
-                    className="pl-9"
-                    placeholder="Tìm nhà cung cấp theo tên/SĐT..."
-                    value={supplierQuery}
-                    onChange={(e) => setSupplierQuery(e.target.value)}
-                  />
-                </div>
-                <div className="flex flex-col gap-1">
-                  {supplierResults.map((s) => (
-                    <button
-                      key={s.id}
-                      className="rounded-lg border border-stone-200 p-2 text-left text-sm hover:border-amber-300"
-                      onClick={() => setSupplier(s)}
-                    >
-                      <div className="font-medium">
-                        {s.name} <span className="text-stone-400 font-normal">({s.code})</span>
-                      </div>
-                      <div className="text-stone-500">{s.phone}</div>
-                    </button>
+                <Select
+                  value=""
+                  onChange={(e) => {
+                    const s = allSuppliers.find((x) => x.id === e.target.value);
+                    if (s) setSupplier(s);
+                  }}
+                >
+                  <option value="">-- Chọn nhà cung cấp --</option>
+                  {sortedSuppliers.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.code ? `${s.code} - ${s.name}` : s.name}
+                      {s.phone ? ` (${s.phone})` : ""}
+                    </option>
                   ))}
-                </div>
-                <SupplierFormDialog trigger={<Button variant="outline" size="sm">+ Nhà cung cấp mới</Button>} />
+                </Select>
+                <SupplierFormDialog
+                  trigger={<Button variant="outline" size="sm">+ Nhà cung cấp mới</Button>}
+                  onCreated={(s) => {
+                    setAllSuppliers((cur) => [...cur, s]);
+                    setSupplier(s);
+                  }}
+                />
               </>
             )}
           </CardContent>
@@ -281,12 +281,33 @@ export function PurchaseOrderBuilder() {
               </Select>
             </div>
             <div className="flex flex-col gap-1.5">
+              <Label htmlFor="vatPercent">Thuế VAT (%)</Label>
+              <Input
+                id="vatPercent"
+                type="number"
+                min={0}
+                max={100}
+                value={vatPercent}
+                onChange={(e) => setVatPercent(e.target.value === "" ? "" : Number(e.target.value))}
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
               <Label htmlFor="note">Ghi chú</Label>
               <Textarea id="note" value={note} onChange={(e) => setNote(e.target.value)} />
             </div>
-            <div className="flex justify-between border-t border-stone-100 pt-3 text-base font-bold text-amber-800">
-              <span>Tổng tiền</span>
-              <span>{formatVnd(total)}</span>
+            <div className="flex flex-col gap-1 border-t border-stone-100 pt-3 text-sm">
+              <div className="flex justify-between text-stone-500">
+                <span>Tiền hàng</span>
+                <span>{formatVnd(subtotal)}</span>
+              </div>
+              <div className="flex justify-between text-stone-500">
+                <span>VAT ({Number(vatPercent) || 0}%)</span>
+                <span>{formatVnd(vatAmount)}</span>
+              </div>
+              <div className="flex justify-between text-base font-bold text-amber-800">
+                <span>Tổng tiền</span>
+                <span>{formatVnd(total)}</span>
+              </div>
             </div>
             <Button onClick={onSubmit} disabled={submitting}>
               {submitting ? "Đang tạo..." : "Tạo đơn mua (nháp)"}

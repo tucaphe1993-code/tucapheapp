@@ -20,6 +20,7 @@ export async function createPurchaseOrderDraft(
     supplierId: string;
     paymentMethodCode?: string;
     note?: string;
+    vatPercent?: number;
     items: PurchaseOrderLineInput[];
     createdBy: string;
   },
@@ -58,6 +59,10 @@ export async function createPurchaseOrderDraft(
     lines.push({ ...item, sku: variant.sku, productName: variant.product_name, lineTotal });
   }
 
+  const vatPercent = params.vatPercent ?? 0;
+  const vatAmount = Math.round((totalAmount * vatPercent) / 100);
+  totalAmount += vatAmount;
+
   const id = newId();
   const poCode = await nextPurchaseOrderCode(db);
 
@@ -65,10 +70,20 @@ export async function createPurchaseOrderDraft(
     db
       .prepare(
         `INSERT INTO purchase_orders
-           (id, po_code, supplier_id, status, payment_method_code, note, total_amount, created_by)
-         VALUES (?, ?, ?, 'DRAFT', ?, ?, ?, ?)`
+           (id, po_code, supplier_id, status, payment_method_code, note, total_amount, vat_percent, vat_amount, created_by)
+         VALUES (?, ?, ?, 'DRAFT', ?, ?, ?, ?, ?, ?)`
       )
-      .bind(id, poCode, params.supplierId, params.paymentMethodCode ?? null, params.note ?? null, totalAmount, params.createdBy),
+      .bind(
+        id,
+        poCode,
+        params.supplierId,
+        params.paymentMethodCode ?? null,
+        params.note ?? null,
+        totalAmount,
+        vatPercent,
+        vatAmount,
+        params.createdBy
+      ),
     ...lines.map((l) =>
       db
         .prepare(

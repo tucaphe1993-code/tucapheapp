@@ -23,6 +23,7 @@ import {
   ShoppingCart,
   Banknote,
   Truck,
+  BarChart3,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -43,6 +44,7 @@ const NAV_GROUPS = [
       { href: "/protocols", label: "Biên bản", icon: FileText },
       { href: "/cash", label: "Thu / Chi", icon: Banknote },
       { href: "/debts", label: "Công nợ", icon: Wallet },
+      { href: "/reports", label: "Báo cáo", icon: BarChart3 },
     ],
   },
   {

@@ -17,8 +17,8 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { PlusCircle } from "lucide-react";
-import { UNIT_OPTIONS, isBulkWeightProduct } from "@/lib/constants";
-import type { CoffeeStage, ProductRow, ProductType, ProductVariantRow } from "@/types/db";
+import { isBulkWeightProduct } from "@/lib/constants";
+import type { CoffeeStage, ProductRow, ProductType, ProductVariantRow, UnitRow } from "@/types/db";
 
 export function VariantFormDialog({
   productId,
@@ -54,10 +54,21 @@ export function VariantFormDialog({
       });
   }, [isFinished, open]);
 
+  // Danh mục Đơn vị tính (§ Danh mục) — thay hằng số cứng, admin tự quản lý được.
+  const [units, setUnits] = useState<UnitRow[]>([]);
+  useEffect(() => {
+    if (!open) return;
+    fetch("/api/units")
+      .then((r) => r.json())
+      .then((d) => setUnits(d.units ?? []));
+  }, [open]);
+
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setLoading(true);
     const form = new FormData(e.currentTarget);
+    const category = String(form.get("category") || "") || undefined;
+    const barcode = String(form.get("barcode") || "") || undefined;
     const payload = isCoffee
       ? {
           form: String(form.get("form")),
@@ -67,6 +78,8 @@ export function VariantFormDialog({
           unitPrice: Number(form.get("unitPrice")),
           costPrice: Number(form.get("costPrice") || 0),
           lowStockThreshold: Number(form.get("lowStockThreshold") || 10),
+          category,
+          barcode,
         }
       : {
           sku: String(form.get("sku") || ""),
@@ -80,6 +93,8 @@ export function VariantFormDialog({
           requiresSerial,
           lowStockThreshold: Number(form.get("lowStockThreshold") || 10),
           sourceGreenVariantId: isFinished ? String(form.get("sourceGreenVariantId") || "") || undefined : undefined,
+          category,
+          barcode,
         };
     try {
       const res = await fetch(`/api/products/${productId}/variants`, {
@@ -213,15 +228,25 @@ export function VariantFormDialog({
               <Input id="costPrice" name="costPrice" type="number" min={0} defaultValue={0} />
             </div>
           </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="unit">Đơn vị tính</Label>
+              <Select id="unit" name="unit" defaultValue={isCoffee ? "Túi" : isBulkWeight ? "Kg" : "Cái"}>
+                {units.map((u) => (
+                  <option key={u.code} value={u.name}>
+                    {u.name}
+                  </option>
+                ))}
+              </Select>
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="category">Nhóm hàng</Label>
+              <Input id="category" name="category" placeholder="VD: Cà phê hạt, Thiết bị POS..." />
+            </div>
+          </div>
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="unit">Đơn vị tính</Label>
-            <Select id="unit" name="unit" defaultValue={isCoffee ? "Túi" : isBulkWeight ? "Kg" : "Cái"}>
-              {UNIT_OPTIONS.map((u) => (
-                <option key={u} value={u}>
-                  {u}
-                </option>
-              ))}
-            </Select>
+            <Label htmlFor="barcode">Mã vạch (Barcode)</Label>
+            <Input id="barcode" name="barcode" placeholder="Quét hoặc nhập tay — để trống nếu chưa có" />
           </div>
           {!(!isCoffee && requiresSerial) && (
             <div className="flex flex-col gap-1.5">

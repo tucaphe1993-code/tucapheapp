@@ -123,6 +123,8 @@ export default async function ProductsPage({ searchParams }: PageProps<"/product
                           <th className="py-1.5 pr-3">Hình thức</th>
                           <th className="py-1.5 pr-3">Bao bì</th>
                           <th className="py-1.5 pr-3">Quy cách</th>
+                          <th className="py-1.5 pr-3">Nhóm hàng</th>
+                          <th className="py-1.5 pr-3">Mã vạch</th>
                           <th className="py-1.5 pr-3">Giá bán</th>
                           <th className="py-1.5 pr-3">Trạng thái</th>
                           <th className="py-1.5"></th>
@@ -141,6 +143,8 @@ export default async function ProductsPage({ searchParams }: PageProps<"/product
                                   ? `${v.weight_grams / 1000}kg`
                                   : `${v.weight_grams}g`}
                             </td>
+                            <td className="py-1.5 pr-3 text-stone-500">{v.category ?? "—"}</td>
+                            <td className="py-1.5 pr-3 font-mono text-xs text-stone-500">{v.barcode ?? "—"}</td>
                             <td className="py-1.5 pr-3">{formatVnd(v.unit_price)}</td>
                             <td className="py-1.5 pr-3">
                               <Badge variant={v.is_active ? "success" : "secondary"}>
@@ -177,7 +181,9 @@ export default async function ProductsPage({ searchParams }: PageProps<"/product
                                 {formatVnd(v.unit_price)}
                                 {v.warranty_months ? ` · Bảo hành ${v.warranty_months} tháng` : ""}
                                 {v.supplier ? ` · NCC: ${v.supplier}` : ""}
+                                {v.category ? ` · Nhóm: ${v.category}` : ""}
                               </div>
+                              {v.barcode && <div className="text-xs text-stone-400">Mã vạch: {v.barcode}</div>}
                             </div>
                             <div className="flex items-center gap-2">
                               <Badge variant={v.is_active ? "success" : "secondary"}>

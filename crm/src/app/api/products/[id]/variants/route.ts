@@ -18,6 +18,9 @@ const coffeeSchema = z.object({
   unitPrice: z.number().int().nonnegative(),
   costPrice: z.number().int().nonnegative().default(0),
   lowStockThreshold: z.number().int().nonnegative().default(10),
+  // Nhóm hàng + mã vạch — chỉ để hiển thị/lọc, không ràng buộc gì (§ Danh mục).
+  category: z.string().trim().optional(),
+  barcode: z.string().trim().optional(),
 });
 
 const nonCoffeeSchema = z.object({
@@ -34,6 +37,8 @@ const nonCoffeeSchema = z.object({
   // Chỉ có ý nghĩa khi coffee_stage = ROASTED (§ Bán hàng — quy đổi tự
   // động): SKU nhân xanh sẽ bị trừ tồn khi bán SKU thành phẩm này.
   sourceGreenVariantId: z.string().trim().optional(),
+  category: z.string().trim().optional(),
+  barcode: z.string().trim().optional(),
 });
 
 export async function POST(req: NextRequest, ctx: RouteContext<"/api/products/[id]/variants">) {
@@ -64,20 +69,36 @@ export async function POST(req: NextRequest, ctx: RouteContext<"/api/products/[i
       if (!parsed.success) {
         throw new ValidationError(parsed.error.issues[0]?.message ?? "Dữ liệu không hợp lệ");
       }
-      const { form, packaging, weightGrams, unit, unitPrice, costPrice, lowStockThreshold } = parsed.data;
+      const { form, packaging, weightGrams, unit, unitPrice, costPrice, lowStockThreshold, category, barcode } = parsed.data;
       sku = buildSkuFromCode(product.code, form, packaging, weightGrams);
 
       const dup = await db.prepare(`SELECT id FROM product_variants WHERE sku = ?`).bind(sku).first();
       if (dup) throw new ConflictError(`SKU ${sku} đã tồn tại`);
+      if (barcode) {
+        const dupBarcode = await db.prepare(`SELECT id FROM product_variants WHERE barcode = ?`).bind(barcode).first();
+        if (dupBarcode) throw new ConflictError(`Mã vạch ${barcode} đã được dùng cho SKU khác`);
+      }
 
       await db.batch([
         db
           .prepare(
             `INSERT INTO product_variants
-               (id, product_id, form, packaging, weight_grams, sku, unit, unit_price, cost_price)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+               (id, product_id, form, packaging, weight_grams, sku, unit, unit_price, cost_price, category, barcode)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
           )
-          .bind(variantId, productId, form, packaging, weightGrams, sku, unit || "Túi", unitPrice, costPrice),
+          .bind(
+            variantId,
+            productId,
+            form,
+            packaging,
+            weightGrams,
+            sku,
+            unit || "Túi",
+            unitPrice,
+            costPrice,
+            category || null,
+            barcode || null
+          ),
         db
           .prepare(
             `INSERT INTO inventory (id, product_variant_id, sku, quantity_on_hand, low_stock_threshold)
@@ -101,12 +122,18 @@ export async function POST(req: NextRequest, ctx: RouteContext<"/api/products/[i
         requiresSerial: reqSerial,
         lowStockThreshold,
         sourceGreenVariantId,
+        category,
+        barcode,
       } = parsed.data;
       sku = parsed.data.sku.toUpperCase();
       requiresSerial = reqSerial;
 
       const dup = await db.prepare(`SELECT id FROM product_variants WHERE sku = ?`).bind(sku).first();
       if (dup) throw new ConflictError(`SKU ${sku} đã tồn tại`);
+      if (barcode) {
+        const dupBarcode = await db.prepare(`SELECT id FROM product_variants WHERE barcode = ?`).bind(barcode).first();
+        if (dupBarcode) throw new ConflictError(`Mã vạch ${barcode} đã được dùng cho SKU khác`);
+      }
 
       // Cà phê rang rời (thành phẩm) PHẢI khai báo nó quy đổi từ SKU nhân
       // xanh nào — đây là dữ liệu duy nhất cần để "Bán hàng" tự trừ tồn.
@@ -128,8 +155,8 @@ export async function POST(req: NextRequest, ctx: RouteContext<"/api/products/[i
         .prepare(
           `INSERT INTO product_variants
              (id, product_id, sku, unit, unit_price, cost_price, brand, model, supplier, warranty_months,
-              requires_serial, source_green_variant_id)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+              requires_serial, source_green_variant_id, category, barcode)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
         )
         .bind(
           variantId,
@@ -143,7 +170,9 @@ export async function POST(req: NextRequest, ctx: RouteContext<"/api/products/[i
           supplier || null,
           warrantyMonths ?? null,
           requiresSerial ? 1 : 0,
-          product.coffee_stage === "ROASTED" ? sourceGreenVariantId : null
+          product.coffee_stage === "ROASTED" ? sourceGreenVariantId : null,
+          category || null,
+          barcode || null
         )
         .run();
 

@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Search, Trash2, PlusCircle, Loader2 } from "lucide-react";
+import { Trash2, PlusCircle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -44,9 +44,9 @@ export function OrderBuilder({ mode }: { mode: "coffee" | "equipment" }) {
   const productTypes = mode === "coffee" ? (["COFFEE"] as const) : EQUIPMENT_PRODUCT_TYPES;
   const deliveryMethods = mode === "coffee" ? DELIVERY_METHODS : EQUIPMENT_DELIVERY_METHODS;
 
-  // customer picker
-  const [customerQuery, setCustomerQuery] = useState("");
-  const [customerResults, setCustomerResults] = useState<CustomerRow[]>([]);
+  // customer picker — dropdown liệt kê toàn bộ khách hàng hiện có, chọn
+  // thẳng bằng mã KH thay vì phải gõ tìm.
+  const [allCustomers, setAllCustomers] = useState<CustomerRow[]>([]);
   const [customer, setCustomer] = useState<CustomerRow | null>(null);
   const [customerPrices, setCustomerPrices] = useState<Record<string, number>>({});
   const [contactPhone, setContactPhone] = useState("");
@@ -76,16 +76,15 @@ export function OrderBuilder({ mode }: { mode: "coffee" | "equipment" }) {
     fetch("/api/products")
       .then((r) => r.json())
       .then((d) => setProducts(d.products ?? []));
+    fetch("/api/customers")
+      .then((r) => r.json())
+      .then((d) => setAllCustomers(d.customers ?? []));
   }, []);
 
-  useEffect(() => {
-    const handle = setTimeout(async () => {
-      if (!customerQuery) return setCustomerResults([]);
-      const res = await fetch(`/api/customers?q=${encodeURIComponent(customerQuery)}`);
-      if (res.ok) setCustomerResults((await res.json()).customers);
-    }, 250);
-    return () => clearTimeout(handle);
-  }, [customerQuery]);
+  const sortedCustomers = useMemo(
+    () => [...allCustomers].sort((a, b) => a.name.localeCompare(b.name, "vi")),
+    [allCustomers]
+  );
 
   useEffect(() => {
     if (!customer) return;
@@ -261,32 +260,36 @@ export function OrderBuilder({ mode }: { mode: "coffee" | "equipment" }) {
               </div>
             ) : (
               <>
-                <div className="relative">
-                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-stone-400" />
-                  <Input
-                    className="pl-9"
-                    placeholder="Tìm khách hàng theo tên/SĐT..."
-                    value={customerQuery}
-                    onChange={(e) => setCustomerQuery(e.target.value)}
-                  />
+                <div className="flex flex-col gap-1.5">
+                  <Label>Khách hàng</Label>
+                  <Select
+                    value=""
+                    onChange={(e) => {
+                      const c = allCustomers.find((x) => x.id === e.target.value);
+                      if (!c) return;
+                      setCustomer(c);
+                      setContactPhone(c.phone ?? "");
+                      setContactAddress(c.address ?? "");
+                    }}
+                  >
+                    <option value="">-- Chọn khách hàng --</option>
+                    {sortedCustomers.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.code ? `${c.code} - ${c.name}` : c.name}
+                        {c.phone ? ` (${c.phone})` : ""}
+                      </option>
+                    ))}
+                  </Select>
                 </div>
-                <div className="flex flex-col gap-1">
-                  {customerResults.map((c) => (
-                    <button
-                      key={c.id}
-                      className="rounded-lg border border-stone-200 p-2 text-left text-sm hover:border-amber-300"
-                      onClick={() => {
-                        setCustomer(c);
-                        setContactPhone(c.phone ?? "");
-                        setContactAddress(c.address ?? "");
-                      }}
-                    >
-                      <div className="font-medium">{c.name}</div>
-                      <div className="text-stone-500">{c.phone}</div>
-                    </button>
-                  ))}
-                </div>
-                <CustomerFormDialog trigger={<Button variant="outline" size="sm">+ Khách hàng mới</Button>} />
+                <CustomerFormDialog
+                  trigger={<Button variant="outline" size="sm">+ Khách hàng mới</Button>}
+                  onCreated={(c) => {
+                    setAllCustomers((cur) => [...cur, c]);
+                    setCustomer(c);
+                    setContactPhone(c.phone ?? "");
+                    setContactAddress(c.address ?? "");
+                  }}
+                />
               </>
             )}
           </CardContent>

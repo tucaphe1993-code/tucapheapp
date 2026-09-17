@@ -50,7 +50,10 @@ export function CustomerSearchList({ initialCustomers }: { initialCustomers: Cus
             <Card className="transition-colors hover:border-amber-300">
               <CardContent className="flex items-center justify-between py-3">
                 <div>
-                  <div className="font-medium text-stone-900">{c.name}</div>
+                  <div className="font-medium text-stone-900">
+                    {c.code && <span className="font-mono text-xs text-stone-400">{c.code} · </span>}
+                    {c.name}
+                  </div>
                   <div className="text-sm text-stone-500">
                     {c.phone || "—"} {c.province ? `· ${c.province}` : ""}
                   </div>

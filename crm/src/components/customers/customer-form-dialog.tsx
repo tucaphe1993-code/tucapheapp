@@ -21,9 +21,14 @@ import type { CustomerRow } from "@/types/db";
 export function CustomerFormDialog({
   customer,
   trigger,
+  onCreated,
 }: {
   customer?: CustomerRow;
   trigger?: React.ReactNode;
+  /** Gọi sau khi tạo mới (không gọi khi sửa) — dùng để cập nhật ngay danh
+   * sách khách hàng đang hiển thị ở nơi khác (VD dropdown chọn khách khi
+   * tạo đơn) mà không cần chờ router.refresh() làm mới lại server component. */
+  onCreated?: (customer: CustomerRow) => void;
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -55,6 +60,7 @@ export function CustomerFormDialog({
       }
       toast.success(isEdit ? "Đã cập nhật khách hàng" : "Đã tạo khách hàng");
       setOpen(false);
+      if (!isEdit) onCreated?.(data.customer);
       router.refresh();
     } finally {
       setLoading(false);

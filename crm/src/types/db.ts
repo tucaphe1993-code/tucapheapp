@@ -90,6 +90,9 @@ export interface SessionRow {
 
 export interface CustomerRow {
   id: string;
+  // Mã KH tự sinh (KH000, KH001...) — null cho khách hàng tạo trước
+  // migration 017, luôn có giá trị từ đó trở đi.
+  code: string | null;
   name: string;
   phone: string | null;
   email: string | null;

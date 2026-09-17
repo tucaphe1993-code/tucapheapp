@@ -71,6 +71,17 @@ export async function nextSupplierCode(db: D1Database): Promise<string> {
   return `NCC${String(row!.n).padStart(3, "0")}`;
 }
 
+/** Sequential "Mã KH" (KH000, KH001, ...) — same atomic-counter pattern as nextSupplierCode. */
+export async function nextCustomerCode(db: D1Database): Promise<string> {
+  const row = await db
+    .prepare(
+      `UPDATE customer_sequence SET next_value = next_value + 1 WHERE id = 1
+       RETURNING next_value - 1 AS n`
+    )
+    .first<{ n: number }>();
+  return `KH${String(row!.n).padStart(3, "0")}`;
+}
+
 /** Sequential "Số đơn mua" (MH-0001, MH-0002, ...) — same atomic-counter pattern as nextOrderCode. */
 export async function nextPurchaseOrderCode(db: D1Database): Promise<string> {
   const row = await db

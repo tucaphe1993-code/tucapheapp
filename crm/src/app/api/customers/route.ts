@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { getDb } from "@/lib/db/client";
-import { newId } from "@/lib/db/id";
+import { newId, nextCustomerCode } from "@/lib/db/id";
 import { requireRole } from "@/lib/auth/session";
 import { writeAuditLog } from "@/lib/audit";
 import { handleApiError, ValidationError } from "@/lib/api/errors";
@@ -56,12 +56,13 @@ export async function POST(req: NextRequest) {
 
     const db = getDb();
     const id = newId();
+    const code = await nextCustomerCode(db);
     await db
       .prepare(
-        `INSERT INTO customers (id, name, phone, email, address, province, note)
-         VALUES (?, ?, ?, ?, ?, ?, ?)`
+        `INSERT INTO customers (id, code, name, phone, email, address, province, note)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
       )
-      .bind(id, name, phone || null, email || null, address || null, province || null, note || null)
+      .bind(id, code, name, phone || null, email || null, address || null, province || null, note || null)
       .run();
 
     await writeAuditLog({

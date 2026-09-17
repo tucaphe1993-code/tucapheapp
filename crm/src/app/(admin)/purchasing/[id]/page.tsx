@@ -27,7 +27,14 @@ export default async function PurchaseOrderDetailPage({ params }: PageProps<"/pu
 
   const [supplier, items, payments] = await Promise.all([
     db.prepare(`SELECT * FROM suppliers WHERE id = ?`).bind(po.supplier_id).first<SupplierRow>(),
-    db.prepare(`SELECT * FROM purchase_order_items WHERE purchase_order_id = ?`).bind(id).all<PurchaseOrderItemRow>(),
+    db
+      .prepare(
+        `SELECT poi.*, pv.requires_serial FROM purchase_order_items poi
+         JOIN product_variants pv ON pv.id = poi.product_variant_id
+         WHERE poi.purchase_order_id = ?`
+      )
+      .bind(id)
+      .all<PurchaseOrderItemRow & { requires_serial: number }>(),
     db
       .prepare(`SELECT * FROM supplier_payments WHERE purchase_order_id = ? ORDER BY paid_at ASC`)
       .bind(id)
@@ -137,7 +144,17 @@ export default async function PurchaseOrderDetailPage({ params }: PageProps<"/pu
 
       {po.status === "DRAFT" && (
         <div className="flex justify-end">
-          <PurchaseOrderActions id={po.id} totalAmount={po.total_amount} />
+          <PurchaseOrderActions
+            id={po.id}
+            totalAmount={po.total_amount}
+            items={items.results.map((it) => ({
+              id: it.id,
+              sku: it.sku,
+              productName: it.product_name,
+              quantity: it.quantity,
+              requiresSerial: it.requires_serial,
+            }))}
+          />
         </div>
       )}
     </div>

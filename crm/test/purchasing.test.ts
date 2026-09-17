@@ -106,6 +106,57 @@ describe("Đơn mua — nháp chưa đụng tồn kho, xác nhận mới nhập 
     await expect(deletePurchaseOrderDraft(confirmed.id, db)).rejects.toThrow();
   });
 
+  it("SKU quản lý Serial: xác nhận thiếu/sai số Serial thì báo lỗi, KHÔNG đổi trạng thái đơn", async () => {
+    const brewerProductId = randomUUID();
+    await db
+      .prepare(`INSERT INTO products (id, name, slug, code, product_type) VALUES (?, 'Máy pha CRM3200', 'may-pha-crm3200', 'CRM3200', 'BREWER')`)
+      .bind(brewerProductId)
+      .run();
+    const brewerVariantId = randomUUID();
+    await db
+      .prepare(
+        `INSERT INTO product_variants (id, product_id, sku, unit, unit_price, cost_price, requires_serial)
+         VALUES (?, ?, 'CRM3200', 'Cái', 12000000, 8500000, 1)`
+      )
+      .bind(brewerVariantId, brewerProductId)
+      .run();
+
+    const po = await createPurchaseOrderDraft(
+      { supplierId, items: [{ productVariantId: brewerVariantId, quantity: 2, unitCost: 8500000 }], createdBy: userId },
+      db
+    );
+
+    // Không gửi Serial nào — phải báo lỗi và đơn vẫn ở trạng thái DRAFT.
+    await expect(confirmPurchaseOrder(po.id, userId, db)).rejects.toThrow();
+    const stillDraft = await db.prepare(`SELECT status FROM purchase_orders WHERE id = ?`).bind(po.id).first<{ status: string }>();
+    expect(stillDraft?.status).toBe("DRAFT");
+
+    const item = await db.prepare(`SELECT id FROM purchase_order_items WHERE purchase_order_id = ?`).bind(po.id).first<{ id: string }>();
+
+    // Nhập thiếu số Serial (1 thay vì 2) — vẫn báo lỗi.
+    await expect(
+      confirmPurchaseOrder(po.id, userId, db, { [item!.id]: ["SN-001"] })
+    ).rejects.toThrow();
+
+    // Nhập đủ 2 Serial — xác nhận thành công, tạo đúng 2 thiết bị IN_STOCK.
+    const confirmed = await confirmPurchaseOrder(po.id, userId, db, { [item!.id]: ["SN-001", "SN-002"] });
+    expect(confirmed.status).toBe("CONFIRMED");
+
+    const { results: devices } = await db
+      .prepare(`SELECT * FROM devices WHERE product_variant_id = ?`)
+      .bind(brewerVariantId)
+      .all<{ serial_number: string; status: string; cost_price: number; supplier: string | null }>();
+    expect(devices).toHaveLength(2);
+    expect(devices.map((d) => d.serial_number).sort()).toEqual(["SN-001", "SN-002"]);
+    expect(devices.every((d) => d.status === "IN_STOCK")).toBe(true);
+    expect(devices[0].cost_price).toBe(8500000);
+    expect(devices[0].supplier).toBe("Công ty Giấy ABC");
+
+    // SKU quản lý Serial không đụng vào bảng inventory (không có dòng tồn kho theo số lượng).
+    const inv = await db.prepare(`SELECT id FROM inventory WHERE product_variant_id = ?`).bind(brewerVariantId).first();
+    expect(inv).toBeNull();
+  });
+
   it("tính đúng VAT 8%: cộng vào tổng tiền, lưu lại % và số tiền thuế", async () => {
     const po = await createPurchaseOrderDraft(
       { supplierId, vatPercent: 8, items: [{ productVariantId: variantId, quantity: 100, unitCost: 23500 }], createdBy: userId },

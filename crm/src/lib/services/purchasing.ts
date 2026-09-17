@@ -2,6 +2,7 @@ import { getDb } from "@/lib/db/client";
 import { newId, nextPurchaseOrderCode } from "@/lib/db/id";
 import { ConflictError, NotFoundError, ValidationError } from "@/lib/api/errors";
 import { isBulkWeightProduct } from "@/lib/constants";
+import { receiveDevices } from "@/lib/services/devices";
 import type { PurchaseOrderRow, PurchaseOrderItemRow } from "@/types/db";
 
 export interface PurchaseOrderLineInput {
@@ -113,15 +114,44 @@ export async function deletePurchaseOrderDraft(id: string, db: D1Database = getD
  * Xác nhận đơn mua: nhập kho TẤT CẢ các dòng hàng (RECEIVE) + phát sinh
  * công nợ phải trả NCC — đúng 1 lần duy nhất (compare-and-set trên
  * status='DRAFT', giống hệt issueInventoryForOrder/confirmRoastBatch).
+ *
+ * SKU quản lý Serial (máy/thiết bị) không có dòng trong bảng inventory —
+ * phải nhập đúng số Serial (bằng số lượng đã mua) cho từng dòng hàng này
+ * qua serialsByItemId (key = purchase_order_item.id) thì mới tạo được
+ * thiết bị (devices) tương ứng — nếu không "hàng hóa" sẽ không xuất hiện
+ * ở đâu cả (không có Serial thì không có thiết bị để bán/lắp đặt).
  */
 export async function confirmPurchaseOrder(
   id: string,
   actingUserId: string,
-  db: D1Database = getDb()
+  db: D1Database = getDb(),
+  serialsByItemId: Record<string, string[]> = {}
 ): Promise<PurchaseOrderRow> {
   const po = await db.prepare(`SELECT * FROM purchase_orders WHERE id = ?`).bind(id).first<PurchaseOrderRow>();
   if (!po) throw new NotFoundError("Không tìm thấy đơn mua");
   if (po.status !== "DRAFT") throw new ConflictError("Đơn mua này đã được xác nhận hoặc đã hủy trước đó");
+
+  const { results: items } = await db
+    .prepare(
+      `SELECT poi.*, pv.requires_serial, pv.product_id FROM purchase_order_items poi
+       JOIN product_variants pv ON pv.id = poi.product_variant_id
+       WHERE poi.purchase_order_id = ?`
+    )
+    .bind(id)
+    .all<PurchaseOrderItemRow & { requires_serial: number; product_id: string }>();
+
+  // Kiểm tra đủ Serial cho các dòng quản lý Serial TRƯỚC KHI đổi trạng thái —
+  // tránh xác nhận "cụt" (đơn đã CONFIRMED nhưng thiếu thiết bị vì thiếu Serial).
+  for (const item of items) {
+    if (item.requires_serial) {
+      const serials = serialsByItemId[item.id] ?? [];
+      if (serials.length !== item.quantity) {
+        throw new ValidationError(
+          `SKU ${item.sku}: cần nhập đúng ${item.quantity} số Serial (đã nhập ${serials.length})`
+        );
+      }
+    }
+  }
 
   const cas = await db
     .prepare(
@@ -134,12 +164,15 @@ export async function confirmPurchaseOrder(
     throw new ConflictError("Đơn mua này đã được xác nhận trước đó (double-submit)");
   }
 
-  const { results: items } = await db
-    .prepare(`SELECT * FROM purchase_order_items WHERE purchase_order_id = ?`)
-    .bind(id)
-    .all<PurchaseOrderItemRow>();
+  const supplier = await db
+    .prepare(`SELECT name FROM suppliers WHERE id = ?`)
+    .bind(po.supplier_id)
+    .first<{ name: string }>();
 
-  const statements = items.flatMap((item) => [
+  const normalItems = items.filter((item) => !item.requires_serial);
+  const serialItems = items.filter((item) => item.requires_serial);
+
+  const statements = normalItems.flatMap((item) => [
     db
       .prepare(
         `INSERT INTO inventory_transactions
@@ -154,7 +187,21 @@ export async function confirmPurchaseOrder(
       )
       .bind(item.quantity, item.product_variant_id),
   ]);
-  await db.batch(statements);
+  if (statements.length > 0) await db.batch(statements);
+
+  for (const item of serialItems) {
+    await receiveDevices(
+      {
+        productId: item.product_id,
+        productVariantId: item.product_variant_id,
+        serials: serialsByItemId[item.id],
+        supplier: supplier?.name,
+        costPrice: item.unit_cost,
+        createdBy: actingUserId,
+      },
+      db
+    );
+  }
 
   const updated = await db.prepare(`SELECT * FROM purchase_orders WHERE id = ?`).bind(id).first<PurchaseOrderRow>();
   return updated!;

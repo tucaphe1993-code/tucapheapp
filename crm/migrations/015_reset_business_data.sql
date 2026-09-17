@@ -30,9 +30,11 @@ DELETE FROM installations;
 DELETE FROM payments;
 DELETE FROM customer_prices;
 
--- Gỡ tham chiếu tới đơn hàng/khách hàng sắp xóa trên máy/thiết bị vật lý —
--- KHÔNG xóa devices/device_history, chỉ null hóa 2 cột tham chiếu.
-UPDATE devices SET order_id = NULL, customer_id = NULL;
+-- Gỡ tham chiếu tới đơn hàng/khách hàng/dòng sản phẩm sắp xóa trên máy/
+-- thiết bị vật lý — KHÔNG xóa devices/device_history, chỉ null hóa các
+-- cột tham chiếu (order_item_id cũng phải gỡ, không thì DELETE order_items
+-- bên dưới sẽ lỗi FOREIGN KEY).
+UPDATE devices SET order_id = NULL, order_item_id = NULL, customer_id = NULL;
 UPDATE device_history SET order_id = NULL, customer_id = NULL;
 
 -- inventory_transactions.customer_id cũng REFERENCES customers(id) (dù

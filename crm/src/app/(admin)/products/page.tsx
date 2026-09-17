@@ -8,6 +8,7 @@ import { DeleteProductButton } from "@/components/products/delete-product-button
 import { DeleteVariantButton } from "@/components/products/delete-variant-button";
 import { ReceiveDeviceDialog } from "@/components/inventory/receive-device-dialog";
 import { HangHoaTable } from "@/components/products/hang-hoa-table";
+import { AddHangHoaDialog } from "@/components/products/add-hang-hoa-dialog";
 import type { HangHoaItem } from "@/components/products/variant-edit-dialog";
 import { DEVICE_STATUS_LABEL } from "@/lib/services/devices";
 import { PRODUCT_TYPE_LABEL, PRODUCT_TYPES, COFFEE_STAGE_LABEL, isBulkWeightProduct } from "@/lib/constants";
@@ -75,7 +76,7 @@ export default async function ProductsPage({ searchParams }: PageProps<"/product
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-bold text-stone-900">Hàng hóa / Sản phẩm</h1>
-        <ProductFormDialog />
+        {isGroupView ? <ProductFormDialog /> : <AddHangHoaDialog />}
       </div>
 
       <div className="flex gap-2 overflow-x-auto pb-1">

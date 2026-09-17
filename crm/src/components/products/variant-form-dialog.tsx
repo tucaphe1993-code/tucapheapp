@@ -17,7 +17,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { PlusCircle } from "lucide-react";
-import { isBulkWeightProduct } from "@/lib/constants";
+import { isBulkWeightProduct, PRODUCT_CATEGORY_OPTIONS } from "@/lib/constants";
 import type { CoffeeStage, ProductRow, ProductType, ProductVariantRow, UnitRow } from "@/types/db";
 
 export function VariantFormDialog({
@@ -241,7 +241,14 @@ export function VariantFormDialog({
             </div>
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="category">Nhóm hàng</Label>
-              <Input id="category" name="category" placeholder="VD: Cà phê hạt, Thiết bị POS..." />
+              <Select id="category" name="category" defaultValue="">
+                <option value="">-- Chọn --</option>
+                {PRODUCT_CATEGORY_OPTIONS.map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+              </Select>
             </div>
           </div>
           <div className="flex flex-col gap-1.5">

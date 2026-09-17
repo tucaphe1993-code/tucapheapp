@@ -16,6 +16,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Pencil, Trash2 } from "lucide-react";
+import { PRODUCT_CATEGORY_OPTIONS } from "@/lib/constants";
 import type { UnitRow } from "@/types/db";
 
 export interface HangHoaItem {
@@ -130,7 +131,17 @@ export function VariantEditDialog({ item }: { item: HangHoaItem }) {
           <div className="grid grid-cols-2 gap-3">
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="category">Nhóm hàng</Label>
-              <Input id="category" name="category" defaultValue={item.category ?? ""} />
+              <Select id="category" name="category" defaultValue={item.category ?? ""}>
+                <option value="">-- Chọn --</option>
+                {item.category && !PRODUCT_CATEGORY_OPTIONS.includes(item.category as (typeof PRODUCT_CATEGORY_OPTIONS)[number]) && (
+                  <option value={item.category}>{item.category}</option>
+                )}
+                {PRODUCT_CATEGORY_OPTIONS.map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+              </Select>
             </div>
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="unit">ĐVT</Label>

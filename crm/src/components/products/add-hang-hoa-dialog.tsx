@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/dialog";
 import { PlusCircle } from "lucide-react";
 import { formatVnd } from "@/lib/utils";
+import { PRODUCT_CATEGORY_OPTIONS } from "@/lib/constants";
 import type { UnitRow } from "@/types/db";
 
 // Modal "Thêm hàng hóa" — tạo nhanh 1 SKU giống ERP tham khảo, không cần
@@ -101,7 +102,14 @@ export function AddHangHoaDialog() {
           <div className="grid grid-cols-2 gap-3">
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="category">Nhóm hàng</Label>
-              <Input id="category" name="category" />
+              <Select id="category" name="category" defaultValue="">
+                <option value="">-- Chọn --</option>
+                {PRODUCT_CATEGORY_OPTIONS.map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+              </Select>
             </div>
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="unit">ĐVT</Label>

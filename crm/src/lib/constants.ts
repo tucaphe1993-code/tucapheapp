@@ -48,6 +48,16 @@ export const EQUIPMENT_PRODUCT_TYPES = ["BREWER", "GRINDER", "EQUIPMENT", "ACCES
 
 export const UNIT_OPTIONS = ["Kg", "Gram", "Túi", "Máy", "Cái", "Bộ", "Chiếc", "Lần", "Dịch vụ"] as const;
 
+// Nhóm hàng (§ Danh mục Hàng hóa) — danh sách cố định để lọc/thống kê
+// nhất quán, không để nhập tay tự do gây trùng lặp kiểu chữ.
+export const PRODUCT_CATEGORY_OPTIONS = [
+  "Máy Pha Cà Phê",
+  "Máy Xay Cà Phê",
+  "Cà Phê",
+  "Máy Pha Chế",
+  "Linh Kiện",
+] as const;
+
 // Bên A trên biên bản lắp đặt/bàn giao và phiếu bán hàng.
 export const COMPANY_INFO = {
   name: "CÔNG TY TNHH SX - TM - DV TÚ CÀ PHÊ",

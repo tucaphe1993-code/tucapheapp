@@ -16,6 +16,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { PlusCircle } from "lucide-react";
+import { formatVnd } from "@/lib/utils";
 import type { UnitRow } from "@/types/db";
 
 // Modal "Thêm hàng hóa" — tạo nhanh 1 SKU giống ERP tham khảo, không cần
@@ -29,6 +30,8 @@ export function AddHangHoaDialog() {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [units, setUnits] = useState<UnitRow[]>([]);
+  const [priceBeforeVat, setPriceBeforeVat] = useState<number | "">(0);
+  const [vatPercent, setVatPercent] = useState<number | "">(8);
 
   useEffect(() => {
     if (!open) return;
@@ -36,6 +39,8 @@ export function AddHangHoaDialog() {
       .then((r) => r.json())
       .then((d) => setUnits(d.units ?? []));
   }, [open]);
+
+  const priceAfterVat = Math.round((Number(priceBeforeVat) || 0) * (1 + (Number(vatPercent) || 0) / 100));
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -46,7 +51,7 @@ export function AddHangHoaDialog() {
       productName: String(form.get("productName") || ""),
       category: String(form.get("category") || ""),
       unit: String(form.get("unit") || ""),
-      unitPrice: Number(form.get("unitPrice") || 0),
+      unitPrice: priceAfterVat,
       costPrice: Number(form.get("costPrice") || 0),
       lowStockThreshold: Number(form.get("lowStockThreshold") || 0),
       isActive: form.get("isActive") === "1",
@@ -65,6 +70,8 @@ export function AddHangHoaDialog() {
       }
       toast.success(`Đã tạo hàng hóa ${data.variant.sku}`);
       setOpen(false);
+      setPriceBeforeVat(0);
+      setVatPercent(8);
       router.refresh();
     } finally {
       setLoading(false);
@@ -109,13 +116,35 @@ export function AddHangHoaDialog() {
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="unitPrice">Giá bán (đ) *</Label>
-              <Input id="unitPrice" name="unitPrice" type="number" min={0} required defaultValue={0} />
+              <Label htmlFor="priceBeforeVat">Giá bán chưa VAT (đ) *</Label>
+              <Input
+                id="priceBeforeVat"
+                type="number"
+                min={0}
+                required
+                value={priceBeforeVat}
+                onChange={(e) => setPriceBeforeVat(e.target.value === "" ? "" : Number(e.target.value))}
+              />
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="costPrice">Giá vốn (đ)</Label>
-              <Input id="costPrice" name="costPrice" type="number" min={0} defaultValue={0} />
+              <Label htmlFor="vatPercent">VAT (%)</Label>
+              <Input
+                id="vatPercent"
+                type="number"
+                min={0}
+                max={100}
+                value={vatPercent}
+                onChange={(e) => setVatPercent(e.target.value === "" ? "" : Number(e.target.value))}
+              />
             </div>
+          </div>
+          <div className="rounded-lg bg-stone-50 p-2.5 text-sm">
+            <span className="text-stone-500">Giá bán sau VAT (lưu làm giá bán): </span>
+            <span className="font-semibold text-amber-800">{formatVnd(priceAfterVat)}</span>
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="costPrice">Giá vốn (đ)</Label>
+            <Input id="costPrice" name="costPrice" type="number" min={0} defaultValue={0} />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="flex flex-col gap-1.5">

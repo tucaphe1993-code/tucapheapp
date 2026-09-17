@@ -56,7 +56,7 @@ export function HangHoaTable({ items }: { items: HangHoaItem[] }) {
   async function onBulkDelete() {
     const ids = [...selected];
     if (ids.length === 0) return;
-    if (!confirm(`Xóa ${ids.length} hàng hóa đã chọn? Nếu SKU nào đã từng bán/nhập kho, hệ thống sẽ chuyển sang Ngừng bán thay vì xóa hẳn.`)) {
+    if (!confirm(`Xóa ${ids.length} hàng hóa đã chọn? Nếu SKU nào đã từng bán/nhập kho, hệ thống sẽ chuyển sang Ngừng hoạt động thay vì xóa hẳn.`)) {
       return;
     }
     setDeleting(true);
@@ -139,7 +139,7 @@ export function HangHoaTable({ items }: { items: HangHoaItem[] }) {
                 <td className="px-3 py-2">{it.requiresSerial ? "Theo Serial" : (it.lowStockThreshold ?? "—")}</td>
                 <td className="px-3 py-2">
                   <Badge variant={it.isActive ? "success" : "secondary"}>
-                    {it.isActive ? "Đang bán" : "Ngừng bán"}
+                    {it.isActive ? "Hoạt động" : "Ngừng hoạt động"}
                   </Badge>
                 </td>
                 <td className="px-3 py-2 max-w-[200px] truncate text-stone-500">{it.note ?? "—"}</td>

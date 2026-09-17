@@ -31,6 +31,8 @@ export function AddHangHoaDialog() {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [units, setUnits] = useState<UnitRow[]>([]);
+  const [costBeforeVat, setCostBeforeVat] = useState<number | "">(0);
+  const [costVatPercent, setCostVatPercent] = useState<number | "">(8);
   const [priceBeforeVat, setPriceBeforeVat] = useState<number | "">(0);
   const [vatPercent, setVatPercent] = useState<number | "">(8);
 
@@ -41,6 +43,7 @@ export function AddHangHoaDialog() {
       .then((d) => setUnits(d.units ?? []));
   }, [open]);
 
+  const costAfterVat = Math.round((Number(costBeforeVat) || 0) * (1 + (Number(costVatPercent) || 0) / 100));
   const priceAfterVat = Math.round((Number(priceBeforeVat) || 0) * (1 + (Number(vatPercent) || 0) / 100));
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -53,7 +56,7 @@ export function AddHangHoaDialog() {
       category: String(form.get("category") || ""),
       unit: String(form.get("unit") || ""),
       unitPrice: priceAfterVat,
-      costPrice: Number(form.get("costPrice") || 0),
+      costPrice: costAfterVat,
       lowStockThreshold: Number(form.get("lowStockThreshold") || 0),
       isActive: form.get("isActive") === "1",
       note: String(form.get("note") || ""),
@@ -71,6 +74,8 @@ export function AddHangHoaDialog() {
       }
       toast.success(`Đã tạo hàng hóa ${data.variant.sku}`);
       setOpen(false);
+      setCostBeforeVat(0);
+      setCostVatPercent(8);
       setPriceBeforeVat(0);
       setVatPercent(8);
       router.refresh();
@@ -124,6 +129,33 @@ export function AddHangHoaDialog() {
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="flex flex-col gap-1.5">
+              <Label htmlFor="costBeforeVat">Giá nhập chưa VAT (đ)</Label>
+              <Input
+                id="costBeforeVat"
+                type="number"
+                min={0}
+                value={costBeforeVat}
+                onChange={(e) => setCostBeforeVat(e.target.value === "" ? "" : Number(e.target.value))}
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="costVatPercent">VAT nhập (%)</Label>
+              <Input
+                id="costVatPercent"
+                type="number"
+                min={0}
+                max={100}
+                value={costVatPercent}
+                onChange={(e) => setCostVatPercent(e.target.value === "" ? "" : Number(e.target.value))}
+              />
+            </div>
+          </div>
+          <div className="rounded-lg bg-stone-50 p-2.5 text-sm">
+            <span className="text-stone-500">Giá nhập sau VAT (lưu làm giá vốn): </span>
+            <span className="font-semibold text-stone-700">{formatVnd(costAfterVat)}</span>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="flex flex-col gap-1.5">
               <Label htmlFor="priceBeforeVat">Giá bán chưa VAT (đ) *</Label>
               <Input
                 id="priceBeforeVat"
@@ -135,7 +167,7 @@ export function AddHangHoaDialog() {
               />
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="vatPercent">VAT (%)</Label>
+              <Label htmlFor="vatPercent">VAT bán (%)</Label>
               <Input
                 id="vatPercent"
                 type="number"
@@ -150,10 +182,6 @@ export function AddHangHoaDialog() {
             <span className="text-stone-500">Giá bán sau VAT (lưu làm giá bán): </span>
             <span className="font-semibold text-amber-800">{formatVnd(priceAfterVat)}</span>
           </div>
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="costPrice">Giá vốn (đ)</Label>
-            <Input id="costPrice" name="costPrice" type="number" min={0} defaultValue={0} />
-          </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="lowStockThreshold">Tồn tối thiểu</Label>
@@ -162,8 +190,8 @@ export function AddHangHoaDialog() {
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="isActive">Trạng thái</Label>
               <Select id="isActive" name="isActive" defaultValue="1">
-                <option value="1">Đang bán</option>
-                <option value="0">Ngừng bán</option>
+                <option value="1">Hoạt động</option>
+                <option value="0">Ngừng hoạt động</option>
               </Select>
             </div>
           </div>

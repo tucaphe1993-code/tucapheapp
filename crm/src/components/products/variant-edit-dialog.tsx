@@ -89,7 +89,7 @@ export function VariantEditDialog({ item }: { item: HangHoaItem }) {
   }
 
   async function onDelete() {
-    if (!confirm(`Xóa hàng hóa "${item.sku}"? Nếu đã từng bán/nhập kho, hệ thống sẽ chuyển sang Ngừng bán thay vì xóa hẳn.`)) {
+    if (!confirm(`Xóa hàng hóa "${item.sku}"? Nếu đã từng bán/nhập kho, hệ thống sẽ chuyển sang Ngừng hoạt động thay vì xóa hẳn.`)) {
       return;
     }
     setDeleting(true);
@@ -100,7 +100,7 @@ export function VariantEditDialog({ item }: { item: HangHoaItem }) {
         toast.error(data.error ?? "Xóa hàng hóa thất bại");
         return;
       }
-      toast.success(data.deactivated ? "Đã chuyển sang Ngừng bán (đã có lịch sử)" : "Đã xóa hàng hóa");
+      toast.success(data.deactivated ? "Đã chuyển sang Ngừng hoạt động (đã có lịch sử)" : "Đã xóa hàng hóa");
       setOpen(false);
       router.refresh();
     } finally {
@@ -184,8 +184,8 @@ export function VariantEditDialog({ item }: { item: HangHoaItem }) {
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="isActive">Trạng thái</Label>
               <Select id="isActive" name="isActive" defaultValue={item.isActive ? "1" : "0"}>
-                <option value="1">Đang bán</option>
-                <option value="0">Ngừng bán</option>
+                <option value="1">Hoạt động</option>
+                <option value="0">Ngừng hoạt động</option>
               </Select>
             </div>
           </div>

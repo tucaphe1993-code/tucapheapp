@@ -96,9 +96,39 @@ export interface CustomerRow {
   address: string | null;
   province: string | null;
   note: string | null;
+  // Hạn mức công nợ — 0 nghĩa là không giới hạn (§ Công nợ phải thu).
+  credit_limit: number;
   is_deleted: number;
   created_at: string;
   updated_at: string;
+}
+
+export interface SupplierRow {
+  id: string;
+  code: string;
+  name: string;
+  phone: string | null;
+  email: string | null;
+  address: string | null;
+  credit_limit: number;
+  note: string | null;
+  is_deleted: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PaymentMethodRow {
+  code: string;
+  name: string;
+  is_active: number;
+  sort_order: number;
+}
+
+export interface UnitRow {
+  code: string;
+  name: string;
+  is_active: number;
+  sort_order: number;
 }
 
 export interface ProductRow {
@@ -133,6 +163,9 @@ export interface ProductVariantRow {
   // tồn khi bán SKU thành phẩm này (§ Bán hàng — quy đổi tự động, xem
   // sellFinishedCoffee trong lib/services/inventory.ts).
   source_green_variant_id: string | null;
+  // Nhóm hàng + mã vạch — chỉ hiển thị/lọc, không ràng buộc gì (§ Danh mục).
+  category: string | null;
+  barcode: string | null;
   is_active: number;
   created_at: string;
   updated_at: string;
@@ -194,6 +227,9 @@ export interface OrderRow {
   status: OrderStatus;
   total_amount: number;
   vat_included: number;
+  // Chỉ để hiển thị cột "PTTT" trên danh sách đơn — không ảnh hưởng tính
+  // công nợ (vẫn luôn tính từ payments, xem migration 007/016).
+  payment_method_code: string | null;
   created_by: string;
   inventory_issued_at: string | null;
   created_at: string;
@@ -324,6 +360,69 @@ export interface PaymentRow {
   method: string | null;
   note: string | null;
   paid_at: string;
+  created_by: string | null;
+  created_at: string;
+}
+
+export type PurchaseOrderStatus = "DRAFT" | "CONFIRMED" | "CANCELLED";
+
+export interface PurchaseOrderRow {
+  id: string;
+  po_code: string;
+  supplier_id: string;
+  status: PurchaseOrderStatus;
+  payment_method_code: string | null;
+  note: string | null;
+  total_amount: number;
+  inventory_received_at: string | null;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PurchaseOrderItemRow {
+  id: string;
+  purchase_order_id: string;
+  product_variant_id: string;
+  sku: string;
+  product_name: string;
+  quantity: number;
+  unit_cost: number;
+  line_total: number;
+  created_at: string;
+}
+
+export interface SupplierPaymentRow {
+  id: string;
+  purchase_order_id: string;
+  supplier_id: string;
+  amount: number;
+  method: string | null;
+  note: string | null;
+  paid_at: string;
+  created_by: string | null;
+  created_at: string;
+}
+
+export type CashVoucherDirection = "IN" | "OUT";
+export type CashVoucherCategory = "SALE_ORDER" | "PURCHASE_ORDER" | "OTHER";
+
+export interface CashVoucherRow {
+  id: string;
+  voucher_code: string;
+  direction: CashVoucherDirection;
+  voucher_date: string;
+  customer_id: string | null;
+  supplier_id: string | null;
+  category: CashVoucherCategory;
+  expense_group: string | null;
+  reference_type: string | null;
+  reference_id: string | null;
+  payment_method_code: string | null;
+  amount: number;
+  description: string | null;
+  note: string | null;
+  is_auto: number;
   created_by: string | null;
   created_at: string;
 }

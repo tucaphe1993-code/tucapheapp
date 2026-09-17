@@ -20,6 +20,9 @@ import {
   Menu,
   X,
   LogOut,
+  ShoppingCart,
+  Banknote,
+  Truck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -34,9 +37,11 @@ const NAV_GROUPS = [
       { href: "/orders", label: "Đơn hàng", icon: ClipboardList },
       { href: "/orders/new", label: "Tạo đơn cà phê", icon: PlusCircle },
       { href: "/orders/new-equipment", label: "Tạo đơn thiết bị", icon: Wrench },
+      { href: "/purchasing", label: "Mua hàng", icon: ShoppingCart },
       { href: "/tasks", label: "Công việc", icon: ListChecks },
       { href: "/installations", label: "Lắp đặt", icon: Wrench },
       { href: "/protocols", label: "Biên bản", icon: FileText },
+      { href: "/cash", label: "Thu / Chi", icon: Banknote },
       { href: "/debts", label: "Công nợ", icon: Wallet },
     ],
   },
@@ -46,6 +51,7 @@ const NAV_GROUPS = [
       { href: "/products", label: "Sản phẩm", icon: Coffee },
       { href: "/inventory", label: "Kho", icon: Boxes },
       { href: "/devices", label: "Thiết bị", icon: Cpu },
+      { href: "/suppliers", label: "Nhà cung cấp", icon: Truck },
     ],
   },
   {

@@ -59,3 +59,41 @@ export async function nextProtocolCode(db: D1Database): Promise<string> {
     .first<{ n: number }>();
   return `BB-${String(row!.n).padStart(4, "0")}`;
 }
+
+/** Sequential "Mã NCC" (NCC000, NCC001, ...) — bắt đầu từ 0 giống bản ERP mẫu. */
+export async function nextSupplierCode(db: D1Database): Promise<string> {
+  const row = await db
+    .prepare(
+      `UPDATE supplier_sequence SET next_value = next_value + 1 WHERE id = 1
+       RETURNING next_value - 1 AS n`
+    )
+    .first<{ n: number }>();
+  return `NCC${String(row!.n).padStart(3, "0")}`;
+}
+
+/** Sequential "Số đơn mua" (MH-0001, MH-0002, ...) — same atomic-counter pattern as nextOrderCode. */
+export async function nextPurchaseOrderCode(db: D1Database): Promise<string> {
+  const row = await db
+    .prepare(
+      `UPDATE purchase_sequence SET next_value = next_value + 1 WHERE id = 1
+       RETURNING next_value - 1 AS n`
+    )
+    .first<{ n: number }>();
+  return `MH-${String(row!.n).padStart(4, "0")}`;
+}
+
+/** Sequential "Số phiếu thu/chi" (PT-0001 / PC-0001, ...) — 2 bộ đếm riêng trong cùng 1 dòng. */
+export async function nextCashVoucherCode(
+  direction: "IN" | "OUT",
+  db: D1Database
+): Promise<string> {
+  const column = direction === "IN" ? "next_receipt_value" : "next_payment_value";
+  const prefix = direction === "IN" ? "PT" : "PC";
+  const row = await db
+    .prepare(
+      `UPDATE cash_voucher_sequence SET ${column} = ${column} + 1 WHERE id = 1
+       RETURNING ${column} - 1 AS n`
+    )
+    .first<{ n: number }>();
+  return `${prefix}-${String(row!.n).padStart(4, "0")}`;
+}

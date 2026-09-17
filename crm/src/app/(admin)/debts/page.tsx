@@ -6,7 +6,7 @@ import { DebtStatusBadge } from "@/components/orders/debt-status-badge";
 import { computeDebtStatus, DEBT_STATUS_LABEL } from "@/lib/services/debts";
 import { formatDate, formatVnd } from "@/lib/utils";
 import { DollarSign, HandCoins, PiggyBank, AlertTriangle } from "lucide-react";
-import type { DebtStatus, OrderStatus } from "@/types/db";
+import type { DebtStatus, OrderStatus, PurchaseOrderStatus } from "@/types/db";
 
 interface DebtOrderRow {
   id: string;
@@ -20,9 +20,108 @@ interface DebtOrderRow {
   paid_amount: number;
 }
 
+interface DebtPurchaseOrderRow {
+  id: string;
+  po_code: string;
+  supplier_id: string;
+  supplier_name: string;
+  total_amount: number;
+  status: PurchaseOrderStatus;
+  created_at: string;
+  paid_amount: number;
+}
+
+const KIND_TABS = [
+  { label: "Phải thu khách hàng", value: "receivable" },
+  { label: "Phải trả nhà cung cấp", value: "payable" },
+] as const;
+
 export default async function DebtsPage({ searchParams }: PageProps<"/debts">) {
-  const { status } = await searchParams;
+  const { status, kind } = await searchParams;
+  const activeKind = (Array.isArray(kind) ? kind[0] : kind) === "payable" ? "payable" : "receivable";
   const db = getDb();
+
+  const kindTabsNav = (
+    <div className="flex gap-2 overflow-x-auto pb-1">
+      {KIND_TABS.map((t) => (
+        <Link
+          key={t.value}
+          href={`/debts?kind=${t.value}`}
+          className={`whitespace-nowrap rounded-full px-3 py-1.5 text-sm font-medium ${
+            activeKind === t.value ? "bg-stone-800 text-white" : "bg-white text-stone-600 border border-stone-200"
+          }`}
+        >
+          {t.label}
+        </Link>
+      ))}
+    </div>
+  );
+
+  if (activeKind === "payable") {
+    const { results: pos } = await db
+      .prepare(
+        `SELECT po.id, po.po_code, po.supplier_id, s.name as supplier_name, po.total_amount, po.status, po.created_at,
+                COALESCE((SELECT SUM(amount) FROM supplier_payments WHERE purchase_order_id = po.id), 0) as paid_amount
+         FROM purchase_orders po JOIN suppliers s ON s.id = po.supplier_id
+         WHERE po.status = 'CONFIRMED'
+         ORDER BY po.created_at DESC`
+      )
+      .all<DebtPurchaseOrderRow>();
+
+    const rows = pos.map((po) => ({
+      ...po,
+      remaining: Math.max(0, po.total_amount - po.paid_amount),
+      debtStatus: computeDebtStatus({ totalAmount: po.total_amount, paidAmount: po.paid_amount, dueDate: null }),
+    }));
+
+    const totalPayable = rows.reduce((sum, r) => sum + r.total_amount, 0);
+    const totalPaid = rows.reduce((sum, r) => sum + r.paid_amount, 0);
+    const totalRemaining = totalPayable - totalPaid;
+    const activeTab = (status as DebtStatus | undefined) ?? "";
+    const filteredRows = activeTab ? rows.filter((r) => r.debtStatus === activeTab) : rows;
+
+    return (
+      <div className="flex flex-col gap-4">
+        <h1 className="text-xl font-bold text-stone-900">Công nợ</h1>
+        {kindTabsNav}
+
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
+          <KpiCard icon={DollarSign} label="Tổng phải trả" value={formatVnd(totalPayable)} color="blue" />
+          <KpiCard icon={HandCoins} label="Đã trả" value={formatVnd(totalPaid)} color="emerald" />
+          <KpiCard icon={PiggyBank} label="Còn phải trả" value={formatVnd(totalRemaining)} color="amber" />
+        </div>
+
+        <div className="flex flex-col gap-2">
+          {filteredRows.length === 0 && (
+            <Card>
+              <CardContent className="py-8 text-center text-sm text-stone-500">Không có công nợ phải trả</CardContent>
+            </Card>
+          )}
+          {filteredRows.map((r) => (
+            <Link key={r.id} href={`/purchasing/${r.id}`}>
+              <Card className="hover:border-amber-300">
+                <CardContent className="flex items-center justify-between py-3">
+                  <div>
+                    <div className="font-medium">{r.supplier_name}</div>
+                    <div className="text-sm text-stone-500">
+                      {r.po_code} · {formatDate(r.created_at)}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="text-right">
+                      <div className="font-medium">{formatVnd(r.remaining)}</div>
+                      <div className="text-xs text-stone-400">/ {formatVnd(r.total_amount)}</div>
+                    </div>
+                    <DebtStatusBadge status={r.debtStatus} />
+                  </div>
+                </CardContent>
+              </Card>
+            </Link>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   const { results: orders } = await db
     .prepare(
@@ -64,6 +163,7 @@ export default async function DebtsPage({ searchParams }: PageProps<"/debts">) {
   return (
     <div className="flex flex-col gap-4">
       <h1 className="text-xl font-bold text-stone-900">Công nợ</h1>
+      {kindTabsNav}
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <KpiCard icon={DollarSign} label="Tổng phải thu" value={formatVnd(totalReceivable)} color="blue" />

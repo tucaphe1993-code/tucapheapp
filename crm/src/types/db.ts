@@ -228,6 +228,8 @@ export interface OrderRow {
   delivery_method: string | null;
   payment_due_date: string | null;
   note: string | null;
+  // Diễn giải riêng (khác Ghi chú) — chỉ hiển thị, giống ERP tham khảo.
+  description: string | null;
   status: OrderStatus;
   total_amount: number;
   vat_included: number;
@@ -251,6 +253,10 @@ export interface OrderItemRow {
   weight_grams: number | null;
   quantity: number;
   unit_price: number;
+  // CK%/Thuế% từng dòng (§ Tạo đơn bán hàng) — đơn giá vẫn luôn lấy từ
+  // CSDL, hai % này chỉ áp thêm để ra line_total.
+  discount_percent: number;
+  tax_percent: number;
   line_total: number;
   device_id: string | null;
   created_at: string;

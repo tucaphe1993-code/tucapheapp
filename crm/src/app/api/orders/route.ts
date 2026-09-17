@@ -15,6 +15,8 @@ const createSchema = z.object({
   deliveryDate: z.string().trim().optional(),
   deliveryMethod: z.string().trim().optional(),
   note: z.string().trim().optional(),
+  description: z.string().trim().optional(),
+  paymentMethodCode: z.string().trim().optional(),
   vatIncluded: z.boolean().optional(),
   depositAmount: z.number().int().nonnegative().optional(),
   depositMethod: z.string().trim().optional(),
@@ -24,6 +26,8 @@ const createSchema = z.object({
         productVariantId: z.string().min(1),
         quantity: z.number().int().positive(),
         deviceId: z.string().optional(),
+        discountPercent: z.number().min(0).max(100).optional(),
+        taxPercent: z.number().min(0).max(100).optional(),
       })
     )
     .min(1, "Đơn hàng cần ít nhất 1 sản phẩm"),
@@ -76,6 +80,8 @@ export async function POST(req: NextRequest) {
       deliveryDate,
       deliveryMethod,
       note,
+      description,
+      paymentMethodCode,
       vatIncluded,
       depositAmount,
       depositMethod,
@@ -99,6 +105,8 @@ export async function POST(req: NextRequest) {
       packaging: string | null;
       weightGrams: number | null;
       unitPrice: number;
+      discountPercent: number;
+      taxPercent: number;
       lineTotal: number;
       deviceId: string | null;
     };
@@ -144,7 +152,11 @@ export async function POST(req: NextRequest) {
         .bind(customerId, item.productVariantId)
         .first<{ unit_price: number }>();
       const unitPrice = customPrice?.unit_price ?? variant.unit_price;
-      const lineTotal = unitPrice * item.quantity;
+      const discountPercent = item.discountPercent ?? 0;
+      const taxPercent = item.taxPercent ?? 0;
+      const subtotal = unitPrice * item.quantity;
+      const afterDiscount = subtotal * (1 - discountPercent / 100);
+      const lineTotal = Math.round(afterDiscount * (1 + taxPercent / 100));
       totalAmount += lineTotal;
       resolvedItems.push({
         id: newId(),
@@ -156,6 +168,8 @@ export async function POST(req: NextRequest) {
         packaging: variant.packaging,
         weightGrams: variant.weight_grams,
         unitPrice,
+        discountPercent,
+        taxPercent,
         lineTotal,
         deviceId,
       });
@@ -168,8 +182,8 @@ export async function POST(req: NextRequest) {
       .prepare(
         `INSERT INTO orders
            (id, order_code, customer_id, customer_phone_snapshot, customer_address_snapshot,
-            delivery_date, delivery_method, note, status, total_amount, vat_included, created_by)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'CONFIRMED', ?, ?, ?)`
+            delivery_date, delivery_method, note, description, payment_method_code, status, total_amount, vat_included, created_by)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'CONFIRMED', ?, ?, ?)`
       )
       .bind(
         orderId,
@@ -180,6 +194,8 @@ export async function POST(req: NextRequest) {
         deliveryDate || null,
         deliveryMethod || null,
         note || null,
+        description || null,
+        paymentMethodCode || null,
         totalAmount,
         vatIncluded ? 1 : 0,
         session.user.id
@@ -191,8 +207,8 @@ export async function POST(req: NextRequest) {
         db
           .prepare(
             `INSERT INTO order_items
-               (id, order_id, product_variant_id, sku, product_name, form, packaging, weight_grams, quantity, unit_price, line_total, device_id)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+               (id, order_id, product_variant_id, sku, product_name, form, packaging, weight_grams, quantity, unit_price, discount_percent, tax_percent, line_total, device_id)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
           )
           .bind(
             item.id,
@@ -205,6 +221,8 @@ export async function POST(req: NextRequest) {
             item.weightGrams,
             item.quantity,
             item.unitPrice,
+            item.discountPercent,
+            item.taxPercent,
             item.lineTotal,
             item.deviceId
           )

@@ -178,7 +178,15 @@ export default async function OrderDetailPage({ params }: PageProps<"/orders/[id
                           </div>
                         </td>
                         <td className="py-1.5 pr-3">{item.quantity}</td>
-                        <td className="py-1.5 pr-3">{formatVnd(item.unit_price)}</td>
+                        <td className="py-1.5 pr-3">
+                          {formatVnd(item.unit_price)}
+                          {(item.discount_percent > 0 || item.tax_percent > 0) && (
+                            <div className="text-xs text-stone-400">
+                              {item.discount_percent > 0 && <>CK {item.discount_percent}% </>}
+                              {item.tax_percent > 0 && <>Thuế {item.tax_percent}%</>}
+                            </div>
+                          )}
+                        </td>
                         <td className="py-1.5 pr-3 font-medium">{formatVnd(item.line_total)}</td>
                       </tr>
                     ))}

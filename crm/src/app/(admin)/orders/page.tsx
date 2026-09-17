@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getDb } from "@/lib/db/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { OrderStatusBadge } from "@/components/orders/order-status-badge";
+import { SalesOrderQuickDialog } from "@/components/orders/sales-order-quick-dialog";
 import { formatDate, formatVnd } from "@/lib/utils";
 import type { OrderRow } from "@/types/db";
 
@@ -45,6 +46,7 @@ export default async function OrdersPage({ searchParams }: PageProps<"/orders">)
           <Link href="/orders/new-equipment" className="text-sm font-medium text-amber-800 hover:underline">
             + Đơn thiết bị
           </Link>
+          <SalesOrderQuickDialog />
         </div>
       </div>
 

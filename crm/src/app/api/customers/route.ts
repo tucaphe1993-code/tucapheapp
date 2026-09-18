@@ -14,6 +14,7 @@ const createSchema = z.object({
   address: z.string().trim().optional(),
   province: z.string().trim().optional(),
   note: z.string().trim().optional(),
+  idCardNumber: z.string().trim().optional(),
 });
 
 // ADMIN and EMPLOYEE can both look up customers (needed to build/confirm an
@@ -28,10 +29,10 @@ export async function GET(req: NextRequest) {
     if (q) {
       stmt = db
         .prepare(
-          `SELECT * FROM customers WHERE is_deleted = 0 AND (name LIKE ? OR phone LIKE ?)
+          `SELECT * FROM customers WHERE is_deleted = 0 AND (name LIKE ? OR phone LIKE ? OR id_card_number LIKE ?)
            ORDER BY created_at DESC LIMIT 100`
         )
-        .bind(`%${q}%`, `%${q}%`);
+        .bind(`%${q}%`, `%${q}%`, `%${q}%`);
     } else {
       stmt = db
         .prepare(`SELECT * FROM customers WHERE is_deleted = 0 ORDER BY created_at DESC LIMIT 100`);
@@ -52,17 +53,27 @@ export async function POST(req: NextRequest) {
     if (!parsed.success) {
       throw new ValidationError(parsed.error.issues[0]?.message ?? "Dữ liệu không hợp lệ");
     }
-    const { name, phone, email, address, province, note } = parsed.data;
+    const { name, phone, email, address, province, note, idCardNumber } = parsed.data;
 
     const db = getDb();
     const id = newId();
     const code = await nextCustomerCode(db);
     await db
       .prepare(
-        `INSERT INTO customers (id, code, name, phone, email, address, province, note)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+        `INSERT INTO customers (id, code, name, phone, email, address, province, note, id_card_number)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
       )
-      .bind(id, code, name, phone || null, email || null, address || null, province || null, note || null)
+      .bind(
+        id,
+        code,
+        name,
+        phone || null,
+        email || null,
+        address || null,
+        province || null,
+        note || null,
+        idCardNumber || null
+      )
       .run();
 
     await writeAuditLog({

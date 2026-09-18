@@ -31,7 +31,7 @@ export function CustomerSearchList({ initialCustomers }: { initialCustomers: Cus
         <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-stone-400" />
         <Input
           className="pl-9"
-          placeholder="Tìm theo tên hoặc số điện thoại..."
+          placeholder="Tìm theo tên, số điện thoại hoặc CCCD..."
           value={q}
           onChange={(e) => setQ(e.target.value)}
         />

@@ -13,6 +13,7 @@ const updateSchema = z.object({
   address: z.string().trim().optional().nullable(),
   province: z.string().trim().optional().nullable(),
   note: z.string().trim().optional().nullable(),
+  idCardNumber: z.string().trim().optional().nullable(),
 });
 
 export async function GET(_req: NextRequest, ctx: RouteContext<"/api/customers/[id]">) {
@@ -56,9 +57,11 @@ export async function PATCH(req: NextRequest, ctx: RouteContext<"/api/customers/
     if (!existing) throw new NotFoundError("Không tìm thấy khách hàng");
 
     const next = { ...existing, ...parsed.data };
+    const nextIdCardNumber =
+      parsed.data.idCardNumber === undefined ? existing.id_card_number : parsed.data.idCardNumber || null;
     await db
       .prepare(
-        `UPDATE customers SET name = ?, phone = ?, email = ?, address = ?, province = ?, note = ?, updated_at = datetime('now')
+        `UPDATE customers SET name = ?, phone = ?, email = ?, address = ?, province = ?, note = ?, id_card_number = ?, updated_at = datetime('now')
          WHERE id = ?`
       )
       .bind(
@@ -68,6 +71,7 @@ export async function PATCH(req: NextRequest, ctx: RouteContext<"/api/customers/
         next.address || null,
         next.province || null,
         next.note || null,
+        nextIdCardNumber,
         id
       )
       .run();

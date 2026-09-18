@@ -99,6 +99,9 @@ export interface CustomerRow {
   address: string | null;
   province: string | null;
   note: string | null;
+  // Số CCCD — thu thập để tra cứu khi khách gọi bảo hành chỉ nhớ CCCD
+  // thay vì mã phiếu/mã KH.
+  id_card_number: string | null;
   // Hạn mức công nợ — 0 nghĩa là không giới hạn (§ Công nợ phải thu).
   credit_limit: number;
   is_deleted: number;

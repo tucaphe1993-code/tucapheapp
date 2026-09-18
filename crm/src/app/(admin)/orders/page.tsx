@@ -1,18 +1,32 @@
 import Link from "next/link";
+import { Search } from "lucide-react";
 import { getDb } from "@/lib/db/client";
 import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { OrderStatusBadge } from "@/components/orders/order-status-badge";
 import { SalesOrderQuickDialog } from "@/components/orders/sales-order-quick-dialog";
 import { formatDate, formatVnd } from "@/lib/utils";
 import type { OrderRow } from "@/types/db";
 
 export default async function OrdersPage({ searchParams }: PageProps<"/orders">) {
-  const { status } = await searchParams;
+  const { status, q: qRaw } = await searchParams;
+  const q = typeof qRaw === "string" ? qRaw.trim() : "";
   const db = getDb();
 
-  const stmt = status
-    ? db.prepare(`SELECT * FROM orders WHERE status = ? ORDER BY created_at DESC LIMIT 200`).bind(status)
-    : db.prepare(`SELECT * FROM orders ORDER BY created_at DESC LIMIT 200`);
+  // Tìm theo mã đơn/tên/SĐT/CCCD — dùng khi khách gọi bảo hành chỉ nhớ mã
+  // phiếu hoặc CCCD, không nhớ đã mua lúc nào để lọc theo trạng thái. Có q
+  // thì bỏ qua bộ lọc trạng thái, tìm xuyên suốt toàn bộ đơn hàng.
+  const stmt = q
+    ? db
+        .prepare(
+          `SELECT o.* FROM orders o JOIN customers c ON c.id = o.customer_id
+           WHERE o.order_code LIKE ? OR c.name LIKE ? OR c.phone LIKE ? OR c.id_card_number LIKE ?
+           ORDER BY o.created_at DESC LIMIT 200`
+        )
+        .bind(`%${q}%`, `%${q}%`, `%${q}%`, `%${q}%`)
+    : status
+      ? db.prepare(`SELECT * FROM orders WHERE status = ? ORDER BY created_at DESC LIMIT 200`).bind(status)
+      : db.prepare(`SELECT * FROM orders ORDER BY created_at DESC LIMIT 200`);
   const { results: orders } = await stmt.all<OrderRow & { customer_name?: string }>();
 
   const customerIds = [...new Set(orders.map((o) => o.customer_id))];
@@ -50,6 +64,24 @@ export default async function OrdersPage({ searchParams }: PageProps<"/orders">)
         </div>
       </div>
 
+      <div className="flex items-center gap-2">
+        <form action="/orders" method="GET" className="relative flex-1">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-stone-400" />
+          <Input
+            type="text"
+            name="q"
+            defaultValue={q}
+            placeholder="Tìm theo mã đơn, tên/SĐT/CCCD khách hàng..."
+            className="pl-9"
+          />
+        </form>
+        {q && (
+          <Link href="/orders" className="text-sm text-stone-500 hover:underline">
+            Xóa tìm kiếm
+          </Link>
+        )}
+      </div>
+
       <div className="flex gap-2 overflow-x-auto pb-1">
         {tabs.map((t) => (
           <Link
@@ -78,7 +110,9 @@ export default async function OrdersPage({ searchParams }: PageProps<"/orders">)
               <CardContent className="flex items-center justify-between py-3">
                 <div>
                   <div className="font-medium">{customerNames.get(o.customer_id) ?? "—"}</div>
-                  <div className="text-sm text-stone-500">{formatDate(o.created_at)}</div>
+                  <div className="text-sm text-stone-500">
+                    {o.order_code} · {formatDate(o.created_at)}
+                  </div>
                 </div>
                 <div className="flex items-center gap-3">
                   <div className="font-medium">{formatVnd(o.total_amount)}</div>

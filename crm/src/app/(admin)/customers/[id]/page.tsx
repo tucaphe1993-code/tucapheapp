@@ -158,6 +158,10 @@ export default async function CustomerDetailPage({
             {customer.phone || "—"}
           </div>
           <div>
+            <span className="text-stone-500">Số CCCD: </span>
+            {customer.id_card_number || "—"}
+          </div>
+          <div>
             <span className="text-stone-500">Email: </span>
             {customer.email || "—"}
           </div>

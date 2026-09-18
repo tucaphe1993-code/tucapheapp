@@ -46,6 +46,7 @@ export function CustomerFormDialog({
       address: String(form.get("address") || ""),
       province: String(form.get("province") || ""),
       note: String(form.get("note") || ""),
+      idCardNumber: String(form.get("idCardNumber") || ""),
     };
     try {
       const res = await fetch(isEdit ? `/api/customers/${customer!.id}` : "/api/customers", {
@@ -91,9 +92,13 @@ export function CustomerFormDialog({
               <Input id="phone" name="phone" defaultValue={customer?.phone ?? ""} />
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="email">Email</Label>
-              <Input id="email" name="email" type="email" defaultValue={customer?.email ?? ""} />
+              <Label htmlFor="idCardNumber">Số CCCD</Label>
+              <Input id="idCardNumber" name="idCardNumber" defaultValue={customer?.id_card_number ?? ""} />
             </div>
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="email">Email</Label>
+            <Input id="email" name="email" type="email" defaultValue={customer?.email ?? ""} />
           </div>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="address">Địa chỉ</Label>

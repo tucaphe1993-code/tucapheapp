@@ -74,6 +74,7 @@ export function OrderBuilder({ mode }: { mode: "coffee" | "equipment" }) {
   const [deliveryDate, setDeliveryDate] = useState("");
   const [deliveryMethod, setDeliveryMethod] = useState("");
   const [note, setNote] = useState("");
+  const [discountAmount, setDiscountAmount] = useState<number | "">("");
   const [depositAmount, setDepositAmount] = useState<number | "">("");
   const [depositMethod, setDepositMethod] = useState("");
   const [vatIncluded, setVatIncluded] = useState(false);
@@ -219,6 +220,8 @@ export function OrderBuilder({ mode }: { mode: "coffee" | "equipment" }) {
   }
 
   const total = cart.reduce((sum, l) => sum + priceFor(l.variant) * l.quantity, 0);
+  const discount = mode === "equipment" ? Math.min(Number(discountAmount) || 0, total) : 0;
+  const finalTotal = total - discount;
 
   async function onSubmit() {
     if (!customer) return toast.error("Vui lòng chọn khách hàng");
@@ -237,6 +240,7 @@ export function OrderBuilder({ mode }: { mode: "coffee" | "equipment" }) {
           deliveryMethod: deliveryMethod || undefined,
           note: note || undefined,
           vatIncluded: mode === "equipment" ? vatIncluded : undefined,
+          discountAmount: mode === "equipment" && discountAmount !== "" ? discountAmount : undefined,
           depositAmount: mode === "equipment" && depositAmount !== "" ? depositAmount : undefined,
           depositMethod: mode === "equipment" ? depositMethod || undefined : undefined,
           items: cart.map((l) => ({
@@ -518,6 +522,16 @@ export function OrderBuilder({ mode }: { mode: "coffee" | "equipment" }) {
               <CardTitle className="text-base">4. Thanh toán</CardTitle>
             </CardHeader>
             <CardContent className="flex flex-col gap-3">
+              <div className="flex flex-col gap-1.5">
+                <Label>Giảm giá</Label>
+                <Input
+                  type="number"
+                  min={0}
+                  value={discountAmount}
+                  onChange={(e) => setDiscountAmount(e.target.value === "" ? "" : Number(e.target.value))}
+                  placeholder="0"
+                />
+              </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="flex flex-col gap-1.5">
                   <Label>Khách đã cọc</Label>
@@ -541,9 +555,23 @@ export function OrderBuilder({ mode }: { mode: "coffee" | "equipment" }) {
                   </Select>
                 </div>
               </div>
-              <div className="flex items-center justify-between rounded-lg bg-stone-50 p-2.5 text-sm">
-                <span className="text-stone-500">Còn lại</span>
-                <span className="font-semibold">{formatVnd(Math.max(0, total - (Number(depositAmount) || 0)))}</span>
+              <div className="flex flex-col gap-1 rounded-lg bg-stone-50 p-2.5 text-sm">
+                {discount > 0 && (
+                  <div className="flex items-center justify-between text-red-600">
+                    <span>Giảm giá</span>
+                    <span>-{formatVnd(discount)}</span>
+                  </div>
+                )}
+                <div className="flex items-center justify-between font-semibold">
+                  <span>Tổng thanh toán</span>
+                  <span>{formatVnd(finalTotal)}</span>
+                </div>
+                <div className="flex items-center justify-between text-stone-500">
+                  <span>Còn lại</span>
+                  <span className="font-semibold text-stone-700">
+                    {formatVnd(Math.max(0, finalTotal - (Number(depositAmount) || 0)))}
+                  </span>
+                </div>
               </div>
               <label className="flex items-center gap-2 text-sm">
                 <Checkbox checked={vatIncluded} onCheckedChange={(v) => setVatIncluded(v === true)} />
@@ -591,9 +619,17 @@ export function OrderBuilder({ mode }: { mode: "coffee" | "equipment" }) {
                 </div>
               </div>
             ))}
-            <div className="flex items-center justify-between pt-2 font-semibold">
-              <span>Tổng cộng</span>
-              <span>{formatVnd(total)}</span>
+            <div className="flex flex-col gap-1 pt-2">
+              {discount > 0 && (
+                <div className="flex items-center justify-between text-sm text-red-600">
+                  <span>Giảm giá</span>
+                  <span>-{formatVnd(discount)}</span>
+                </div>
+              )}
+              <div className="flex items-center justify-between font-semibold">
+                <span>Tổng cộng</span>
+                <span>{formatVnd(finalTotal)}</span>
+              </div>
             </div>
             <Button
               variant="outline"
@@ -670,9 +706,19 @@ export function OrderBuilder({ mode }: { mode: "coffee" | "equipment" }) {
             </table>
 
             <div className="flex flex-col gap-1 border-t border-dashed border-stone-300 pt-2">
+              <div className="flex justify-between">
+                <span className="text-stone-500">Tạm tính</span>
+                <span>{formatVnd(total)}</span>
+              </div>
+              {discount > 0 && (
+                <div className="flex justify-between text-red-600">
+                  <span>Giảm giá</span>
+                  <span>-{formatVnd(discount)}</span>
+                </div>
+              )}
               <div className="flex justify-between font-semibold">
                 <span>Tổng cộng</span>
-                <span>{formatVnd(total)}</span>
+                <span>{formatVnd(finalTotal)}</span>
               </div>
               {mode === "equipment" && Number(depositAmount) > 0 && (
                 <>
@@ -682,7 +728,7 @@ export function OrderBuilder({ mode }: { mode: "coffee" | "equipment" }) {
                   </div>
                   <div className="flex justify-between font-medium">
                     <span>Còn lại</span>
-                    <span>{formatVnd(Math.max(0, total - (Number(depositAmount) || 0)))}</span>
+                    <span>{formatVnd(Math.max(0, finalTotal - (Number(depositAmount) || 0)))}</span>
                   </div>
                 </>
               )}

@@ -129,7 +129,7 @@ describe("createProtocolFromOrder", () => {
     expect(protocol?.protocol_code).toMatch(/^BB-\d{4}$/);
     expect(protocol?.contact_name).toBe("KH Test");
     expect(protocol?.install_address).toBe("123 Test St");
-    expect(protocol?.status).toBe("PENDING_INSTALL");
+    expect(protocol?.status).toBe("WARRANTY_ACTIVATED");
 
     const { results: devices } = await db
       .prepare(`SELECT * FROM handover_protocol_devices WHERE protocol_id = ? ORDER BY sort_order ASC`)
@@ -150,6 +150,24 @@ describe("createProtocolFromOrder", () => {
       .all<{ category: string }>();
     expect(checklist.filter((c) => c.category === "INSTALL")).toHaveLength(4);
     expect(checklist.filter((c) => c.category === "GUIDE")).toHaveLength(8);
+
+    const { results: checklistFull } = await db
+      .prepare(`SELECT is_checked FROM handover_protocol_checklist WHERE protocol_id = ?`)
+      .bind(protocolId)
+      .all<{ is_checked: number }>();
+    expect(checklistFull.every((c) => c.is_checked === 1)).toBe(true);
+
+    // Không còn bước Bắt đầu lắp đặt/Hoàn tất lắp đặt — tạo biên bản là kích
+    // hoạt bảo hành cho thiết bị có Serial luôn.
+    const { results: devicesAfter } = await db
+      .prepare(`SELECT status, warranty_start_date, warranty_end_date FROM devices WHERE serial_number IN ('GO-001', 'MX-001')`)
+      .all<{ status: string; warranty_start_date: string | null; warranty_end_date: string | null }>();
+    expect(devicesAfter).toHaveLength(2);
+    for (const d of devicesAfter) {
+      expect(d.status).toBe("IN_USE");
+      expect(d.warranty_start_date).not.toBeNull();
+      expect(d.warranty_end_date).not.toBeNull();
+    }
   });
 
   it("is idempotent — calling it again for the same order returns the existing protocol", async () => {

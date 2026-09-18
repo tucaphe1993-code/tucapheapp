@@ -51,7 +51,6 @@ export function ProtocolDetailClient({
 
   const installItems = checklist.filter((c) => c.category === "INSTALL");
   const guideItems = checklist.filter((c) => c.category === "GUIDE");
-  const allChecked = checklist.every((c) => c.is_checked);
   const canEditChecklist = protocol.status === "INSTALLING";
   const canEditInfo = isAdmin && protocol.status !== "HANDED_OVER" && protocol.status !== "WARRANTY_ACTIVATED" && protocol.status !== "COMPLETED";
 
@@ -319,19 +318,6 @@ export function ProtocolDetailClient({
       </Card>
 
       <div className="flex flex-wrap justify-end gap-2 pb-4">
-        {protocol.status === "PENDING_INSTALL" && (
-          <Button onClick={() => callAction("start", "Đã bắt đầu lắp đặt")} disabled={busy}>
-            {busy && <Loader2 className="h-4 w-4 animate-spin" />} Bắt đầu lắp đặt
-          </Button>
-        )}
-        {protocol.status === "INSTALLING" && (
-          <Button
-            onClick={() => callAction("submit-for-confirmation", "Đã gửi chờ xác nhận")}
-            disabled={busy || !allChecked}
-          >
-            {busy && <Loader2 className="h-4 w-4 animate-spin" />} Hoàn tất lắp đặt — Chờ xác nhận
-          </Button>
-        )}
         {protocol.status === "HANDED_OVER" && isAdmin && (
           <Button onClick={() => callAction("activate-warranty", "Đã kích hoạt bảo hành")} disabled={busy}>
             {busy && <Loader2 className="h-4 w-4 animate-spin" />} Kích hoạt bảo hành

@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { getDb } from "@/lib/db/client";
-import { newId } from "@/lib/db/id";
+import { newId, buildSkuFromCode } from "@/lib/db/id";
 import { slugify } from "@/lib/slug";
 import { requireRole } from "@/lib/auth/session";
 import { writeAuditLog } from "@/lib/audit";
 import { handleApiError, ConflictError, ValidationError } from "@/lib/api/errors";
+import { CATEGORY_TO_PRODUCT_TYPE } from "@/lib/constants";
 
 const createSchema = z.object({
   sku: z.string().trim().min(1, "Vui lòng nhập mã hàng"),
@@ -17,6 +18,11 @@ const createSchema = z.object({
   lowStockThreshold: z.number().int().nonnegative().default(10),
   isActive: z.boolean().default(true),
   note: z.string().trim().optional(),
+  // Chỉ cần khi Nhóm hàng = "Cà Phê" — cà phê đóng gói bắt buộc phải có
+  // hình thức/bao bì/quy cách thì mới chọn được ở "Tạo đơn cà phê".
+  form: z.enum(["HAT", "BOT"]).optional(),
+  packaging: z.enum(["TUI_XANH", "TUI_ZIP"]).optional(),
+  weightGrams: z.number().int().positive().optional(),
 });
 
 async function uniqueProductCode(db: D1Database, sku: string): Promise<string> {
@@ -45,14 +51,25 @@ export async function POST(req: NextRequest) {
     if (!parsed.success) {
       throw new ValidationError(parsed.error.issues[0]?.message ?? "Dữ liệu không hợp lệ");
     }
-    const { productName, category, unit, unitPrice, costPrice, lowStockThreshold, isActive, note } = parsed.data;
-    const sku = parsed.data.sku.toUpperCase();
+    const { productName, category, unit, unitPrice, costPrice, lowStockThreshold, isActive, note, form, packaging, weightGrams } =
+      parsed.data;
+    const productType = (category && CATEGORY_TO_PRODUCT_TYPE[category]) || "ACCESSORY";
+    const isCoffee = productType === "COFFEE";
+
+    if (isCoffee && (!form || !packaging || !weightGrams)) {
+      throw new ValidationError("Cà phê đóng gói cần chọn đủ Hình thức/Bao bì/Quy cách");
+    }
 
     const db = getDb();
+    const code = await uniqueProductCode(db, parsed.data.sku);
+    // Cà phê: SKU LUÔN tự sinh từ mã dòng + hình thức/bao bì/quy cách
+    // (không đổi, khớp đúng quy ước đang dùng ở "Theo dòng sản phẩm") —
+    // "Mã hàng" người dùng gõ chỉ đóng vai trò mã dòng sản phẩm (tiền tố).
+    const sku = isCoffee ? buildSkuFromCode(code, form!, packaging!, weightGrams!) : parsed.data.sku.toUpperCase();
+
     const dup = await db.prepare(`SELECT id FROM product_variants WHERE sku = ?`).bind(sku).first();
     if (dup) throw new ConflictError(`Mã hàng ${sku} đã tồn tại`);
 
-    const code = await uniqueProductCode(db, sku);
     const productId = newId();
     const slug = `${slugify(productName)}-${code.toLowerCase()}`;
     const variantId = newId();
@@ -60,19 +77,22 @@ export async function POST(req: NextRequest) {
 
     await db.batch([
       db
-        .prepare(`INSERT INTO products (id, name, slug, code, product_type) VALUES (?, ?, ?, ?, 'ACCESSORY')`)
-        .bind(productId, productName, slug, code),
+        .prepare(`INSERT INTO products (id, name, slug, code, product_type) VALUES (?, ?, ?, ?, ?)`)
+        .bind(productId, productName, slug, code, productType),
       db
         .prepare(
           `INSERT INTO product_variants
-             (id, product_id, sku, unit, unit_price, cost_price, category, note, is_active)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+             (id, product_id, form, packaging, weight_grams, sku, unit, unit_price, cost_price, category, note, is_active)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
         )
         .bind(
           variantId,
           productId,
+          isCoffee ? form : null,
+          isCoffee ? packaging : null,
+          isCoffee ? weightGrams : null,
           sku,
-          unit || "Cái",
+          unit || (isCoffee ? "Túi" : "Cái"),
           unitPrice,
           costPrice,
           category || null,

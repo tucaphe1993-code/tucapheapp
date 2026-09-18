@@ -20,6 +20,11 @@ import { formatVnd } from "@/lib/utils";
 import { PRODUCT_CATEGORY_OPTIONS } from "@/lib/constants";
 import type { UnitRow } from "@/types/db";
 
+// Nhóm hàng "Cà Phê" bắt buộc phải chọn đủ Hình thức/Bao bì/Quy cách thì
+// SKU tạo ra mới chọn được ở cascade "Tạo đơn cà phê" (§ /orders/new) —
+// khớp đúng luồng của tab "Theo dòng sản phẩm".
+const COFFEE_CATEGORY = "Cà Phê";
+
 // Modal "Thêm hàng hóa" — tạo nhanh 1 SKU giống ERP tham khảo, không cần
 // biết khái niệm dòng sản phẩm/biến thể (hệ thống tự tạo dòng sản phẩm
 // ẩn phía sau qua POST /api/variants). Không có mã vạch/nhóm-theo-loại —
@@ -35,6 +40,8 @@ export function AddHangHoaDialog() {
   const [costVatPercent, setCostVatPercent] = useState<number | "">(8);
   const [priceBeforeVat, setPriceBeforeVat] = useState<number | "">(0);
   const [vatPercent, setVatPercent] = useState<number | "">(8);
+  const [category, setCategory] = useState("");
+  const isCoffee = category === COFFEE_CATEGORY;
 
   useEffect(() => {
     if (!open) return;
@@ -60,6 +67,13 @@ export function AddHangHoaDialog() {
       lowStockThreshold: Number(form.get("lowStockThreshold") || 0),
       isActive: form.get("isActive") === "1",
       note: String(form.get("note") || ""),
+      ...(isCoffee
+        ? {
+            form: String(form.get("form")),
+            packaging: String(form.get("packaging")),
+            weightGrams: Number(form.get("weightGrams")),
+          }
+        : {}),
     };
     try {
       const res = await fetch("/api/variants", {
@@ -78,6 +92,7 @@ export function AddHangHoaDialog() {
       setCostVatPercent(8);
       setPriceBeforeVat(0);
       setVatPercent(8);
+      setCategory("");
       router.refresh();
     } finally {
       setLoading(false);
@@ -96,8 +111,14 @@ export function AddHangHoaDialog() {
         <form onSubmit={onSubmit} className="flex flex-col gap-3">
           <div className="grid grid-cols-2 gap-3">
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="sku">Mã hàng *</Label>
-              <Input id="sku" name="sku" required className="font-mono" placeholder="VD: HH020" />
+              <Label htmlFor="sku">{isCoffee ? "Mã dòng cà phê *" : "Mã hàng *"}</Label>
+              <Input
+                id="sku"
+                name="sku"
+                required
+                className="font-mono"
+                placeholder={isCoffee ? "VD: CBRANG (SKU tự sinh theo hình thức/bao bì/quy cách)" : "VD: HH020"}
+              />
             </div>
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="productName">Tên hàng *</Label>
@@ -107,7 +128,12 @@ export function AddHangHoaDialog() {
           <div className="grid grid-cols-2 gap-3">
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="category">Nhóm hàng</Label>
-              <Select id="category" name="category" defaultValue="">
+              <Select
+                id="category"
+                name="category"
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+              >
                 <option value="">-- Chọn --</option>
                 {PRODUCT_CATEGORY_OPTIONS.map((c) => (
                   <option key={c} value={c}>
@@ -118,7 +144,7 @@ export function AddHangHoaDialog() {
             </div>
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="unit">ĐVT</Label>
-              <Select id="unit" name="unit" defaultValue="Cái">
+              <Select id="unit" name="unit" defaultValue={isCoffee ? "Túi" : "Cái"} key={isCoffee ? "coffee" : "other"}>
                 {units.map((u) => (
                   <option key={u.code} value={u.name}>
                     {u.name}
@@ -127,6 +153,37 @@ export function AddHangHoaDialog() {
               </Select>
             </div>
           </div>
+          {isCoffee && (
+            <>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="form">Hình thức *</Label>
+                  <Select id="form" name="form" required defaultValue="HAT">
+                    <option value="HAT">Hạt</option>
+                    <option value="BOT">Bột</option>
+                  </Select>
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="packaging">Bao bì *</Label>
+                  <Select id="packaging" name="packaging" required defaultValue="TUI_XANH">
+                    <option value="TUI_XANH">Túi Xanh</option>
+                    <option value="TUI_ZIP">Túi Zip</option>
+                  </Select>
+                </div>
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="weightGrams">Quy cách (gram) *</Label>
+                <Select id="weightGrams" name="weightGrams" required defaultValue="500">
+                  <option value="250">250g</option>
+                  <option value="500">500g</option>
+                  <option value="1000">1kg</option>
+                  <option value="2000">2kg</option>
+                  <option value="5000">5kg</option>
+                  <option value="10000">10kg</option>
+                </Select>
+              </div>
+            </>
+          )}
           <div className="grid grid-cols-2 gap-3">
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="costBeforeVat">Giá nhập chưa VAT (đ)</Label>

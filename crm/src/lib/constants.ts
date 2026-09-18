@@ -64,6 +64,19 @@ export const PRODUCT_CATEGORY_OPTIONS = [
   "Linh Kiện",
 ] as const;
 
+// Nhóm hàng chọn ở modal "Thêm hàng hóa" QUYẾT ĐỊNH luôn loại sản phẩm
+// (product_type) — nếu không thì hàng tạo nhanh luôn rơi vào ACCESSORY,
+// không hiện được ở "Tạo đơn cà phê" (lọc theo product_type=COFFEE) hay
+// đúng nhóm máy ở "Tạo đơn thiết bị". Không chọn Nhóm hàng → mặc định
+// ACCESSORY (trung tính, không có luồng riêng).
+export const CATEGORY_TO_PRODUCT_TYPE: Record<string, string> = {
+  "Máy Pha Cà Phê": "BREWER",
+  "Máy Xay Cà Phê": "GRINDER",
+  "Cà Phê": "COFFEE",
+  "Máy Pha Chế": "EQUIPMENT",
+  "Linh Kiện": "ACCESSORY",
+};
+
 // Bên A trên biên bản lắp đặt/bàn giao và phiếu bán hàng.
 export const COMPANY_INFO = {
   name: "CÔNG TY TNHH SX - TM - DV TÚ CÀ PHÊ",

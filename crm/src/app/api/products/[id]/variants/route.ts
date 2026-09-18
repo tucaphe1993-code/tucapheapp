@@ -74,6 +74,21 @@ export async function POST(req: NextRequest, ctx: RouteContext<"/api/products/[i
 
       const dup = await db.prepare(`SELECT id FROM product_variants WHERE sku = ?`).bind(sku).first();
       if (dup) throw new ConflictError(`SKU ${sku} đã tồn tại`);
+      // SKU cũ (tạo trước khi có quy ước sinh SKU tự động) có thể khác chuỗi
+      // nhưng trùng tổ hợp Hình thức/Bao bì/Quy cách — DB có UNIQUE(product_id,
+      // form, packaging, weight_grams) sẽ chặn, kiểm tra trước để báo lỗi dễ
+      // hiểu thay vì để lộ lỗi hệ thống chung chung.
+      const dupCombo = await db
+        .prepare(
+          `SELECT sku FROM product_variants WHERE product_id = ? AND form = ? AND packaging = ? AND weight_grams = ?`
+        )
+        .bind(productId, form, packaging, weightGrams)
+        .first<{ sku: string }>();
+      if (dupCombo) {
+        throw new ConflictError(
+          `Dòng sản phẩm này đã có SKU cho tổ hợp Hình thức/Bao bì/Quy cách này rồi (mã ${dupCombo.sku}) — chọn tổ hợp khác`
+        );
+      }
       if (barcode) {
         const dupBarcode = await db.prepare(`SELECT id FROM product_variants WHERE barcode = ?`).bind(barcode).first();
         if (dupBarcode) throw new ConflictError(`Mã vạch ${barcode} đã được dùng cho SKU khác`);

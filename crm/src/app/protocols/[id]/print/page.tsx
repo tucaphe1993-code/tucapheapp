@@ -130,7 +130,7 @@ export default async function ProtocolPrintPage({ params }: PageProps<"/protocol
                     <td className="border border-stone-400 p-1.5 text-center">{idx + 1}</td>
                     <td className="border border-stone-400 p-1.5">{d.product_name}</td>
                     <td className="border border-stone-400 p-1.5">{d.model ?? "—"}</td>
-                    <td className="border border-stone-400 p-1.5 font-mono">{d.serial_number}</td>
+                    <td className="border border-stone-400 p-1.5 font-mono">{d.serial_number ?? "—"}</td>
                     <td className="border border-stone-400 p-1.5 text-center">{d.quantity}</td>
                     <td className="border border-stone-400 p-1.5">{d.condition ?? "—"}</td>
                     {showWarranty && (
@@ -213,7 +213,7 @@ export default async function ProtocolPrintPage({ params }: PageProps<"/protocol
                 const dev = d.device_id ? deviceWarranty.get(d.device_id) : undefined;
                 return (
                   <li key={d.id}>
-                    {d.product_name} — Serial {d.serial_number} — Bảo hành đến:{" "}
+                    {d.product_name} — Serial {d.serial_number ?? "—"} — Bảo hành đến:{" "}
                     {dev?.warranty_end_date ? formatDate(dev.warranty_end_date) : "—"}
                   </li>
                 );

@@ -191,12 +191,18 @@ export default async function OrderReceiptPrintPage({ params }: PageProps<"/orde
             <span className="text-stone-500">Tạm tính</span>
             <span>{formatVnd(subtotal)}</span>
           </div>
+          {order.discount_amount > 0 && (
+            <div className="flex justify-between">
+              <span className="text-stone-500">Giảm giá</span>
+              <span className="text-red-600">-{formatVnd(order.discount_amount)}</span>
+            </div>
+          )}
           <div className="flex justify-between border-t border-stone-300 pt-1 text-sm font-bold">
             <span>TỔNG THANH TOÁN</span>
             <span>{formatVnd(order.total_amount)}</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-stone-500">Đã thanh toán</span>
+            <span className="text-stone-500">Đã thanh toán (gồm cọc nếu có)</span>
             <span className="text-emerald-700">{formatVnd(paidAmount)}</span>
           </div>
           <div className="flex justify-between text-sm font-bold">

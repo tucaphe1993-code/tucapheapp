@@ -174,7 +174,7 @@ export function ProtocolDetailClient({
                             {d.serial_number}
                           </Link>
                         ) : (
-                          d.serial_number
+                          d.serial_number ?? "—"
                         )}
                       </td>
                       <td className="py-1.5 pr-3">{d.quantity}</td>

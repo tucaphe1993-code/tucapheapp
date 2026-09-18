@@ -14,6 +14,7 @@ import { CreateProtocolButton } from "@/components/orders/create-protocol-button
 import { ProtocolStatusBadge } from "@/components/protocols/protocol-status-badge";
 import { TaskPriorityBadge, TaskStatusBadge } from "@/components/tasks/task-status-badge";
 import { computeDebtStatus } from "@/lib/services/debts";
+import { INSTALLABLE_EQUIPMENT_TYPES } from "@/lib/constants";
 import { formatDate, formatDateTime, formatVnd } from "@/lib/utils";
 import type {
   CustomerRow,
@@ -43,7 +44,15 @@ export default async function OrderDetailPage({ params }: PageProps<"/orders/[id
   const [customer, { results: items }, { results: tasks }, { results: payments }, { results: installations }, protocol] =
     await Promise.all([
       db.prepare(`SELECT * FROM customers WHERE id = ?`).bind(order.customer_id).first<CustomerRow>(),
-      db.prepare(`SELECT * FROM order_items WHERE order_id = ?`).bind(id).all<OrderItemRow>(),
+      db
+        .prepare(
+          `SELECT oi.*, p.product_type FROM order_items oi
+           JOIN product_variants pv ON pv.id = oi.product_variant_id
+           JOIN products p ON p.id = pv.product_id
+           WHERE oi.order_id = ?`
+        )
+        .bind(id)
+        .all<OrderItemRow & { product_type: string }>(),
       db.prepare(`SELECT * FROM tasks WHERE order_id = ? ORDER BY created_at DESC`).bind(id).all<TaskRow>(),
       db.prepare(`SELECT * FROM payments WHERE order_id = ? ORDER BY paid_at DESC`).bind(id).all<PaymentRow>(),
       db
@@ -65,7 +74,11 @@ export default async function OrderDetailPage({ params }: PageProps<"/orders/[id
     dueDate: order.payment_due_date,
   });
 
-  const hasDeviceItems = items.some((i) => i.device_id);
+  // Có thiết bị/máy cần lắp đặt để lập biên bản — kể cả SKU chưa quản lý
+  // Serial (thiếu device_id) vẫn tính, chỉ cần đúng loại máy/thiết bị.
+  const hasDeviceItems = items.some(
+    (i) => i.device_id || (INSTALLABLE_EQUIPMENT_TYPES as readonly string[]).includes(i.product_type)
+  );
 
   const deviceIds = items.map((i) => i.device_id).filter((v): v is string => !!v);
   const deviceSerials = new Map<string, string>();

@@ -1,6 +1,7 @@
 import { getDb } from "@/lib/db/client";
 import { newId, nextProtocolCode } from "@/lib/db/id";
 import { ConflictError, NotFoundError } from "@/lib/api/errors";
+import { INSTALLABLE_EQUIPMENT_TYPES } from "@/lib/constants";
 import type { CustomerRow, OrderRow } from "@/types/db";
 
 /** Biên bản lắp đặt — 13 mục checklist kỹ thuật (spec cố định). */
@@ -37,10 +38,10 @@ export function buildGuideChecklistLabels(): string[] {
 }
 
 interface DeviceLineRow {
-  device_id: string;
+  device_id: string | null;
   product_name: string;
   model: string | null;
-  serial_number: string;
+  serial_number: string | null;
   quantity: number;
 }
 
@@ -76,18 +77,23 @@ export async function createProtocolFromOrder(
     .first<CustomerRow>();
   if (!customer) throw new NotFoundError("Không tìm thấy khách hàng");
 
+  // Lấy mọi dòng máy/thiết bị cần lắp đặt trong đơn — có Serial (device_id)
+  // thì kèm luôn số Serial, còn SKU máy/thiết bị KHÔNG quản lý Serial vẫn
+  // được liệt kê (chỉ thiếu số Serial) để biên bản vẫn lập được bình thường.
+  const placeholders = INSTALLABLE_EQUIPMENT_TYPES.map(() => "?").join(",");
   const { results: deviceLines } = await db
     .prepare(
       `SELECT oi.device_id, oi.product_name, pv.model, d.serial_number, oi.quantity
        FROM order_items oi
-       JOIN devices d ON d.id = oi.device_id
        JOIN product_variants pv ON pv.id = oi.product_variant_id
-       WHERE oi.order_id = ? AND oi.device_id IS NOT NULL`
+       JOIN products p ON p.id = pv.product_id
+       LEFT JOIN devices d ON d.id = oi.device_id
+       WHERE oi.order_id = ? AND (oi.device_id IS NOT NULL OR p.product_type IN (${placeholders}))`
     )
-    .bind(params.orderId)
+    .bind(params.orderId, ...INSTALLABLE_EQUIPMENT_TYPES)
     .all<DeviceLineRow>();
   if (deviceLines.length === 0) {
-    throw new ConflictError("Đơn hàng này chưa có thiết bị (Serial) nào để tạo biên bản");
+    throw new ConflictError("Đơn hàng này chưa có máy/thiết bị nào để tạo biên bản");
   }
 
   const { results: accessoryLines } = await db

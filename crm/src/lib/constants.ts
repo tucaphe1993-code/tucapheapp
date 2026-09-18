@@ -46,6 +46,12 @@ export function isBulkWeightProduct(productType: string, coffeeStage: string | n
 // lại để dùng cho luồng "Tạo đơn thiết bị".
 export const EQUIPMENT_PRODUCT_TYPES = ["BREWER", "GRINDER", "EQUIPMENT", "ACCESSORY"] as const;
 
+// Máy/thiết bị cần LẮP ĐẶT thật sự (khác phụ kiện đi kèm — ACCESSORY chỉ
+// liệt kê trong mục "phụ kiện" của biên bản, không tính là 1 "thiết bị").
+// Dùng để cho phép lập Biên bản lắp đặt & giao nhận ngay cả khi SKU chưa
+// bật quản lý Serial (§ protocols.ts — createProtocolFromOrder).
+export const INSTALLABLE_EQUIPMENT_TYPES = ["BREWER", "GRINDER", "EQUIPMENT"] as const;
+
 export const UNIT_OPTIONS = ["Kg", "Gram", "Túi", "Máy", "Cái", "Bộ", "Chiếc", "Lần", "Dịch vụ"] as const;
 
 // Nhóm hàng (§ Danh mục Hàng hóa) — danh sách cố định để lọc/thống kê

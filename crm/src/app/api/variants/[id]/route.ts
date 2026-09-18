@@ -5,6 +5,7 @@ import { requireRole } from "@/lib/auth/session";
 import { writeAuditLog } from "@/lib/audit";
 import { variantsHaveHistory } from "@/lib/services/products";
 import { handleApiError, NotFoundError, ValidationError } from "@/lib/api/errors";
+import { CATEGORY_TO_PRODUCT_TYPE } from "@/lib/constants";
 import type { ProductVariantRow } from "@/types/db";
 
 const updateSchema = z.object({
@@ -47,6 +48,31 @@ export async function PATCH(req: NextRequest, ctx: RouteContext<"/api/variants/[
       .bind(id)
       .first<ProductVariantRow>();
     if (!existing) throw new NotFoundError("Không tìm thấy SKU");
+
+    // Nhóm hàng chọn ở "Sửa hàng hóa" quyết định luôn product_type (giống
+    // "Thêm hàng hóa") — cho phép sửa lại loại sản phẩm cho hàng tạo trước
+    // khi có quy ước này (vd máy/thiết bị bị lưu nhầm ACCESSORY, không hiện
+    // được ở "Tạo biên bản lắp đặt"/"Phiếu bảo hành"). Không đụng tới cà phê
+    // đóng gói ở đây — loại đó cần cascade Hình thức/Bao bì/Quy cách, phải
+    // quản lý qua tab "Theo dòng sản phẩm".
+    if (parsed.data.category !== undefined && parsed.data.category !== (existing.category ?? "")) {
+      const product = await db
+        .prepare(`SELECT product_type FROM products WHERE id = ?`)
+        .bind(existing.product_id)
+        .first<{ product_type: string }>();
+      const newProductType = (parsed.data.category && CATEGORY_TO_PRODUCT_TYPE[parsed.data.category]) || "ACCESSORY";
+      if (product?.product_type === "COFFEE" || newProductType === "COFFEE") {
+        throw new ValidationError(
+          "Không đổi Nhóm hàng cà phê ở đây — dùng \"Thêm biến thể\" ở tab Theo dòng sản phẩm"
+        );
+      }
+      if (product && newProductType !== product.product_type) {
+        await db
+          .prepare(`UPDATE products SET product_type = ?, updated_at = datetime('now') WHERE id = ?`)
+          .bind(newProductType, existing.product_id)
+          .run();
+      }
+    }
 
     if (parsed.data.requiresSerial === false && existing.requires_serial) {
       const hasDevices = await db

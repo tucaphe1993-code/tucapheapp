@@ -68,6 +68,8 @@ export default async function ProductsPage({ searchParams }: PageProps<"/product
       isActive: v.is_active,
       note: v.note,
       requiresSerial: v.requires_serial,
+      productType: productsById.get(v.product_id)!.product_type,
+      warrantyMonths: v.warranty_months,
     }));
 
   const isGroupView = view === "group";

@@ -32,6 +32,8 @@ export interface HangHoaItem {
   isActive: number;
   note: string | null;
   requiresSerial: number;
+  productType: string;
+  warrantyMonths: number | null;
 }
 
 // Modal "Sửa hàng hóa" dùng chung cho mọi loại (cà phê/máy/thiết bị) — sửa
@@ -68,6 +70,10 @@ export function VariantEditDialog({ item }: { item: HangHoaItem }) {
     };
     if (!item.requiresSerial) {
       payload.lowStockThreshold = Number(form.get("lowStockThreshold") || 0);
+    }
+    if (item.productType !== "COFFEE") {
+      const warrantyMonths = form.get("warrantyMonths");
+      if (warrantyMonths) payload.warrantyMonths = Number(warrantyMonths);
     }
     try {
       const res = await fetch(`/api/variants/${item.id}`, {
@@ -131,17 +137,25 @@ export function VariantEditDialog({ item }: { item: HangHoaItem }) {
           <div className="grid grid-cols-2 gap-3">
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="category">Nhóm hàng</Label>
-              <Select id="category" name="category" defaultValue={item.category ?? ""}>
-                <option value="">-- Chọn --</option>
-                {item.category && !PRODUCT_CATEGORY_OPTIONS.includes(item.category as (typeof PRODUCT_CATEGORY_OPTIONS)[number]) && (
-                  <option value={item.category}>{item.category}</option>
-                )}
-                {PRODUCT_CATEGORY_OPTIONS.map((c) => (
-                  <option key={c} value={c}>
-                    {c}
-                  </option>
-                ))}
-              </Select>
+              {item.productType === "COFFEE" ? (
+                <>
+                  <Input value={item.category ?? "Cà Phê"} disabled />
+                  <input type="hidden" name="category" value={item.category ?? "Cà Phê"} />
+                  <p className="text-xs text-stone-400">Cà phê đóng gói — đổi nhóm hàng ở tab Theo dòng sản phẩm</p>
+                </>
+              ) : (
+                <Select id="category" name="category" defaultValue={item.category ?? ""}>
+                  <option value="">-- Chọn --</option>
+                  {item.category && !PRODUCT_CATEGORY_OPTIONS.includes(item.category as (typeof PRODUCT_CATEGORY_OPTIONS)[number]) && (
+                    <option value={item.category}>{item.category}</option>
+                  )}
+                  {PRODUCT_CATEGORY_OPTIONS.filter((c) => c !== "Cà Phê").map((c) => (
+                    <option key={c} value={c}>
+                      {c}
+                    </option>
+                  ))}
+                </Select>
+              )}
             </div>
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="unit">ĐVT</Label>
@@ -154,9 +168,24 @@ export function VariantEditDialog({ item }: { item: HangHoaItem }) {
               </Select>
             </div>
           </div>
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="barcode">Mã vạch (Barcode)</Label>
-            <Input id="barcode" name="barcode" defaultValue={item.barcode ?? ""} />
+          <div className="grid grid-cols-2 gap-3">
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="barcode">Mã vạch (Barcode)</Label>
+              <Input id="barcode" name="barcode" defaultValue={item.barcode ?? ""} />
+            </div>
+            {item.productType !== "COFFEE" && (
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="warrantyMonths">Bảo hành (tháng)</Label>
+                <Input
+                  id="warrantyMonths"
+                  name="warrantyMonths"
+                  type="number"
+                  min={0}
+                  defaultValue={item.warrantyMonths ?? ""}
+                  placeholder="VD: 12"
+                />
+              </div>
+            )}
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="flex flex-col gap-1.5">

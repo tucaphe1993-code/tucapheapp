@@ -4,22 +4,13 @@ import { ConflictError, NotFoundError } from "@/lib/api/errors";
 import { INSTALLABLE_EQUIPMENT_TYPES } from "@/lib/constants";
 import type { CustomerRow, OrderRow } from "@/types/db";
 
-/** Biên bản lắp đặt — 13 mục checklist kỹ thuật (spec cố định). */
+/** Biên bản lắp đặt — 4 mục checklist rút gọn (spec cố định). */
 export function buildInstallChecklistLabels(): string[] {
   return [
-    "Kiểm tra vị trí lắp đặt",
-    "Kiểm tra nguồn điện",
-    "Kiểm tra nguồn nước",
-    "Lắp đặt thiết bị",
-    "Kiểm tra áp suất",
-    "Kiểm tra nhiệt độ",
-    "Kiểm tra rò rỉ",
-    "Kiểm tra hệ thống cấp nước",
-    "Kiểm tra hệ thống xả",
-    "Chạy thử máy",
-    "Kiểm tra máy xay",
-    "Kiểm tra phụ kiện",
-    "Vệ sinh thiết bị sau lắp đặt",
+    "Kiểm tra máy & phụ kiện đi kèm",
+    "Kiểm tra điện – nước – đường xả",
+    "Lắp đặt & cân chỉnh máy",
+    "Test máy & pha thử Espresso",
   ];
 }
 

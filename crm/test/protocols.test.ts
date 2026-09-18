@@ -148,7 +148,7 @@ describe("createProtocolFromOrder", () => {
       .prepare(`SELECT category FROM handover_protocol_checklist WHERE protocol_id = ?`)
       .bind(protocolId)
       .all<{ category: string }>();
-    expect(checklist.filter((c) => c.category === "INSTALL")).toHaveLength(13);
+    expect(checklist.filter((c) => c.category === "INSTALL")).toHaveLength(4);
     expect(checklist.filter((c) => c.category === "GUIDE")).toHaveLength(8);
   });
 

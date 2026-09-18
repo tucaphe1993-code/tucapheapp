@@ -161,6 +161,10 @@ export default async function OrderWarrantyPrintPage({ params }: PageProps<"/ord
             <div className="mt-1 text-[10px] font-semibold tracking-wide text-stone-500">
               {COMPANY_INFO.tagline}
             </div>
+            <div className="mt-1 text-[10px] font-semibold" style={{ color: GREEN }}>
+              Máy Pha Cà Phê Bà Rịa Vũng Tàu
+            </div>
+            <div className="text-[10px] text-amber-800">www.mayphacaphevungtau.vn</div>
             <div className="mt-1 text-[10px] text-stone-600">
               Địa chỉ: {COMPANY_INFO.address} &nbsp;·&nbsp; Hotline: {COMPANY_INFO.phone}
             </div>
@@ -298,7 +302,7 @@ export default async function OrderWarrantyPrintPage({ params }: PageProps<"/ord
                 const endDate = activated
                   ? new Date(device!.warranty_end_date!.replace(" ", "T") + "Z")
                   : addWarrantyMonths(order.created_at, item.warranty_months);
-                const condition = (device && protocolDeviceConditions.get(device.id)) ?? "—";
+                const condition = (device && protocolDeviceConditions.get(device.id)) ?? "Mới 100%";
                 return (
                   <tr key={item.id}>
                     <td className="border border-stone-300 p-1.5 text-center">{idx + 1}</td>

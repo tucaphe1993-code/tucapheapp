@@ -11,6 +11,13 @@ import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { CustomerFormDialog } from "@/components/customers/customer-form-dialog";
 import { formatVnd } from "@/lib/utils";
 import {
@@ -71,6 +78,10 @@ export function OrderBuilder({ mode }: { mode: "coffee" | "equipment" }) {
   const [depositMethod, setDepositMethod] = useState("");
   const [vatIncluded, setVatIncluded] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  // "Xem thử" chỉ hiển thị tạm bảng tổng kết đơn hàng từ dữ liệu đang nhập
+  // trên form — không gọi API, không lưu gì cả — để kiểm tra lại trước khi
+  // bấm "Tạo đơn" thật.
+  const [previewOpen, setPreviewOpen] = useState(false);
 
   useEffect(() => {
     fetch("/api/products")
@@ -549,13 +560,128 @@ export function OrderBuilder({ mode }: { mode: "coffee" | "equipment" }) {
               <span>Tổng cộng</span>
               <span>{formatVnd(total)}</span>
             </div>
-            <Button size="lg" onClick={onSubmit} disabled={submitting} className="mt-2 w-full">
+            <Button
+              variant="outline"
+              className="mt-2 w-full"
+              disabled={cart.length === 0}
+              onClick={() => setPreviewOpen(true)}
+            >
+              Xem thử đơn nháp
+            </Button>
+            <Button size="lg" onClick={onSubmit} disabled={submitting} className="w-full">
               {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
               Tạo đơn
             </Button>
           </CardContent>
         </Card>
       </div>
+
+      <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Xem thử đơn hàng (chưa lưu)</DialogTitle>
+          </DialogHeader>
+          <div className="flex flex-col gap-3 text-sm">
+            <div className="rounded-lg bg-amber-50 p-3">
+              <div className="font-medium">{customer ? customer.name : "Khách lẻ (chưa chọn khách hàng)"}</div>
+              {mode === "equipment" ? (
+                <>
+                  {contactPhone && <div className="text-stone-500">{contactPhone}</div>}
+                  {contactAddress && <div className="text-stone-500">{contactAddress}</div>}
+                </>
+              ) : (
+                <>
+                  {customer?.phone && <div className="text-stone-500">{customer.phone}</div>}
+                  {customer?.address && <div className="text-stone-500">{customer.address}</div>}
+                </>
+              )}
+            </div>
+
+            <table className="w-full border-collapse text-sm">
+              <thead>
+                <tr className="border-b border-stone-200 text-left text-stone-500">
+                  <th className="pb-1.5 font-normal">Sản phẩm</th>
+                  <th className="pb-1.5 text-right font-normal">SL</th>
+                  <th className="pb-1.5 text-right font-normal">Thành tiền</th>
+                </tr>
+              </thead>
+              <tbody>
+                {cart.map((l) => (
+                  <tr key={lineKey(l)} className="border-b border-stone-100">
+                    <td className="py-1.5">
+                      <div>{l.productName}</div>
+                      <div className="text-xs text-stone-500">
+                        {l.serialNumber ? (
+                          <>Serial: {l.serialNumber}</>
+                        ) : l.variant.form ? (
+                          <>
+                            {FORM_LABEL[l.variant.form]} · {PACKAGING_LABEL[l.variant.packaging!]} ·{" "}
+                            {l.variant.weight_grams! >= 1000
+                              ? `${l.variant.weight_grams! / 1000}kg`
+                              : `${l.variant.weight_grams}g`}
+                          </>
+                        ) : (
+                          <>{l.variant.sku}</>
+                        )}
+                      </div>
+                    </td>
+                    <td className="py-1.5 text-right align-top">{l.quantity}</td>
+                    <td className="py-1.5 text-right align-top font-medium">
+                      {formatVnd(priceFor(l.variant) * l.quantity)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+
+            <div className="flex flex-col gap-1 border-t border-dashed border-stone-300 pt-2">
+              <div className="flex justify-between font-semibold">
+                <span>Tổng cộng</span>
+                <span>{formatVnd(total)}</span>
+              </div>
+              {mode === "equipment" && Number(depositAmount) > 0 && (
+                <>
+                  <div className="flex justify-between text-stone-500">
+                    <span>Đã cọc</span>
+                    <span>{formatVnd(Number(depositAmount))}</span>
+                  </div>
+                  <div className="flex justify-between font-medium">
+                    <span>Còn lại</span>
+                    <span>{formatVnd(Math.max(0, total - (Number(depositAmount) || 0)))}</span>
+                  </div>
+                </>
+              )}
+            </div>
+
+            {(deliveryDate || deliveryMethod || note) && (
+              <div className="rounded-lg bg-stone-50 p-3 text-stone-600">
+                {deliveryDate && <div>Ngày giao: {deliveryDate}</div>}
+                {deliveryMethod && <div>Cách thức giao: {deliveryMethod}</div>}
+                {note && <div>Ghi chú: {note}</div>}
+              </div>
+            )}
+
+            <p className="text-xs text-stone-400">
+              Đây là bản xem thử — chưa lưu vào hệ thống, chưa trừ kho/tạo công nợ. Bấm &quot;Tạo đơn&quot; để lưu thật.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPreviewOpen(false)}>
+              Đóng
+            </Button>
+            <Button
+              onClick={() => {
+                setPreviewOpen(false);
+                onSubmit();
+              }}
+              disabled={submitting}
+            >
+              {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
+              Tạo đơn ngay
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -149,19 +149,22 @@ export async function createProtocolFromOrder(
         )
         .bind(newId(), protocolId, a.name, a.quantity, idx)
     ),
+    // Tích sẵn hết — biên bản dùng như phiếu in mang đi lắp đặt/xác nhận
+    // nhanh, không bắt buộc tick tay từng mục qua app mới đủ điều kiện
+    // "Hoàn tất lắp đặt".
     ...installLabels.map((label, idx) =>
       db
         .prepare(
-          `INSERT INTO handover_protocol_checklist (id, protocol_id, category, label, sort_order)
-           VALUES (?, ?, 'INSTALL', ?, ?)`
+          `INSERT INTO handover_protocol_checklist (id, protocol_id, category, label, sort_order, is_checked, checked_at)
+           VALUES (?, ?, 'INSTALL', ?, ?, 1, datetime('now'))`
         )
         .bind(newId(), protocolId, label, idx)
     ),
     ...guideLabels.map((label, idx) =>
       db
         .prepare(
-          `INSERT INTO handover_protocol_checklist (id, protocol_id, category, label, sort_order)
-           VALUES (?, ?, 'GUIDE', ?, ?)`
+          `INSERT INTO handover_protocol_checklist (id, protocol_id, category, label, sort_order, is_checked, checked_at)
+           VALUES (?, ?, 'GUIDE', ?, ?, 1, datetime('now'))`
         )
         .bind(newId(), protocolId, label, idx)
     ),

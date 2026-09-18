@@ -52,21 +52,26 @@ export async function PATCH(req: NextRequest, ctx: RouteContext<"/api/variants/[
     // Nhóm hàng chọn ở "Sửa hàng hóa" quyết định luôn product_type (giống
     // "Thêm hàng hóa") — cho phép sửa lại loại sản phẩm cho hàng tạo trước
     // khi có quy ước này (vd máy/thiết bị bị lưu nhầm ACCESSORY, không hiện
-    // được ở "Tạo biên bản lắp đặt"/"Phiếu bảo hành"). Không đụng tới cà phê
-    // đóng gói ở đây — loại đó cần cascade Hình thức/Bao bì/Quy cách, phải
-    // quản lý qua tab "Theo dòng sản phẩm".
-    if (parsed.data.category !== undefined && parsed.data.category !== (existing.category ?? "")) {
+    // được ở "Tạo biên bản lắp đặt"/"Phiếu bảo hành"). Luôn đối chiếu lại
+    // product_type theo Nhóm hàng gửi lên — KHÔNG chỉ khi text category đổi,
+    // vì hàng cũ có thể đã có sẵn category="Máy Pha Cà Phê" (chỉ để hiển
+    // thị) trong khi product_type thật sự vẫn là ACCESSORY chưa từng được
+    // đồng bộ, nên chọn lại đúng giá trị cũ và lưu vẫn phải sửa được. Không
+    // đụng tới cà phê đóng gói ở đây — loại đó cần cascade Hình thức/Bao
+    // bì/Quy cách, phải quản lý qua tab "Theo dòng sản phẩm".
+    if (parsed.data.category !== undefined) {
       const product = await db
         .prepare(`SELECT product_type FROM products WHERE id = ?`)
         .bind(existing.product_id)
         .first<{ product_type: string }>();
       const newProductType = (parsed.data.category && CATEGORY_TO_PRODUCT_TYPE[parsed.data.category]) || "ACCESSORY";
       if (product?.product_type === "COFFEE" || newProductType === "COFFEE") {
-        throw new ValidationError(
-          "Không đổi Nhóm hàng cà phê ở đây — dùng \"Thêm biến thể\" ở tab Theo dòng sản phẩm"
-        );
-      }
-      if (product && newProductType !== product.product_type) {
+        if (newProductType !== product?.product_type) {
+          throw new ValidationError(
+            "Không đổi Nhóm hàng cà phê ở đây — dùng \"Thêm biến thể\" ở tab Theo dòng sản phẩm"
+          );
+        }
+      } else if (product && newProductType !== product.product_type) {
         await db
           .prepare(`UPDATE products SET product_type = ?, updated_at = datetime('now') WHERE id = ?`)
           .bind(newProductType, existing.product_id)

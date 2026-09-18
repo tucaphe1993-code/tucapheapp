@@ -116,17 +116,45 @@ export function OrderBuilder({ mode }: { mode: "coffee" | "equipment" }) {
   const selectedProduct = products.find((p) => p.id === productId);
   const isCoffee = selectedProduct?.product_type === "COFFEE";
 
+  // Không phải dòng cà phê nào cũng có đủ 2x2 tổ hợp Hạt/Bột x Túi Xanh/
+  // Túi Zip — chỉ hiện những lựa chọn THỰC SỰ có SKU, tránh chọn xong Quy
+  // cách trống trơn (không có SKU nào khớp).
+  const availableForms = useMemo(() => {
+    if (!selectedProduct || !isCoffee) return [];
+    return [...new Set(selectedProduct.variants.filter((v) => v.is_active && v.form).map((v) => v.form as string))];
+  }, [selectedProduct, isCoffee]);
+
+  // Sản phẩm đổi mà Hạt/Bột đang chọn không còn hợp lệ (dòng mới không có
+  // SKU đó) → rơi về lựa chọn hợp lệ đầu tiên, tính trực tiếp thay vì đồng
+  // bộ qua state để tránh set-state-trong-effect và double render.
+  const effectiveForm = availableForms.includes(form) ? form : (availableForms[0] ?? form);
+
+  const availablePackagings = useMemo(() => {
+    if (!selectedProduct || !isCoffee) return [];
+    return [
+      ...new Set(
+        selectedProduct.variants
+          .filter((v) => v.is_active && v.form === effectiveForm && v.packaging)
+          .map((v) => v.packaging as string)
+      ),
+    ];
+  }, [selectedProduct, isCoffee, effectiveForm]);
+
+  const effectivePackaging = availablePackagings.includes(packaging)
+    ? packaging
+    : (availablePackagings[0] ?? packaging);
+
   const availableWeights = useMemo(() => {
     if (!selectedProduct || !isCoffee) return [];
     return selectedProduct.variants
-      .filter((v) => v.form === form && v.packaging === packaging && v.is_active)
+      .filter((v) => v.form === effectiveForm && v.packaging === effectivePackaging && v.is_active)
       .map((v) => v.weight_grams as number)
       .sort((a, b) => a - b);
-  }, [selectedProduct, isCoffee, form, packaging]);
+  }, [selectedProduct, isCoffee, effectiveForm, effectivePackaging]);
 
   const matchedVariant = isCoffee
     ? selectedProduct?.variants.find(
-        (v) => v.form === form && v.packaging === packaging && v.weight_grams === weight
+        (v) => v.form === effectiveForm && v.packaging === effectivePackaging && v.weight_grams === weight
       )
     : selectedProduct?.variants.find((v) => v.id === variantId);
 
@@ -352,27 +380,34 @@ export function OrderBuilder({ mode }: { mode: "coffee" | "equipment" }) {
                   <div className="flex flex-col gap-1.5">
                     <Label>Hạt / Bột</Label>
                     <Select
-                      value={form}
+                      value={effectiveForm}
                       onChange={(e) => {
                         setForm(e.target.value);
+                        setPackaging("");
                         setWeight("");
                       }}
                     >
-                      <option value="HAT">Hạt</option>
-                      <option value="BOT">Bột</option>
+                      {availableForms.map((f) => (
+                        <option key={f} value={f}>
+                          {FORM_LABEL[f] ?? f}
+                        </option>
+                      ))}
                     </Select>
                   </div>
                   <div className="flex flex-col gap-1.5">
                     <Label>Bao bì</Label>
                     <Select
-                      value={packaging}
+                      value={effectivePackaging}
                       onChange={(e) => {
                         setPackaging(e.target.value);
                         setWeight("");
                       }}
                     >
-                      <option value="TUI_XANH">Túi Xanh</option>
-                      <option value="TUI_ZIP">Túi Zip</option>
+                      {availablePackagings.map((p) => (
+                        <option key={p} value={p}>
+                          {PACKAGING_LABEL[p] ?? p}
+                        </option>
+                      ))}
                     </Select>
                   </div>
                 </div>

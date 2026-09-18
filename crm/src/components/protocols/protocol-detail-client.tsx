@@ -286,7 +286,7 @@ export function ProtocolDetailClient({
               // eslint-disable-next-line @next/next/no-img-element
               <img src={protocol.signature_a_data} alt="Chữ ký bên A" className="h-24 border-b border-stone-300" />
             ) : protocol.status === "PENDING_CONFIRMATION" ? (
-              <SignDialog protocolId={protocol.id} party="A" label="Ký (Bên A)" defaultName={technicianName ?? ""} />
+              <SignDialog protocolId={protocol.id} party="A" label="Ký (Bên A)" defaultName={COMPANY_INFO.brandName} />
             ) : (
               <div className="h-24 w-full rounded-lg border border-dashed border-stone-300" />
             )}
@@ -301,8 +301,11 @@ export function ProtocolDetailClient({
             {protocol.signature_b_data ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={protocol.signature_b_data} alt="Chữ ký bên B" className="h-24 border-b border-stone-300" />
-            ) : protocol.status === "PENDING_CONFIRMATION" ? (
-              <SignDialog protocolId={protocol.id} party="B" label="Ký (Bên B)" defaultName={customer?.name ?? ""} />
+            ) : protocol.status === "PENDING_CONFIRMATION" || protocol.status === "HANDED_OVER" ? (
+              <>
+                <SignDialog protocolId={protocol.id} party="B" label="Ký (Bên B)" defaultName={customer?.name ?? ""} />
+                <div className="text-xs text-stone-400">(Không bắt buộc — vẫn kích hoạt bảo hành được)</div>
+              </>
             ) : (
               <div className="h-24 w-full rounded-lg border border-dashed border-stone-300" />
             )}

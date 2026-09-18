@@ -23,7 +23,7 @@ export async function POST(_req: Request, ctx: RouteContext<"/api/protocols/[id]
       .first<HandoverProtocolRow>();
     if (!protocol) throw new NotFoundError("Không tìm thấy biên bản");
     if (protocol.status !== "HANDED_OVER") {
-      throw new ValidationError("Chỉ kích hoạt bảo hành sau khi đã bàn giao (đủ chữ ký 2 bên)");
+      throw new ValidationError("Chỉ kích hoạt bảo hành sau khi đã bàn giao (Bên A đã ký)");
     }
 
     const cas = await db

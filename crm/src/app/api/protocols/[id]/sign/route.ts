@@ -40,8 +40,12 @@ export async function POST(req: NextRequest, ctx: RouteContext<"/api/protocols/[
     if (session.user.role === "EMPLOYEE" && protocol.technician_id !== session.user.id) {
       throw new ForbiddenError();
     }
-    if (protocol.status !== "PENDING_CONFIRMATION") {
-      throw new ValidationError("Chỉ ký khi biên bản đang ở trạng thái Chờ xác nhận");
+    // Bên B (khách hàng) không bắt buộc phải ký mới bàn giao/kích hoạt bảo
+    // hành được (chỉ cần Bên A xác nhận) — nhưng vẫn cho khách ký thêm sau
+    // đó nếu muốn, nên vẫn nhận chữ ký khi đã HANDED_OVER, chỉ chặn sau khi
+    // đã kích hoạt bảo hành.
+    if (protocol.status !== "PENDING_CONFIRMATION" && protocol.status !== "HANDED_OVER") {
+      throw new ValidationError("Chỉ ký khi biên bản đang ở trạng thái Chờ xác nhận hoặc Đã bàn giao");
     }
 
     const { party, name, signatureData } = parsed.data;
@@ -61,8 +65,9 @@ export async function POST(req: NextRequest, ctx: RouteContext<"/api/protocols/[
       .bind(id)
       .first<HandoverProtocolRow>();
 
-    // Once both parties have signed, the handover is complete.
-    if (refreshed!.signature_a_data && refreshed!.signature_b_data && refreshed!.status === "PENDING_CONFIRMATION") {
+    // Chỉ cần Bên A (Tú Cà Phê) ký là coi như đã bàn giao — chữ ký Bên B
+    // (khách hàng) là tùy chọn, không chặn kích hoạt bảo hành.
+    if (refreshed!.signature_a_data && refreshed!.status === "PENDING_CONFIRMATION") {
       await db
         .prepare(
           `UPDATE handover_protocols SET status = 'HANDED_OVER', handed_over_at = datetime('now'), updated_at = datetime('now')

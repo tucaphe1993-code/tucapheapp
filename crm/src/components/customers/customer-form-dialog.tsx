@@ -47,6 +47,8 @@ export function CustomerFormDialog({
       province: String(form.get("province") || ""),
       note: String(form.get("note") || ""),
       idCardNumber: String(form.get("idCardNumber") || ""),
+      companyName: String(form.get("companyName") || ""),
+      taxCode: String(form.get("taxCode") || ""),
     };
     try {
       const res = await fetch(isEdit ? `/api/customers/${customer!.id}` : "/api/customers", {
@@ -94,6 +96,16 @@ export function CustomerFormDialog({
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="idCardNumber">Số CCCD</Label>
               <Input id="idCardNumber" name="idCardNumber" defaultValue={customer?.id_card_number ?? ""} />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="companyName">Tên cửa hàng/công ty</Label>
+              <Input id="companyName" name="companyName" defaultValue={customer?.company_name ?? ""} />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="taxCode">MST (nếu có)</Label>
+              <Input id="taxCode" name="taxCode" defaultValue={customer?.tax_code ?? ""} />
             </div>
           </div>
           <div className="flex flex-col gap-1.5">

@@ -14,6 +14,8 @@ const updateSchema = z.object({
   province: z.string().trim().optional().nullable(),
   note: z.string().trim().optional().nullable(),
   idCardNumber: z.string().trim().optional().nullable(),
+  companyName: z.string().trim().optional().nullable(),
+  taxCode: z.string().trim().optional().nullable(),
 });
 
 export async function GET(_req: NextRequest, ctx: RouteContext<"/api/customers/[id]">) {
@@ -59,9 +61,13 @@ export async function PATCH(req: NextRequest, ctx: RouteContext<"/api/customers/
     const next = { ...existing, ...parsed.data };
     const nextIdCardNumber =
       parsed.data.idCardNumber === undefined ? existing.id_card_number : parsed.data.idCardNumber || null;
+    const nextCompanyName =
+      parsed.data.companyName === undefined ? existing.company_name : parsed.data.companyName || null;
+    const nextTaxCode = parsed.data.taxCode === undefined ? existing.tax_code : parsed.data.taxCode || null;
     await db
       .prepare(
-        `UPDATE customers SET name = ?, phone = ?, email = ?, address = ?, province = ?, note = ?, id_card_number = ?, updated_at = datetime('now')
+        `UPDATE customers SET name = ?, phone = ?, email = ?, address = ?, province = ?, note = ?, id_card_number = ?,
+           company_name = ?, tax_code = ?, updated_at = datetime('now')
          WHERE id = ?`
       )
       .bind(
@@ -72,6 +78,8 @@ export async function PATCH(req: NextRequest, ctx: RouteContext<"/api/customers/
         next.province || null,
         next.note || null,
         nextIdCardNumber,
+        nextCompanyName,
+        nextTaxCode,
         id
       )
       .run();

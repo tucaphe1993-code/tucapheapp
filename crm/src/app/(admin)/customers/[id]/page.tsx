@@ -162,6 +162,14 @@ export default async function CustomerDetailPage({
             {customer.id_card_number || "—"}
           </div>
           <div>
+            <span className="text-stone-500">Tên công ty: </span>
+            {customer.company_name || "—"}
+          </div>
+          <div>
+            <span className="text-stone-500">MST: </span>
+            {customer.tax_code || "—"}
+          </div>
+          <div>
             <span className="text-stone-500">Email: </span>
             {customer.email || "—"}
           </div>

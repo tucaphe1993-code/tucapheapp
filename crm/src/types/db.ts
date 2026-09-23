@@ -102,6 +102,9 @@ export interface CustomerRow {
   // Số CCCD — thu thập để tra cứu khi khách gọi bảo hành chỉ nhớ CCCD
   // thay vì mã phiếu/mã KH.
   id_card_number: string | null;
+  // Tên cửa hàng/công ty + MST — cần cho báo giá B2B (§ Báo giá).
+  company_name: string | null;
+  tax_code: string | null;
   // Hạn mức công nợ — 0 nghĩa là không giới hạn (§ Công nợ phải thu).
   credit_limit: number;
   is_deleted: number;
@@ -584,4 +587,66 @@ export interface RoastBatchRow {
   created_by: string;
   created_at: string;
   updated_at: string;
+}
+
+export type QuotePriceType = "RETAIL" | "WHOLESALE" | "AGENT" | "CUSTOM";
+export type QuoteStatus = "DRAFT" | "SENT" | "VIEWED" | "ACCEPTED" | "REJECTED" | "EXPIRED" | "CONVERTED";
+
+export interface QuotationRow {
+  id: string;
+  quote_code: string;
+  customer_id: string | null;
+  customer_name_snapshot: string;
+  customer_phone_snapshot: string | null;
+  customer_company_snapshot: string | null;
+  customer_address_snapshot: string | null;
+  customer_tax_code_snapshot: string | null;
+  customer_email_snapshot: string | null;
+  quote_date: string;
+  valid_until: string | null;
+  price_type: QuotePriceType;
+  status: QuoteStatus;
+  subtotal: number;
+  discount_amount: number;
+  vat_amount: number;
+  shipping_fee: number;
+  total_amount: number;
+  note: string | null;
+  reject_reason: string | null;
+  public_token: string;
+  assigned_to: string | null;
+  created_by: string;
+  converted_order_id: string | null;
+  sent_at: string | null;
+  viewed_at: string | null;
+  accepted_at: string | null;
+  rejected_at: string | null;
+  converted_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface QuotationItemRow {
+  id: string;
+  quotation_id: string;
+  product_variant_id: string | null;
+  product_name: string;
+  description: string | null;
+  unit: string;
+  quantity: number;
+  unit_price: number;
+  discount_percent: number;
+  discount_amount: number;
+  vat_percent: number;
+  line_total: number;
+  sort_order: number;
+}
+
+export interface QuotationEventRow {
+  id: string;
+  quotation_id: string;
+  action: string;
+  note: string | null;
+  user_id: string | null;
+  created_at: string;
 }

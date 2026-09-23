@@ -24,6 +24,7 @@ import {
   Banknote,
   Truck,
   BarChart3,
+  FileSignature,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -35,6 +36,7 @@ const NAV_GROUPS = [
   {
     label: "Vận hành",
     items: [
+      { href: "/bao-gia", label: "Báo giá", icon: FileSignature },
       { href: "/orders", label: "Đơn hàng", icon: ClipboardList },
       { href: "/orders/new", label: "Tạo đơn cà phê", icon: PlusCircle },
       { href: "/orders/new-equipment", label: "Tạo đơn thiết bị", icon: Wrench },

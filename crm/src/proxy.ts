@@ -7,10 +7,12 @@ import { SESSION_COOKIE } from "@/lib/auth/session";
 // authorization on its own, only whether to bounce anonymous traffic away
 // from app pages before any render work happens.
 const PUBLIC_PATHS = ["/login"];
-const PUBLIC_API_PREFIXES = ["/api/auth/", "/api/setup/"];
+const PUBLIC_API_PREFIXES = ["/api/auth/", "/api/setup/", "/api/quotations/public/"];
 // Trang khách quét QR trên phiếu bảo hành để tra cứu — không đăng nhập,
 // route tự giới hạn chỉ trả về thông tin bảo hành (không lộ SĐT/địa chỉ).
-const PUBLIC_PATH_PREFIXES = ["/warranty/"];
+// /bao-gia/public/ là link báo giá gửi khách qua Zalo/Email — tra theo
+// public_token riêng (không phải id thật), cùng nguyên tắc với /warranty/.
+const PUBLIC_PATH_PREFIXES = ["/warranty/", "/bao-gia/public/"];
 
 export function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;

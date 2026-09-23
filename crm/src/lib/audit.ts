@@ -60,7 +60,12 @@ export type AuditAction =
   | "CONFIRM_PURCHASE_ORDER"
   | "CANCEL_PURCHASE_ORDER"
   | "RECORD_SUPPLIER_PAYMENT"
-  | "CREATE_CASH_VOUCHER";
+  | "CREATE_CASH_VOUCHER"
+  | "CREATE_QUOTATION"
+  | "UPDATE_QUOTATION"
+  | "DUPLICATE_QUOTATION"
+  | "SEND_QUOTATION"
+  | "CONVERT_QUOTATION_TO_ORDER";
 
 export async function writeAuditLog(params: {
   userId: string | null;

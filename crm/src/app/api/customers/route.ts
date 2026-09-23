@@ -15,6 +15,8 @@ const createSchema = z.object({
   province: z.string().trim().optional(),
   note: z.string().trim().optional(),
   idCardNumber: z.string().trim().optional(),
+  companyName: z.string().trim().optional(),
+  taxCode: z.string().trim().optional(),
 });
 
 // ADMIN and EMPLOYEE can both look up customers (needed to build/confirm an
@@ -53,15 +55,15 @@ export async function POST(req: NextRequest) {
     if (!parsed.success) {
       throw new ValidationError(parsed.error.issues[0]?.message ?? "Dữ liệu không hợp lệ");
     }
-    const { name, phone, email, address, province, note, idCardNumber } = parsed.data;
+    const { name, phone, email, address, province, note, idCardNumber, companyName, taxCode } = parsed.data;
 
     const db = getDb();
     const id = newId();
     const code = await nextCustomerCode(db);
     await db
       .prepare(
-        `INSERT INTO customers (id, code, name, phone, email, address, province, note, id_card_number)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        `INSERT INTO customers (id, code, name, phone, email, address, province, note, id_card_number, company_name, tax_code)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
       )
       .bind(
         id,
@@ -72,7 +74,9 @@ export async function POST(req: NextRequest) {
         address || null,
         province || null,
         note || null,
-        idCardNumber || null
+        idCardNumber || null,
+        companyName || null,
+        taxCode || null
       )
       .run();
 

@@ -93,6 +93,17 @@ export async function nextPurchaseOrderCode(db: D1Database): Promise<string> {
   return `MH-${String(row!.n).padStart(4, "0")}`;
 }
 
+/** Sequential "Mã báo giá" (BG-0001, BG-0002, ...) — same atomic-counter pattern as nextOrderCode. */
+export async function nextQuoteCode(db: D1Database): Promise<string> {
+  const row = await db
+    .prepare(
+      `UPDATE quote_sequence SET next_value = next_value + 1 WHERE id = 1
+       RETURNING next_value - 1 AS n`
+    )
+    .first<{ n: number }>();
+  return `BG-${String(row!.n).padStart(4, "0")}`;
+}
+
 /** Sequential "Số phiếu thu/chi" (PT-0001 / PC-0001, ...) — 2 bộ đếm riêng trong cùng 1 dòng. */
 export async function nextCashVoucherCode(
   direction: "IN" | "OUT",

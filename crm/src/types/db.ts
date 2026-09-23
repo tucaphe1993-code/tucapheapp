@@ -640,6 +640,7 @@ export interface QuotationItemRow {
   vat_percent: number;
   line_total: number;
   sort_order: number;
+  is_reference: number;
 }
 
 export interface QuotationEventRow {

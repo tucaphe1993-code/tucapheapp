@@ -128,22 +128,42 @@ export default async function QuotationDetailPage({ params }: PageProps<"/bao-gi
                   <tr key={item.id} className="border-b border-stone-100">
                     <td className="py-1.5 pr-2">{idx + 1}</td>
                     <td className="py-1.5 pr-2">
-                      <div>{item.product_name}</div>
+                      <div>
+                        {item.product_name}
+                        {item.is_reference === 1 && (
+                          <span className="ml-1.5 rounded bg-stone-100 px-1.5 py-0.5 text-[10px] font-medium text-stone-500">
+                            Tham khảo
+                          </span>
+                        )}
+                      </div>
                       {item.description && <div className="text-xs text-stone-500">{item.description}</div>}
                     </td>
                     <td className="py-1.5 pr-2">{item.unit}</td>
                     <td className="py-1.5 pr-2 text-right">{item.quantity}</td>
                     <td className="py-1.5 pr-2 text-right">{formatVnd(item.unit_price)}</td>
-                    <td className="py-1.5 pr-2 text-right">
-                      {item.discount_amount > 0 ? formatVnd(item.discount_amount) : item.discount_percent > 0 ? `${item.discount_percent}%` : "—"}
-                    </td>
-                    <td className="py-1.5 pr-2 text-right">{item.vat_percent > 0 ? `${item.vat_percent}%` : "—"}</td>
-                    <td className="py-1.5 pr-2 text-right font-medium">{formatVnd(item.line_total)}</td>
+                    {item.is_reference === 1 ? (
+                      <>
+                        <td className="py-1.5 pr-2 text-right text-stone-400">—</td>
+                        <td className="py-1.5 pr-2 text-right text-stone-400">—</td>
+                        <td className="py-1.5 pr-2 text-right text-stone-400">—</td>
+                      </>
+                    ) : (
+                      <>
+                        <td className="py-1.5 pr-2 text-right">
+                          {item.discount_amount > 0 ? formatVnd(item.discount_amount) : item.discount_percent > 0 ? `${item.discount_percent}%` : "—"}
+                        </td>
+                        <td className="py-1.5 pr-2 text-right">{item.vat_percent > 0 ? `${item.vat_percent}%` : "—"}</td>
+                        <td className="py-1.5 pr-2 text-right font-medium">{formatVnd(item.line_total)}</td>
+                      </>
+                    )}
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
+          {items.some((i) => i.is_reference === 1) && (
+            <div className="mt-2 text-xs text-stone-400">* Dòng &quot;Tham khảo&quot; chỉ để tham khảo giá, không tính vào Tạm tính/Tổng cộng.</div>
+          )}
           <div className="mt-3 ml-auto flex max-w-xs flex-col gap-1 text-sm">
             <div className="flex justify-between">
               <span className="text-stone-500">Tạm tính</span>

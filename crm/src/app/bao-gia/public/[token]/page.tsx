@@ -79,13 +79,22 @@ export default async function PublicQuotationPage({ params }: PageProps<"/bao-gi
             <div key={item.id} className="rounded-xl border border-stone-200 p-3">
               <div className="flex items-start justify-between gap-2">
                 <div>
-                  <div className="font-semibold text-stone-900">{item.product_name}</div>
-                  {item.description && <div className="text-xs text-stone-500">{item.description}</div>}
-                  <div className="mt-0.5 text-xs text-stone-500">
-                    {item.quantity} {item.unit} × {formatVnd(item.unit_price)}
+                  <div className="font-semibold text-stone-900">
+                    {item.product_name}
+                    {item.is_reference === 1 && (
+                      <span className="ml-1.5 rounded bg-stone-100 px-1.5 py-0.5 text-[10px] font-medium text-stone-500">Tham khảo</span>
+                    )}
                   </div>
+                  {item.description && <div className="text-xs text-stone-500">{item.description}</div>}
+                  {item.is_reference === 1 ? (
+                    <div className="mt-0.5 text-xs text-stone-500">Giá tham khảo: {formatVnd(item.unit_price)} / {item.unit}</div>
+                  ) : (
+                    <div className="mt-0.5 text-xs text-stone-500">
+                      {item.quantity} {item.unit} × {formatVnd(item.unit_price)}
+                    </div>
+                  )}
                 </div>
-                <div className="shrink-0 font-semibold text-stone-900">{formatVnd(item.line_total)}</div>
+                {item.is_reference !== 1 && <div className="shrink-0 font-semibold text-stone-900">{formatVnd(item.line_total)}</div>}
               </div>
             </div>
           ))}

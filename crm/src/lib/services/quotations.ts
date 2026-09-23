@@ -12,6 +12,9 @@ export interface QuoteLineInput {
   discountPercent?: number;
   discountAmount?: number;
   vatPercent?: number;
+  // Dòng "chỉ để tham khảo giá" — hiển thị tên + đơn giá cho khách biết,
+  // không cộng vào Tạm tính/Tổng cộng, không có "Thành tiền".
+  isReference?: boolean;
 }
 
 export interface QuoteLineComputed extends QuoteLineInput {
@@ -19,6 +22,7 @@ export interface QuoteLineComputed extends QuoteLineInput {
   discountAmount: number;
   vatPercent: number;
   lineTotal: number;
+  isReference: boolean;
 }
 
 export interface QuoteTotals {
@@ -45,6 +49,19 @@ export function computeQuoteTotals(lines: QuoteLineInput[], shippingFee = 0): Qu
     if (line.quantity <= 0) throw new ValidationError(`Số lượng "${line.productName}" phải lớn hơn 0`);
     if (line.unitPrice < 0) throw new ValidationError(`Đơn giá "${line.productName}" không hợp lệ`);
 
+    // Dòng tham khảo: giữ nguyên tên/đơn giá để hiển thị, nhưng không tính
+    // CK/VAT/Thành tiền và không cộng vào bất kỳ tổng nào bên dưới.
+    if (line.isReference) {
+      return {
+        ...line,
+        discountPercent: 0,
+        discountAmount: 0,
+        vatPercent: 0,
+        lineTotal: 0,
+        isReference: true,
+      };
+    }
+
     const lineSubtotal = line.unitPrice * line.quantity;
     const discountPercent = line.discountPercent ?? 0;
     const flatDiscount = line.discountAmount ?? 0;
@@ -64,6 +81,7 @@ export function computeQuoteTotals(lines: QuoteLineInput[], shippingFee = 0): Qu
       discountAmount,
       vatPercent,
       lineTotal,
+      isReference: false,
     };
   });
 
@@ -152,8 +170,8 @@ export async function duplicateQuotation(
           .prepare(
             `INSERT INTO quotation_items
                (id, quotation_id, product_variant_id, product_name, description, unit, quantity, unit_price,
-                discount_percent, discount_amount, vat_percent, line_total, sort_order)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+                discount_percent, discount_amount, vat_percent, line_total, sort_order, is_reference)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
           )
           .bind(
             newId(),
@@ -168,7 +186,8 @@ export async function duplicateQuotation(
             item.discount_amount,
             item.vat_percent,
             item.line_total,
-            item.sort_order
+            item.sort_order,
+            item.is_reference
           )
       )
     );
@@ -212,11 +231,14 @@ export async function convertQuotationToOrder(
     throw new ValidationError("Báo giá chưa gắn khách hàng có sẵn trong hệ thống — không thể chuyển thành đơn hàng");
   }
 
-  const { results: items } = await db
+  const { results: allItems } = await db
     .prepare(`SELECT * FROM quotation_items WHERE quotation_id = ? ORDER BY sort_order ASC`)
     .bind(params.quotationId)
     .all<QuotationItemRow>();
-  if (items.length === 0) throw new ValidationError("Báo giá chưa có sản phẩm nào");
+  // Dòng "chỉ tham khảo giá" không phải hàng đang bán trong báo giá này —
+  // bỏ qua, không đưa vào đơn hàng.
+  const items = allItems.filter((i) => !i.is_reference);
+  if (items.length === 0) throw new ValidationError("Báo giá chưa có sản phẩm nào (ngoài các dòng tham khảo giá)");
   const missingSku = items.find((i) => !i.product_variant_id);
   if (missingSku) {
     throw new ValidationError(

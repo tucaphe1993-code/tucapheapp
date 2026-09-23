@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CustomerFormDialog } from "@/components/customers/customer-form-dialog";
 import { formatVnd } from "@/lib/utils";
@@ -36,6 +37,9 @@ interface QuoteLine {
   discountPercent: number;
   discountAmount: number;
   vatPercent: number;
+  // Dòng "chỉ để tham khảo giá" — cho khách biết đơn giá loại này, không
+  // cộng vào Tạm tính/Tổng cộng, không hiện Thành tiền.
+  isReference: boolean;
 }
 
 function emptyLine(): QuoteLine {
@@ -50,10 +54,12 @@ function emptyLine(): QuoteLine {
     discountPercent: 0,
     discountAmount: 0,
     vatPercent: 0,
+    isReference: false,
   };
 }
 
 function lineTotal(line: QuoteLine) {
+  if (line.isReference) return 0;
   const subtotal = line.unitPrice * line.quantity;
   const discount = line.discountAmount > 0 ? Math.min(line.discountAmount, subtotal) : Math.round(subtotal * (line.discountPercent / 100));
   const afterDiscount = subtotal - discount;
@@ -105,6 +111,7 @@ export function QuotationBuilder({ initial }: { initial?: QuotationBuilderInitia
           discountPercent: it.discount_percent,
           discountAmount: it.discount_amount,
           vatPercent: it.vat_percent,
+          isReference: it.is_reference === 1,
         }))
       : [emptyLine()]
   );
@@ -180,12 +187,13 @@ export function QuotationBuilder({ initial }: { initial?: QuotationBuilderInitia
     setLines((cur) => (cur.length > 1 ? cur.filter((l) => l.key !== key) : cur));
   }
 
-  const subtotal = lines.reduce((sum, l) => sum + l.unitPrice * l.quantity, 0);
-  const totalDiscount = lines.reduce((sum, l) => {
+  const sellableLines = lines.filter((l) => !l.isReference);
+  const subtotal = sellableLines.reduce((sum, l) => sum + l.unitPrice * l.quantity, 0);
+  const totalDiscount = sellableLines.reduce((sum, l) => {
     const lineSubtotal = l.unitPrice * l.quantity;
     return sum + (l.discountAmount > 0 ? Math.min(l.discountAmount, lineSubtotal) : Math.round(lineSubtotal * (l.discountPercent / 100)));
   }, 0);
-  const totalVat = lines.reduce((sum, l) => {
+  const totalVat = sellableLines.reduce((sum, l) => {
     const lineSubtotal = l.unitPrice * l.quantity;
     const discount = l.discountAmount > 0 ? Math.min(l.discountAmount, lineSubtotal) : Math.round(lineSubtotal * (l.discountPercent / 100));
     return sum + Math.round((lineSubtotal - discount) * (l.vatPercent / 100));
@@ -223,6 +231,7 @@ export function QuotationBuilder({ initial }: { initial?: QuotationBuilderInitia
           discountPercent: l.discountPercent || undefined,
           discountAmount: l.discountAmount || undefined,
           vatPercent: l.vatPercent || undefined,
+          isReference: l.isReference || undefined,
         })),
       };
 
@@ -388,7 +397,18 @@ export function QuotationBuilder({ initial }: { initial?: QuotationBuilderInitia
                           placeholder="Mô tả thêm (nếu có)"
                           value={line.description}
                           onChange={(e) => updateLine(line.key, { description: e.target.value })}
+                          className="mb-1"
                         />
+                        <div className="flex items-center gap-1.5">
+                          <Checkbox
+                            id={`ref-${line.key}`}
+                            checked={line.isReference}
+                            onCheckedChange={(v) => updateLine(line.key, { isReference: v === true })}
+                          />
+                          <label htmlFor={`ref-${line.key}`} className="cursor-pointer text-xs text-stone-500">
+                            Chỉ tham khảo giá (không tính vào tổng)
+                          </label>
+                        </div>
                       </td>
                       <td className="py-2 pr-2" style={{ minWidth: 70 }}>
                         <Input value={line.unit} onChange={(e) => updateLine(line.key, { unit: e.target.value })} />
@@ -416,6 +436,7 @@ export function QuotationBuilder({ initial }: { initial?: QuotationBuilderInitia
                           type="number"
                           min={0}
                           max={100}
+                          disabled={line.isReference}
                           className="text-right"
                           value={line.discountPercent}
                           onChange={(e) => updateLine(line.key, { discountPercent: Number(e.target.value), discountAmount: 0 })}
@@ -425,6 +446,7 @@ export function QuotationBuilder({ initial }: { initial?: QuotationBuilderInitia
                         <Input
                           type="number"
                           min={0}
+                          disabled={line.isReference}
                           className="text-right"
                           value={line.discountAmount}
                           onChange={(e) => updateLine(line.key, { discountAmount: Number(e.target.value), discountPercent: 0 })}
@@ -435,12 +457,15 @@ export function QuotationBuilder({ initial }: { initial?: QuotationBuilderInitia
                           type="number"
                           min={0}
                           max={100}
+                          disabled={line.isReference}
                           className="text-right"
                           value={line.vatPercent}
                           onChange={(e) => updateLine(line.key, { vatPercent: Number(e.target.value) })}
                         />
                       </td>
-                      <td className="py-2 pr-2 whitespace-nowrap text-right font-medium">{formatVnd(lineTotal(line))}</td>
+                      <td className="py-2 pr-2 whitespace-nowrap text-right font-medium">
+                        {line.isReference ? <span className="text-stone-400">— (tham khảo)</span> : formatVnd(lineTotal(line))}
+                      </td>
                       <td className="py-2">
                         <button
                           type="button"

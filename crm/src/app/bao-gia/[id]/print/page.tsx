@@ -142,20 +142,34 @@ export default async function QuotationPrintPage({ params }: PageProps<"/bao-gia
                   <td className="border border-stone-300 p-1.5 text-center">{idx + 1}</td>
                   <td className="border border-stone-300 p-1.5">
                     {item.product_name}
+                    {item.is_reference === 1 && <span className="ml-1 text-[9px] italic text-stone-400">(tham khảo)</span>}
                     {item.description && <div className="text-[9px] text-stone-500">{item.description}</div>}
                   </td>
                   <td className="border border-stone-300 p-1.5 text-center">{item.unit}</td>
                   <td className="border border-stone-300 p-1.5 text-center">{item.quantity}</td>
                   <td className="border border-stone-300 p-1.5 text-right">{formatVnd(item.unit_price)}</td>
-                  <td className="border border-stone-300 p-1.5 text-center">
-                    {item.discount_amount > 0 ? formatVnd(item.discount_amount) : item.discount_percent > 0 ? `${item.discount_percent}%` : "—"}
-                  </td>
-                  <td className="border border-stone-300 p-1.5 text-center">{item.vat_percent > 0 ? `${item.vat_percent}%` : "—"}</td>
-                  <td className="border border-stone-300 p-1.5 text-right font-medium">{formatVnd(item.line_total)}</td>
+                  {item.is_reference === 1 ? (
+                    <>
+                      <td className="border border-stone-300 p-1.5 text-center text-stone-400">—</td>
+                      <td className="border border-stone-300 p-1.5 text-center text-stone-400">—</td>
+                      <td className="border border-stone-300 p-1.5 text-right text-stone-400">—</td>
+                    </>
+                  ) : (
+                    <>
+                      <td className="border border-stone-300 p-1.5 text-center">
+                        {item.discount_amount > 0 ? formatVnd(item.discount_amount) : item.discount_percent > 0 ? `${item.discount_percent}%` : "—"}
+                      </td>
+                      <td className="border border-stone-300 p-1.5 text-center">{item.vat_percent > 0 ? `${item.vat_percent}%` : "—"}</td>
+                      <td className="border border-stone-300 p-1.5 text-right font-medium">{formatVnd(item.line_total)}</td>
+                    </>
+                  )}
                 </tr>
               ))}
             </tbody>
           </table>
+          {items.some((i) => i.is_reference === 1) && (
+            <div className="mt-1 text-[9px] text-stone-400">(tham khảo): giá tham khảo, không tính vào tổng báo giá.</div>
+          )}
         </div>
 
         {/* Totals */}

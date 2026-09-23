@@ -45,6 +45,20 @@ describe("computeQuoteTotals", () => {
     expect(totals.items[0].discountAmount).toBe(50_000);
     expect(totals.items[0].lineTotal).toBe(0);
   });
+
+  it("excludes reference-only lines from every total but keeps them for display", () => {
+    const totals = computeQuoteTotals([
+      { productName: "Hàng bán thật", unit: "Kg", quantity: 5, unitPrice: 180_000, vatPercent: 8 },
+      { productName: "Honey Reserve (giá tham khảo)", unit: "Kg", quantity: 1, unitPrice: 260_000, isReference: true },
+    ]);
+    // Chỉ dòng thứ nhất được tính vào tổng — dòng tham khảo không cộng gì cả.
+    expect(totals.subtotal).toBe(900_000);
+    expect(totals.vatAmount).toBe(72_000);
+    expect(totals.totalAmount).toBe(900_000 + 72_000);
+    expect(totals.items[1].isReference).toBe(true);
+    expect(totals.items[1].lineTotal).toBe(0);
+    expect(totals.items[1].productName).toBe("Honey Reserve (giá tham khảo)");
+  });
 });
 
 let db: D1Database;
@@ -185,5 +199,25 @@ describe("convertQuotationToOrder", () => {
   it("refuses to convert a quotation with no linked customer", async () => {
     const quotationId = await insertQuotation({ customerId: null });
     await expect(convertQuotationToOrder(db, { quotationId, actingUserId: userId })).rejects.toThrow();
+  });
+
+  it("excludes reference-only lines from the order — only the real, sellable line is copied", async () => {
+    const quotationId = await insertQuotation();
+    // Thêm 1 dòng "chỉ tham khảo giá" vào báo giá đã có sẵn dòng thật.
+    await db
+      .prepare(
+        `INSERT INTO quotation_items (id, quotation_id, product_name, unit, quantity, unit_price, line_total, sort_order, is_reference)
+         VALUES (?, ?, 'Honey Reserve (giá tham khảo)', 'Kg', 1, 260000, 0, 1, 1)`
+      )
+      .bind(randomUUID(), quotationId)
+      .run();
+
+    const { order } = await convertQuotationToOrder(db, { quotationId, actingUserId: userId });
+
+    const { results: items } = await db.prepare(`SELECT product_name FROM order_items WHERE order_id = ?`).bind(order.id).all<{
+      product_name: string;
+    }>();
+    expect(items).toHaveLength(1);
+    expect(items[0].product_name).toBe("Cà phê Classic");
   });
 });

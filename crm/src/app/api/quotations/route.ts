@@ -18,6 +18,7 @@ const lineSchema = z.object({
   discountPercent: z.number().min(0).max(100).optional(),
   discountAmount: z.number().int().nonnegative().optional(),
   vatPercent: z.number().min(0).max(100).optional(),
+  isReference: z.boolean().optional(),
 });
 
 const createSchema = z.object({
@@ -110,6 +111,7 @@ export async function POST(req: NextRequest) {
         discountPercent: i.discountPercent,
         discountAmount: i.discountAmount,
         vatPercent: i.vatPercent,
+        isReference: i.isReference,
       })),
       data.shippingFee ?? 0
     );
@@ -158,8 +160,8 @@ export async function POST(req: NextRequest) {
           .prepare(
             `INSERT INTO quotation_items
                (id, quotation_id, product_variant_id, product_name, description, unit, quantity, unit_price,
-                discount_percent, discount_amount, vat_percent, line_total, sort_order)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+                discount_percent, discount_amount, vat_percent, line_total, sort_order, is_reference)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
           )
           .bind(
             newId(),
@@ -174,7 +176,8 @@ export async function POST(req: NextRequest) {
             item.discountAmount,
             item.vatPercent,
             item.lineTotal,
-            idx
+            idx,
+            item.isReference ? 1 : 0
           )
       )
     );

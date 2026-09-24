@@ -25,13 +25,17 @@ import {
   Truck,
   BarChart3,
   FileSignature,
+  Mic,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const NAV_GROUPS = [
   {
     label: "Tổng quan",
-    items: [{ href: "/dashboard", label: "Dashboard", icon: LayoutDashboard }],
+    items: [
+      { href: "/quick", label: "TÚ QUICK — Ghi nhanh", icon: Mic },
+      { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+    ],
   },
   {
     label: "Vận hành",

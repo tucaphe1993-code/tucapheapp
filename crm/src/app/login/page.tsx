@@ -31,7 +31,7 @@ function LoginForm() {
       }
       const next = params.get("next");
       const role = data.user.role as "ADMIN" | "EMPLOYEE";
-      router.replace(next && next !== "/" ? next : role === "ADMIN" ? "/dashboard" : "/my-tasks");
+      router.replace(next && next !== "/" ? next : role === "ADMIN" ? "/quick" : "/my-tasks");
       router.refresh();
     } finally {
       setLoading(false);

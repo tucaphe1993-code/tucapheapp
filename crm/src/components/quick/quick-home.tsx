@@ -4,10 +4,14 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Check, Mic } from "lucide-react";
+import { AlertTriangle, Check, Mic } from "lucide-react";
 import { ORDER_STATUS_LABEL } from "@/components/orders/order-status-badge";
 import {
+  daysLate,
   deliveryKey,
+  dueSummary,
+  formatDayMonth,
+  isOverdue,
   isOpenStatus,
   matchesFilter,
   nextAction,
@@ -45,6 +49,12 @@ export function QuickHome({ data }: { data: QuickHomeData }) {
     [data.orders, filter, today]
   );
   const filterLabel = QUICK_FILTERS.find((f) => f.key === filter)!.label;
+  const due = today ? dueSummary(data.orders, today) : null;
+
+  function showToday() {
+    setFilter("today");
+    document.getElementById("quick-list")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
 
   return (
     <div className="pb-quick-nav">
@@ -52,6 +62,8 @@ export function QuickHome({ data }: { data: QuickHomeData }) {
         <h1 className="text-[28px] font-extrabold tracking-tight text-moss-800">TÚ QUICK</h1>
         <p className="text-[15px] text-stone-500">Ghi đơn • Theo dõi • Công nợ</p>
       </header>
+
+      {due && <DueBanner dueToday={due.dueToday} overdue={due.overdue} onOpen={showToday} />}
 
       <div className="px-5 pt-5">
         <Link
@@ -78,7 +90,7 @@ export function QuickHome({ data }: { data: QuickHomeData }) {
         </Link>
       </nav>
 
-      <div className="mt-6 flex gap-2 overflow-x-auto px-5 pb-1 [scrollbar-width:none]">
+      <div id="quick-list" className="mt-6 flex scroll-mt-2 gap-2 overflow-x-auto px-5 pb-1 [scrollbar-width:none]">
         {QUICK_FILTERS.map((f) => (
           <Chip key={f.key} selected={filter === f.key} onClick={() => setFilter(f.key)}>
             {f.label}
@@ -99,6 +111,35 @@ export function QuickHome({ data }: { data: QuickHomeData }) {
         {filter === "done" && <p className="px-5 pt-3 text-center text-[13px] text-stone-400">Đơn hoàn thành trong 35 ngày gần nhất</p>}
       </section>
     </div>
+  );
+}
+
+/** Nhắc việc khi mở app (Phase 4 — cách A): đơn cần xử lý hôm nay + trễ hạn. */
+function DueBanner({ dueToday, overdue, onOpen }: { dueToday: number; overdue: number; onOpen(): void }) {
+  if (dueToday === 0 && overdue === 0) {
+    return <p className="px-5 pt-3 text-center text-[15px] font-semibold text-moss-700">✓ Hôm nay chưa có đơn cần giao</p>;
+  }
+  return (
+    <button
+      type="button"
+      onClick={onOpen}
+      className={`mx-5 mt-4 flex w-[calc(100%-2.5rem)] items-center gap-3 rounded-2xl px-4 py-3 text-left active:scale-[0.99] ${
+        overdue > 0 ? "bg-red-50 text-red-900 ring-2 ring-red-200" : "bg-amber-50 text-amber-900 ring-2 ring-amber-200"
+      }`}
+    >
+      <AlertTriangle className={`h-7 w-7 shrink-0 ${overdue > 0 ? "text-red-600" : "text-amber-600"}`} />
+      <span className="flex-1">
+        {dueToday > 0 && (
+          <span className="block text-[17px] font-extrabold uppercase">Hôm nay có {dueToday} đơn cần xử lý</span>
+        )}
+        {overdue > 0 && (
+          <span className={`block font-bold text-red-700 ${dueToday > 0 ? "text-[15px]" : "text-[17px] uppercase"}`}>
+            {overdue} đơn trễ hạn chưa xong
+          </span>
+        )}
+      </span>
+      <span className="text-sm font-bold underline">Xem</span>
+    </button>
   );
 }
 
@@ -123,6 +164,7 @@ function OrderRow({ order, today }: { order: QuickOrder; today: string }) {
   const open = isOpenStatus(order.status);
   const { qty, products } = summarize(order);
   const delivery = deliveryKey(order.delivery_date);
+  const late = isOverdue(order, today) ? daysLate(delivery!, today) : 0;
   const remaining = order.total_amount - order.paid_amount;
 
   async function runAction() {
@@ -176,8 +218,13 @@ function OrderRow({ order, today }: { order: QuickOrder; today: string }) {
           </p>
           <p className="truncate text-[15px] text-stone-500">
             {products}
-            {delivery && <> · Giao {relativeDayLabel(delivery, today).toLowerCase()}</>}
+            {delivery && !late && <> · Giao {relativeDayLabel(delivery, today).toLowerCase()}</>}
           </p>
+          {late > 0 && (
+            <p className="text-[13px] font-bold text-red-700">
+              ⚠ Trễ {late} ngày (hẹn giao {formatDayMonth(delivery!)})
+            </p>
+          )}
           {remaining > 0 && order.status !== "CANCELLED" && (
             <p className="text-[13px] font-semibold text-red-700">Còn nợ {formatVnd(remaining)}</p>
           )}

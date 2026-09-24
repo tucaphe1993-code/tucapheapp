@@ -116,8 +116,12 @@ export function matchesFilter(o: FilterableOrder, filter: QuickFilter, today: st
   const d = deliveryKey(o.delivery_date);
   switch (filter) {
     case "today":
-      // Giao hôm nay + đơn vừa ghi hôm nay chưa hẹn ngày; bỏ đơn đã hủy.
-      return o.status !== "CANCELLED" && (d === today || (!d && createdDateKey(o.created_at) === today));
+      // Giao hôm nay + đơn vừa ghi hôm nay chưa hẹn ngày + đơn TRỄ HẠN chưa
+      // xong (để đơn quên giao không bị rơi khỏi màn hình chính); bỏ đơn hủy.
+      return (
+        o.status !== "CANCELLED" &&
+        (d === today || (!d && createdDateKey(o.created_at) === today) || isOverdue(o, today))
+      );
     case "tomorrow":
       return o.status !== "CANCELLED" && d === addDays(today, 1);
     case "week": {
@@ -129,6 +133,35 @@ export function matchesFilter(o: FilterableOrder, filter: QuickFilter, today: st
     case "done":
       return o.status === "COMPLETED";
   }
+}
+
+/** Đơn chưa xong mà ngày giao đã qua. */
+export function isOverdue(o: FilterableOrder, today: string): boolean {
+  const d = deliveryKey(o.delivery_date);
+  return !!d && d < today && isOpenStatus(o.status);
+}
+
+/** Số ngày trễ so với ngày giao (0 nếu không trễ). */
+export function daysLate(deliveryDate: string, today: string): number {
+  const [y1, m1, d1] = deliveryDate.slice(0, 10).split("-").map(Number);
+  const [y2, m2, d2] = today.split("-").map(Number);
+  return Math.max(0, Math.round((Date.UTC(y2, m2 - 1, d2) - Date.UTC(y1, m1 - 1, d1)) / 86_400_000));
+}
+
+/**
+ * Nhắc việc khi mở app: đơn chưa xong có ngày giao hôm nay, và đơn trễ hạn.
+ * "Chưa xong" gồm cả Đã giao (SHIPPED) — vẫn cần bấm Hoàn thành.
+ */
+export function dueSummary(orders: FilterableOrder[], today: string): { dueToday: number; overdue: number } {
+  let dueToday = 0;
+  let overdue = 0;
+  for (const o of orders) {
+    if (!isOpenStatus(o.status)) continue;
+    const d = deliveryKey(o.delivery_date);
+    if (d === today) dueToday++;
+    else if (d && d < today) overdue++;
+  }
+  return { dueToday, overdue };
 }
 
 /** Đơn đang mở lên trước, rồi theo ngày giao (chưa hẹn xếp cuối), rồi mới ghi trước. */

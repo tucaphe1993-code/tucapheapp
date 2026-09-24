@@ -1,6 +1,9 @@
 import { describe, it, expect } from "vitest";
 import {
   addDays,
+  daysLate,
+  dueSummary,
+  isOverdue,
   kgToPacks,
   matchesFilter,
   nextAction,
@@ -13,6 +16,7 @@ import {
   weekRange,
   type QuickVariant,
 } from "@/lib/quick";
+import type { OrderStatus } from "@/types/db";
 
 const TODAY = "2026-09-24"; // Thứ Năm
 
@@ -112,5 +116,38 @@ describe("labels & totals", () => {
   });
   it("normalizes Vietnamese names for search", () => {
     expect(normalizeName("  Anh   Đức Huy ")).toBe("anh duc huy");
+  });
+});
+
+describe("nhắc việc (Phase 4)", () => {
+  const o = (status: OrderStatus, delivery_date: string | null) => ({
+    status,
+    delivery_date,
+    created_at: "2020-01-01 00:00:00",
+  });
+
+  it("đếm đơn cần xử lý hôm nay và đơn trễ hạn, bỏ đơn đã xong/hủy", () => {
+    const orders = [
+      o("CONFIRMED", TODAY),
+      o("SHIPPED", TODAY), // đã giao nhưng chưa bấm Hoàn thành → vẫn nhắc
+      o("COMPLETED", TODAY),
+      o("CONFIRMED", "2026-09-22"),
+      o("CANCELLED", "2026-09-22"),
+      o("CONFIRMED", addDays(TODAY, 1)),
+      o("CONFIRMED", null),
+    ];
+    expect(dueSummary(orders, TODAY)).toEqual({ dueToday: 2, overdue: 1 });
+  });
+
+  it("đơn trễ hạn vẫn hiện trong tab Hôm nay", () => {
+    expect(matchesFilter(o("PACKED", "2026-09-20"), "today", TODAY)).toBe(true);
+    expect(matchesFilter(o("COMPLETED", "2026-09-20"), "today", TODAY)).toBe(false);
+    expect(isOverdue(o("CONFIRMED", "2026-09-23T10:00:00.000Z"), TODAY)).toBe(true);
+  });
+
+  it("tính số ngày trễ", () => {
+    expect(daysLate("2026-09-22", TODAY)).toBe(2);
+    expect(daysLate("2026-08-31", "2026-09-01")).toBe(1);
+    expect(daysLate(TODAY, TODAY)).toBe(0);
   });
 });

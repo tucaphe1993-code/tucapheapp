@@ -46,18 +46,31 @@ export interface StockShortfall {
  *  - each line's ISSUE transaction also carries a partial UNIQUE index on
  *    (reference_type, reference_id) WHERE type='ISSUE' as a second,
  *    DB-level guard against ever issuing the same order line twice.
+ *
+ * `direct: true` — lối tắt "Đã giao" của chủ trên TÚ QUICK: cho xuất kho
+ * thẳng từ CONFIRMED/PACKING/PACKED (bỏ qua giao việc/đóng gói), vẫn trừ
+ * kho, chống bấm 2 lần và hủy task đóng gói dang dở y như luồng thường.
  */
+const DIRECT_SHIP_STATUSES: OrderRow["status"][] = ["CONFIRMED", "PACKING", "PACKED"];
+
 export async function issueInventoryForOrder(
   orderId: string,
   actingUserId: string,
-  db: D1Database = getDb()
+  db: D1Database = getDb(),
+  options: { direct?: boolean } = {}
 ): Promise<{ order: OrderRow }> {
   const order = await db.prepare(`SELECT * FROM orders WHERE id = ?`).bind(orderId).first<OrderRow>();
   if (!order) throw new NotFoundError("Không tìm thấy đơn hàng");
   const isSelfPickup = order.delivery_method === SELF_PICKUP_METHOD;
-  const canShip = order.status === "PACKED" || (isSelfPickup && order.status === "CONFIRMED");
+  const canShip = options.direct
+    ? DIRECT_SHIP_STATUSES.includes(order.status)
+    : order.status === "PACKED" || (isSelfPickup && order.status === "CONFIRMED");
   if (!canShip) {
-    throw new ConflictError("Đơn phải ở trạng thái ĐÃ ĐÓNG GÓI mới được xuất kho");
+    throw new ConflictError(
+      options.direct
+        ? "Chỉ đánh dấu Đã giao được đơn chưa giao (chưa xuất kho, chưa hủy)"
+        : "Đơn phải ở trạng thái ĐÃ ĐÓNG GÓI mới được xuất kho"
+    );
   }
   if (order.inventory_issued_at) {
     throw new ConflictError("Đơn hàng này đã được xuất kho trước đó");
@@ -97,14 +110,22 @@ export async function issueInventoryForOrder(
   }
 
   // Compare-and-set: wins the race exactly once.
-  const cas = await db
-    .prepare(
-      `UPDATE orders SET status = 'SHIPPED', inventory_issued_at = datetime('now'), updated_at = datetime('now')
-       WHERE id = ? AND inventory_issued_at IS NULL
-         AND (status = 'PACKED' OR (status = 'CONFIRMED' AND delivery_method = ?))`
-    )
-    .bind(orderId, SELF_PICKUP_METHOD)
-    .run();
+  const cas = options.direct
+    ? await db
+        .prepare(
+          `UPDATE orders SET status = 'SHIPPED', inventory_issued_at = datetime('now'), updated_at = datetime('now')
+           WHERE id = ? AND inventory_issued_at IS NULL AND status IN ('CONFIRMED', 'PACKING', 'PACKED')`
+        )
+        .bind(orderId)
+        .run()
+    : await db
+        .prepare(
+          `UPDATE orders SET status = 'SHIPPED', inventory_issued_at = datetime('now'), updated_at = datetime('now')
+           WHERE id = ? AND inventory_issued_at IS NULL
+             AND (status = 'PACKED' OR (status = 'CONFIRMED' AND delivery_method = ?))`
+        )
+        .bind(orderId, SELF_PICKUP_METHOD)
+        .run();
   if (!cas.meta.changes) {
     throw new ConflictError("Đơn hàng này đã được xuất kho trước đó (double-submit)");
   }

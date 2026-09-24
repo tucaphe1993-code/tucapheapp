@@ -74,10 +74,12 @@ describe("sortForList", () => {
 });
 
 describe("nextAction", () => {
-  it("only offers the CRM's real transitions", () => {
-    expect(nextAction("PACKED")).toMatchObject({ kind: "api", path: "ship" });
-    expect(nextAction("SHIPPED")).toMatchObject({ kind: "api", path: "complete" });
-    expect(nextAction("CONFIRMED")).toMatchObject({ kind: "open" });
+  it("Đã giao cho mọi đơn chưa giao, Hoàn thành cho đơn đã giao", () => {
+    for (const s of ["CONFIRMED", "PACKING", "PACKED"] as const) {
+      expect(nextAction(s)).toMatchObject({ label: "Đã giao", path: "deliver" });
+    }
+    expect(nextAction("SHIPPED")).toMatchObject({ label: "Hoàn thành", path: "complete" });
+    expect(nextAction("DRAFT")).toBeNull();
     expect(nextAction("COMPLETED")).toBeNull();
     expect(nextAction("CANCELLED")).toBeNull();
   });

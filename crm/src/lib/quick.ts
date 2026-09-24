@@ -65,31 +65,30 @@ export function isOpenStatus(status: OrderStatus): boolean {
 }
 
 /**
- * Bước kế tiếp bấm được ngay từ danh sách — chỉ gọi đúng các API chuyển
- * trạng thái CRM đã có (xuất kho trừ tồn, hoàn thành), không tự đổi status.
- * CONFIRMED/PACKING cần giao việc/đóng gói (có checklist, ảnh) nên mở trang
- * chi tiết đơn của CRM.
+ * Nút bấm nhanh trên từng dòng đơn — gọi đúng API chuyển trạng thái của CRM:
+ *  - Chưa giao (Đã xác nhận / Đang đóng gói / Đã đóng gói) → "Đã giao"
+ *    (/deliver: xuất kho thẳng, trừ tồn, bỏ qua giao việc đóng gói).
+ *  - Đã giao → "Hoàn thành".
+ * Nháp / hoàn thành / đã hủy: không có nút (mở trang đơn để xử lý).
  */
-export type QuickAction =
-  | { kind: "api"; label: string; path: "ship" | "complete"; confirm?: string }
-  | { kind: "open"; label: string };
+export interface QuickAction {
+  label: string;
+  path: "deliver" | "complete";
+  confirm?: string;
+}
 
 export function nextAction(status: OrderStatus): QuickAction | null {
   switch (status) {
+    case "CONFIRMED":
+    case "PACKING":
     case "PACKED":
       return {
-        kind: "api",
-        label: "Xuất kho",
-        path: "ship",
-        confirm: "Xuất kho đơn này? Tồn kho sẽ bị trừ và không hoàn tác được.",
+        label: "Đã giao",
+        path: "deliver",
+        confirm: "Đánh dấu ĐÃ GIAO? Kho sẽ bị trừ theo đơn này và không hoàn tác được.",
       };
     case "SHIPPED":
-      return { kind: "api", label: "Hoàn thành", path: "complete" };
-    case "DRAFT":
-    case "CONFIRMED":
-      return { kind: "open", label: "Giao việc" };
-    case "PACKING":
-      return { kind: "open", label: "Đang đóng gói" };
+      return { label: "Hoàn thành", path: "complete" };
     default:
       return null;
   }

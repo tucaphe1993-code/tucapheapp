@@ -215,10 +215,6 @@ function OrderRow({ order, today }: { order: QuickOrder; today: string }) {
 
   async function runAction() {
     if (!action) return;
-    if (action.kind === "open") {
-      router.push(`/orders/${order.id}`);
-      return;
-    }
     if (action.confirm && !window.confirm(action.confirm)) return;
     setBusy(true);
     try {
@@ -228,7 +224,7 @@ function OrderRow({ order, today }: { order: QuickOrder; today: string }) {
         toast.error(body.error ?? "Có lỗi xảy ra");
         return;
       }
-      toast.success(`${order.order_code}: ${action.label.toLowerCase()} ✓`);
+      toast.success(`${order.customer_name}: ${action.label.toLowerCase()} ✓`);
       router.refresh();
     } finally {
       setBusy(false);
@@ -236,49 +232,47 @@ function OrderRow({ order, today }: { order: QuickOrder; today: string }) {
   }
 
   return (
-    <li className="flex items-center border-b border-stone-200 bg-white last:border-b-0">
-      <button
-        type="button"
-        onClick={() => void runAction()}
-        disabled={!action || busy}
-        aria-label={action?.label ?? ORDER_STATUS_LABEL[order.status]}
-        className="flex h-[76px] w-16 shrink-0 flex-col items-center justify-center gap-0.5"
-      >
-        <span
-          className={`grid h-9 w-9 place-items-center rounded-full border-2 ${
-            order.status === "COMPLETED"
-              ? "border-moss-600 bg-moss-600 text-white"
-              : open
-                ? "border-moss-500 text-moss-600 active:bg-moss-100"
-                : "border-stone-300"
-          } ${busy ? "animate-pulse" : ""}`}
-        >
-          {order.status === "COMPLETED" && <Check className="h-5 w-5" strokeWidth={3} />}
-        </span>
-        {action && <span className="text-[10px] font-bold leading-none text-moss-700">{action.label}</span>}
-      </button>
-      <Link href={`/orders/${order.id}`} className="flex min-w-0 flex-1 items-center gap-3 py-3 pr-4">
-        <div className="min-w-0 flex-1">
-          <p className={`truncate text-[17px] font-bold ${open ? "" : "text-stone-400 line-through decoration-1"}`}>
-            {order.customer_name} — {qty}
+    <li className="flex items-center gap-2 border-b border-stone-200 bg-white pr-4 last:border-b-0">
+      <Link href={`/orders/${order.id}`} className="min-w-0 flex-1 py-3 pl-5">
+        <p className={`truncate text-[17px] font-bold ${open ? "" : "text-stone-400 line-through decoration-1"}`}>
+          {order.customer_name} — {qty}
+        </p>
+        <p className="truncate text-[15px] text-stone-500">
+          {products}
+          {delivery && !late && <> · Giao {relativeDayLabel(delivery, today).toLowerCase()}</>}
+        </p>
+        {late > 0 && (
+          <p className="text-[13px] font-bold text-red-700">
+            ⚠ Trễ {late} ngày (hẹn giao {formatDayMonth(delivery!)})
           </p>
-          <p className="truncate text-[15px] text-stone-500">
-            {products}
-            {delivery && !late && <> · Giao {relativeDayLabel(delivery, today).toLowerCase()}</>}
-          </p>
-          {late > 0 && (
-            <p className="text-[13px] font-bold text-red-700">
-              ⚠ Trễ {late} ngày (hẹn giao {formatDayMonth(delivery!)})
-            </p>
-          )}
+        )}
+        <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
+          <span className={`whitespace-nowrap rounded-full px-2 py-0.5 text-[12px] font-bold ${STATUS_STYLE[order.status]}`}>
+            {ORDER_STATUS_LABEL[order.status]}
+          </span>
           {remaining > 0 && order.status !== "CANCELLED" && (
-            <p className="text-[13px] font-semibold text-red-700">Còn nợ {formatVnd(remaining)}</p>
+            <span className="text-[13px] font-semibold text-red-700">Còn nợ {formatVnd(remaining)}</span>
           )}
-        </div>
-        <span className={`whitespace-nowrap rounded-full px-2.5 py-1 text-[13px] font-bold ${STATUS_STYLE[order.status]}`}>
-          {ORDER_STATUS_LABEL[order.status]}
-        </span>
+        </p>
       </Link>
+      {action ? (
+        <button
+          type="button"
+          onClick={() => void runAction()}
+          disabled={busy}
+          className={`h-11 shrink-0 rounded-xl px-4 text-[15px] font-extrabold disabled:opacity-60 ${
+            action.path === "deliver"
+              ? "bg-moss-700 text-white active:bg-moss-800"
+              : "border-2 border-moss-600 bg-white text-moss-700 active:bg-moss-50"
+          }`}
+        >
+          {busy ? "…" : action.label}
+        </button>
+      ) : order.status === "COMPLETED" ? (
+        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-moss-600 text-white" aria-label="Hoàn thành">
+          <Check className="h-5 w-5" strokeWidth={3} />
+        </span>
+      ) : null}
     </li>
   );
 }

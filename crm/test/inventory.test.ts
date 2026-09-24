@@ -164,6 +164,61 @@ describe("issueInventoryForOrder", () => {
   });
 });
 
+describe("issueInventoryForOrder — lối tắt Đã giao (direct, TÚ QUICK)", () => {
+  async function stock() {
+    const inv = await db
+      .prepare(`SELECT quantity_on_hand FROM inventory WHERE product_variant_id = ?`)
+      .bind(variantId)
+      .first<{ quantity_on_hand: number }>();
+    return inv?.quantity_on_hand;
+  }
+
+  it("giao thẳng từ CONFIRMED (giao hàng thường), trừ kho, hủy task đóng gói dang dở", async () => {
+    const orderId = await seedOrder("CONFIRMED", 3, "Book Ship");
+    const taskId = randomUUID();
+    await db
+      .prepare(`INSERT INTO tasks (id, order_id, assigned_to, assigned_by, title, status) VALUES (?, ?, ?, ?, 'Đóng gói', 'IN_PROGRESS')`)
+      .bind(taskId, orderId, userId, userId)
+      .run();
+
+    const { order } = await issueInventoryForOrder(orderId, userId, db, { direct: true });
+    expect(order.status).toBe("SHIPPED");
+    expect(order.inventory_issued_at).toBeTruthy();
+    expect(await stock()).toBe(7); // 10 - 3
+    const task = await db.prepare(`SELECT status FROM tasks WHERE id = ?`).bind(taskId).first<{ status: string }>();
+    expect(task?.status).toBe("CANCELLED");
+  });
+
+  it("cũng giao được từ PACKING", async () => {
+    const orderId = await seedOrder("PACKING", 1);
+    const { order } = await issueInventoryForOrder(orderId, userId, db, { direct: true });
+    expect(order.status).toBe("SHIPPED");
+  });
+
+  it("không bao giờ trừ kho 2 lần khi bấm Đã giao 2 lần", async () => {
+    const orderId = await seedOrder("CONFIRMED", 2);
+    await issueInventoryForOrder(orderId, userId, db, { direct: true });
+    await expect(issueInventoryForOrder(orderId, userId, db, { direct: true })).rejects.toThrow();
+    expect(await stock()).toBe(8);
+  });
+
+  it("từ chối đơn đã hủy hoặc đã hoàn thành", async () => {
+    for (const status of ["CANCELLED", "COMPLETED", "DRAFT"]) {
+      const orderId = await seedOrder(status, 1);
+      await expect(issueInventoryForOrder(orderId, userId, db, { direct: true })).rejects.toThrow(/chưa giao/);
+    }
+    expect(await stock()).toBe(10);
+  });
+
+  it("từ chối khi kho không đủ và không đổi gì", async () => {
+    const orderId = await seedOrder("CONFIRMED", 50);
+    await expect(issueInventoryForOrder(orderId, userId, db, { direct: true })).rejects.toThrow(/Không đủ tồn kho/);
+    const order = await db.prepare(`SELECT status FROM orders WHERE id = ?`).bind(orderId).first<{ status: string }>();
+    expect(order?.status).toBe("CONFIRMED");
+    expect(await stock()).toBe(10);
+  });
+});
+
 describe("receiveInventory / adjustInventory", () => {
   it("increases stock on RECEIVE", async () => {
     await receiveInventory({ productVariantId: variantId, quantity: 25, createdBy: userId }, db);

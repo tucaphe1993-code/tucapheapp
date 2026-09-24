@@ -33,12 +33,18 @@ async function hashPassword(password) {
 
 const sqlStr = (v) => `'${String(v).replace(/'/g, "''")}'`;
 
+// Windows cần shell (npx là npx.cmd) — khi chạy qua shell, tham số bị nối
+// thành 1 chuỗi, nên phải tự bọc ngoặc kép tham số có dấu cách (câu SQL,
+// đường dẫn file), nếu không câu SQL bị cắt vụn ("Unknown arguments").
+const USE_SHELL = process.platform === "win32" || process.env.RESET_PW_FORCE_SHELL === "1";
+const shellQuote = (a) => (/[\s"&|<>^()]/.test(a) ? `"${a.replace(/"/g, '""')}"` : a);
+
 function wrangler(args) {
-  // shell: true để `npx` chạy được trên Windows (npx.cmd).
-  return execFileSync("npx", ["wrangler", "d1", "execute", DB_NAME, ...args], {
+  const all = ["wrangler", "d1", "execute", DB_NAME, ...args];
+  return execFileSync("npx", USE_SHELL ? all.map(shellQuote) : all, {
     stdio: ["inherit", "pipe", "inherit"],
     encoding: "utf8",
-    shell: process.platform === "win32",
+    shell: USE_SHELL,
   });
 }
 

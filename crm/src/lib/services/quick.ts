@@ -2,7 +2,7 @@
 // Chỉ ĐỌC. Tạo đơn/khách/thanh toán vẫn đi qua đúng các API CRM có sẵn
 // (POST /api/orders, /api/customers, /api/orders/[id]/ship|complete).
 
-import type { OrderStatus } from "@/types/db";
+import type { OrderStatus, QuickJobStatus } from "@/types/db";
 import type { QuickVariant } from "@/lib/quick";
 
 export interface QuickOrderItem {
@@ -23,8 +23,21 @@ export interface QuickOrder {
   items: QuickOrderItem[];
 }
 
+export interface QuickJob {
+  id: string;
+  customer_id: string | null;
+  customer_name: string | null;
+  customer_phone: string | null;
+  title: string;
+  due_date: string | null;
+  note: string | null;
+  status: QuickJobStatus;
+  created_at: string;
+}
+
 export interface QuickHomeData {
   orders: QuickOrder[];
+  jobs: QuickJob[];
   receivable: number;
   customerCount: number;
 }
@@ -39,7 +52,7 @@ const RECENT_ORDERS_WHERE = `
   )`;
 
 export async function loadQuickHome(db: D1Database): Promise<QuickHomeData> {
-  const [ordersRes, itemsRes, receivableRow, customerRow] = await Promise.all([
+  const [ordersRes, itemsRes, receivableRow, customerRow, jobsRes] = await Promise.all([
     db
       .prepare(
         `SELECT o.id, o.order_code, c.name AS customer_name, o.delivery_date, o.status,
@@ -65,6 +78,7 @@ export async function loadQuickHome(db: D1Database): Promise<QuickHomeData> {
       )
       .first<{ remaining: number }>(),
     db.prepare(`SELECT COUNT(*) AS c FROM customers WHERE is_deleted = 0`).first<{ c: number }>(),
+    loadQuickJobs(db),
   ]);
 
   const itemsByOrder = new Map<string, QuickOrderItem[]>();
@@ -76,9 +90,31 @@ export async function loadQuickHome(db: D1Database): Promise<QuickHomeData> {
 
   return {
     orders: ordersRes.results.map((o) => ({ ...o, items: itemsByOrder.get(o.id) ?? [] })),
+    jobs: jobsRes,
     receivable: receivableRow?.remaining ?? 0,
     customerCount: customerRow?.c ?? 0,
   };
+}
+
+// Việc còn mở (mọi lúc) + việc gần đây (35 ngày) — giống cách tải đơn.
+const JOB_SELECT = `
+  SELECT j.id, j.customer_id, c.name AS customer_name, c.phone AS customer_phone,
+         j.title, j.due_date, j.note, j.status, j.created_at
+  FROM quick_jobs j LEFT JOIN customers c ON c.id = j.customer_id`;
+
+export async function loadQuickJobs(db: D1Database): Promise<QuickJob[]> {
+  const { results } = await db
+    .prepare(
+      `${JOB_SELECT}
+       WHERE j.status = 'OPEN' OR j.updated_at >= datetime('now', '-35 days')
+       ORDER BY j.created_at DESC LIMIT 300`
+    )
+    .all<QuickJob>();
+  return results;
+}
+
+export async function loadQuickJob(db: D1Database, id: string): Promise<QuickJob | null> {
+  return db.prepare(`${JOB_SELECT} WHERE j.id = ?`).bind(id).first<QuickJob>();
 }
 
 // ===== DỮ LIỆU CHO FORM GHI ĐƠN =====
@@ -106,15 +142,20 @@ export interface QuickFormData {
   lastVariants: Record<string, Record<string, string>>;
 }
 
+export async function loadQuickCustomers(db: D1Database): Promise<QuickCustomer[]> {
+  const { results } = await db
+    .prepare(
+      `SELECT c.id, c.code, c.name, c.phone,
+              (SELECT MAX(created_at) FROM orders o WHERE o.customer_id = c.id) AS last_order_at
+       FROM customers c WHERE c.is_deleted = 0`
+    )
+    .all<QuickCustomer>();
+  return results;
+}
+
 export async function loadQuickFormData(db: D1Database): Promise<QuickFormData> {
   const [customersRes, productsRes, variantsRes, lastRes, popularRes] = await Promise.all([
-    db
-      .prepare(
-        `SELECT c.id, c.code, c.name, c.phone,
-                (SELECT MAX(created_at) FROM orders o WHERE o.customer_id = c.id) AS last_order_at
-         FROM customers c WHERE c.is_deleted = 0`
-      )
-      .all<QuickCustomer>(),
+    loadQuickCustomers(db),
     // Ghi đơn nhanh = cà phê thành phẩm đóng gói. Thiết bị cần chọn Serial,
     // nhân xanh/rang rời là nguyên liệu → vẫn tạo ở màn Tạo đơn của CRM.
     db
@@ -162,7 +203,7 @@ export async function loadQuickFormData(db: D1Database): Promise<QuickFormData> 
   }
 
   return {
-    customers: customersRes.results,
+    customers: customersRes,
     products: productsRes.results
       .map((p) => ({
         ...p,

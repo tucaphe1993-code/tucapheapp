@@ -65,7 +65,10 @@ export type AuditAction =
   | "UPDATE_QUOTATION"
   | "DUPLICATE_QUOTATION"
   | "SEND_QUOTATION"
-  | "CONVERT_QUOTATION_TO_ORDER";
+  | "CONVERT_QUOTATION_TO_ORDER"
+  | "CREATE_QUICK_JOB"
+  | "UPDATE_QUICK_JOB"
+  | "DELETE_QUICK_JOB";
 
 export async function writeAuditLog(params: {
   userId: string | null;

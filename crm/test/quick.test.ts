@@ -151,3 +151,26 @@ describe("nhắc việc (Phase 4)", () => {
     expect(daysLate(TODAY, TODAY)).toBe(0);
   });
 });
+
+describe("công việc hẹn nhanh (quick_jobs)", () => {
+  const job = (status: "OPEN" | "DONE" | "CANCELLED", due_date: string | null) => ({
+    status,
+    due_date,
+    created_at: "2020-01-01 00:00:00",
+  });
+
+  it("lọc giống đơn hàng: hẹn hôm nay, ngày mai, trễ hạn", () => {
+    expect(matchesFilter(job("OPEN", TODAY), "today", TODAY)).toBe(true);
+    expect(matchesFilter(job("OPEN", addDays(TODAY, 1)), "tomorrow", TODAY)).toBe(true);
+    expect(matchesFilter(job("OPEN", "2026-09-20"), "today", TODAY)).toBe(true); // trễ hạn
+    expect(matchesFilter(job("DONE", "2026-09-20"), "today", TODAY)).toBe(false);
+    expect(matchesFilter(job("CANCELLED", TODAY), "today", TODAY)).toBe(false);
+    expect(matchesFilter(job("OPEN", null), "open", TODAY)).toBe(true);
+    expect(matchesFilter(job("DONE", null), "done", TODAY)).toBe(true);
+  });
+
+  it("đếm việc hẹn hôm nay và việc trễ", () => {
+    const jobs = [job("OPEN", TODAY), job("DONE", TODAY), job("OPEN", "2026-09-01"), job("OPEN", null)];
+    expect(dueSummary(jobs, TODAY)).toEqual({ dueToday: 1, overdue: 1 });
+  });
+});

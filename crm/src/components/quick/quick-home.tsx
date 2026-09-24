@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { AlertTriangle, Check, Mic } from "lucide-react";
+import { AlertTriangle, Check, ClipboardPlus, Mic, Phone } from "lucide-react";
 import { ORDER_STATUS_LABEL } from "@/components/orders/order-status-badge";
 import {
   daysLate,
@@ -22,7 +22,7 @@ import {
   totalKg,
   type QuickFilter,
 } from "@/lib/quick";
-import type { QuickHomeData, QuickOrder } from "@/lib/services/quick";
+import type { QuickHomeData, QuickJob, QuickOrder } from "@/lib/services/quick";
 import { formatKg, formatVnd } from "@/lib/utils";
 import type { OrderStatus } from "@/types/db";
 import { Chip } from "./chip";
@@ -48,8 +48,12 @@ export function QuickHome({ data }: { data: QuickHomeData }) {
     () => (today ? sortForList(data.orders.filter((o) => matchesFilter(o, filter, today))) : []),
     [data.orders, filter, today]
   );
+  const jobs = useMemo(
+    () => (today ? sortForList(data.jobs.filter((j) => matchesFilter(j, filter, today))) : []),
+    [data.jobs, filter, today]
+  );
   const filterLabel = QUICK_FILTERS.find((f) => f.key === filter)!.label;
-  const due = today ? dueSummary(data.orders, today) : null;
+  const due = today ? { orders: dueSummary(data.orders, today), jobs: dueSummary(data.jobs, today) } : null;
 
   function showToday() {
     setFilter("today");
@@ -63,7 +67,7 @@ export function QuickHome({ data }: { data: QuickHomeData }) {
         <p className="text-[15px] text-stone-500">Ghi đơn • Theo dõi • Công nợ</p>
       </header>
 
-      {due && <DueBanner dueToday={due.dueToday} overdue={due.overdue} onOpen={showToday} />}
+      {due && <DueBanner orders={due.orders} jobs={due.jobs} onOpen={showToday} />}
 
       <div className="px-5 pt-5">
         <Link
@@ -72,6 +76,13 @@ export function QuickHome({ data }: { data: QuickHomeData }) {
         >
           <Mic className="h-10 w-10" strokeWidth={2.2} />
           <span className="text-2xl font-extrabold tracking-wide">GHI NHANH</span>
+        </Link>
+        <Link
+          href="/quick/jobs/new"
+          className="mt-3 flex h-14 w-full items-center justify-center gap-2 rounded-2xl border-2 border-moss-600 bg-white text-lg font-bold text-moss-700 active:bg-moss-50"
+        >
+          <ClipboardPlus className="h-6 w-6" />
+          Thêm công việc
         </Link>
       </div>
 
@@ -99,26 +110,61 @@ export function QuickHome({ data }: { data: QuickHomeData }) {
       </div>
 
       <section className="mt-3">
-        {today && list.length === 0 ? (
-          <p className="px-5 py-10 text-center text-stone-500">Không có đơn nào — {filterLabel.toLowerCase()}.</p>
+        {today && list.length === 0 && jobs.length === 0 ? (
+          <p className="px-5 py-10 text-center text-stone-500">Không có đơn hay việc nào — {filterLabel.toLowerCase()}.</p>
         ) : (
-          <ul className="border-y border-stone-200">
-            {list.map((o) => (
-              <OrderRow key={o.id} order={o} today={today!} />
-            ))}
-          </ul>
+          <>
+            {jobs.length > 0 && (
+              <>
+                <ListLabel>Công việc ({jobs.length})</ListLabel>
+                <ul className="border-y border-stone-200">
+                  {jobs.map((j) => (
+                    <JobRow key={j.id} job={j} today={today!} />
+                  ))}
+                </ul>
+              </>
+            )}
+            {list.length > 0 && (
+              <>
+                {jobs.length > 0 && <ListLabel>Đơn hàng ({list.length})</ListLabel>}
+                <ul className="border-y border-stone-200">
+                  {list.map((o) => (
+                    <OrderRow key={o.id} order={o} today={today!} />
+                  ))}
+                </ul>
+              </>
+            )}
+          </>
         )}
-        {filter === "done" && <p className="px-5 pt-3 text-center text-[13px] text-stone-400">Đơn hoàn thành trong 35 ngày gần nhất</p>}
+        {filter === "done" && (
+          <p className="px-5 pt-3 text-center text-[13px] text-stone-400">Đã hoàn thành trong 35 ngày gần nhất</p>
+        )}
       </section>
     </div>
   );
 }
 
-/** Nhắc việc khi mở app (Phase 4 — cách A): đơn cần xử lý hôm nay + trễ hạn. */
-function DueBanner({ dueToday, overdue, onOpen }: { dueToday: number; overdue: number; onOpen(): void }) {
-  if (dueToday === 0 && overdue === 0) {
-    return <p className="px-5 pt-3 text-center text-[15px] font-semibold text-moss-700">✓ Hôm nay chưa có đơn cần giao</p>;
+function ListLabel({ children }: { children: React.ReactNode }) {
+  return <h2 className="px-5 pb-2 pt-4 text-[13px] font-bold uppercase tracking-wide text-stone-500">{children}</h2>;
+}
+
+type Due = { dueToday: number; overdue: number };
+
+/** Nhắc việc khi mở app (Phase 4 — cách A): đơn/việc cần xử lý hôm nay + trễ hạn. */
+function DueBanner({ orders, jobs, onOpen }: { orders: Due; jobs: Due; onOpen(): void }) {
+  const overdueParts = [
+    orders.overdue > 0 && `${orders.overdue} đơn`,
+    jobs.overdue > 0 && `${jobs.overdue} việc`,
+  ].filter(Boolean);
+  const todayParts = [
+    orders.dueToday > 0 && `${orders.dueToday} đơn cần xử lý`,
+    jobs.dueToday > 0 && `${jobs.dueToday} việc hẹn`,
+  ].filter(Boolean);
+  if (!todayParts.length && !overdueParts.length) {
+    return <p className="px-5 pt-3 text-center text-[15px] font-semibold text-moss-700">✓ Hôm nay chưa có đơn hay việc hẹn</p>;
   }
+  const dueToday = todayParts.length;
+  const overdue = overdueParts.length;
   return (
     <button
       type="button"
@@ -130,11 +176,11 @@ function DueBanner({ dueToday, overdue, onOpen }: { dueToday: number; overdue: n
       <AlertTriangle className={`h-7 w-7 shrink-0 ${overdue > 0 ? "text-red-600" : "text-amber-600"}`} />
       <span className="flex-1">
         {dueToday > 0 && (
-          <span className="block text-[17px] font-extrabold uppercase">Hôm nay có {dueToday} đơn cần xử lý</span>
+          <span className="block text-[17px] font-extrabold uppercase">Hôm nay có {todayParts.join(" · ")}</span>
         )}
         {overdue > 0 && (
           <span className={`block font-bold text-red-700 ${dueToday > 0 ? "text-[15px]" : "text-[17px] uppercase"}`}>
-            {overdue} đơn trễ hạn chưa xong
+            Trễ hạn chưa xong: {overdueParts.join(", ")}
           </span>
         )}
       </span>
@@ -233,6 +279,85 @@ function OrderRow({ order, today }: { order: QuickOrder; today: string }) {
           {ORDER_STATUS_LABEL[order.status]}
         </span>
       </Link>
+    </li>
+  );
+}
+
+/** 1 dòng công việc: ô tròn = đánh dấu xong (có Hoàn tác), bấm dòng = sửa. */
+function JobRow({ job, today }: { job: QuickJob; today: string }) {
+  const router = useRouter();
+  const [busy, setBusy] = useState(false);
+  const done = job.status === "DONE";
+  const date = deliveryKey(job.due_date);
+  const late = isOverdue(job, today) ? daysLate(date!, today) : 0;
+
+  async function setStatus(status: QuickJob["status"]) {
+    const res = await fetch(`/api/quick-jobs/${job.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status }),
+    });
+    if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error ?? "Có lỗi xảy ra");
+    router.refresh();
+  }
+
+  async function toggle() {
+    const next = done ? "OPEN" : "DONE";
+    setBusy(true);
+    try {
+      await setStatus(next);
+      toast.success(next === "DONE" ? `Xong: ${job.title} ✓` : `Mở lại: ${job.title}`, {
+        action: { label: "Hoàn tác", onClick: () => void setStatus(job.status).catch((e) => toast.error((e as Error).message)) },
+      });
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <li className="flex items-center border-b border-stone-200 bg-white last:border-b-0">
+      <button
+        type="button"
+        onClick={() => void toggle()}
+        disabled={busy || job.status === "CANCELLED"}
+        aria-label={done ? "Mở lại việc" : "Đánh dấu xong"}
+        className="grid h-[72px] w-16 shrink-0 place-items-center"
+      >
+        <span
+          className={`grid h-9 w-9 place-items-center rounded-lg border-2 ${
+            done ? "border-moss-600 bg-moss-600 text-white" : "border-moss-500 active:bg-moss-100"
+          } ${busy ? "animate-pulse" : ""}`}
+        >
+          {done && <Check className="h-5 w-5" strokeWidth={3} />}
+        </span>
+      </button>
+      <Link href={`/quick/jobs/${job.id}`} className="min-w-0 flex-1 py-3 pr-2">
+        <p className={`truncate text-[17px] font-bold ${done ? "text-stone-400 line-through decoration-1" : ""}`}>
+          {job.title}
+          {job.customer_name && <> — {job.customer_name}</>}
+        </p>
+        {late > 0 ? (
+          <p className="text-[13px] font-bold text-red-700">
+            ⚠ Trễ {late} ngày (hẹn {formatDayMonth(date!)})
+          </p>
+        ) : (
+          <p className="truncate text-[15px] text-stone-500">
+            {date ? `Hẹn ${relativeDayLabel(date, today).toLowerCase()}` : "Không hẹn ngày"}
+            {job.note && <> · {job.note}</>}
+          </p>
+        )}
+      </Link>
+      {job.customer_phone && !done && (
+        <a
+          href={`tel:${job.customer_phone}`}
+          aria-label={`Gọi ${job.customer_name}`}
+          className="mr-3 grid h-11 w-11 shrink-0 place-items-center rounded-full bg-moss-50 text-moss-700 active:bg-moss-100"
+        >
+          <Phone className="h-5 w-5" />
+        </a>
+      )}
     </li>
   );
 }

@@ -651,3 +651,19 @@ export interface QuotationEventRow {
   user_id: string | null;
   created_at: string;
 }
+
+// TÚ QUICK — việc hẹn nhanh không gắn đơn (migration 026).
+export type QuickJobStatus = "OPEN" | "DONE" | "CANCELLED";
+
+export interface QuickJobRow {
+  id: string;
+  customer_id: string | null;
+  title: string;
+  due_date: string | null;
+  note: string | null;
+  status: QuickJobStatus;
+  done_at: string | null;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+}

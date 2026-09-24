@@ -2,7 +2,7 @@
 // Dữ liệu vẫn là đơn hàng/khách hàng/công nợ thật của CRM; file này chỉ lo
 // lọc, gom nhóm và quy đổi để hiển thị/nhập liệu nhanh trên điện thoại.
 
-import type { OrderStatus } from "@/types/db";
+import type { OrderStatus, QuickJobStatus } from "@/types/db";
 
 // ===== NGÀY (luôn là chuỗi 'YYYY-MM-DD' theo giờ máy người dùng) =====
 
@@ -112,33 +112,60 @@ export interface FilterableOrder {
   created_at: string;
 }
 
-export function matchesFilter(o: FilterableOrder, filter: QuickFilter, today: string): boolean {
-  const d = deliveryKey(o.delivery_date);
+/** Công việc hẹn nhanh (bảng quick_jobs) — lọc/nhắc y như đơn hàng. */
+export interface FilterableJob {
+  status: QuickJobStatus;
+  due_date: string | null;
+  created_at: string;
+}
+
+export type Filterable = FilterableOrder | FilterableJob;
+
+function scheduleOf(x: Filterable): { date: string | null; open: boolean; done: boolean; cancelled: boolean } {
+  if ("due_date" in x) {
+    return { date: deliveryKey(x.due_date), open: x.status === "OPEN", done: x.status === "DONE", cancelled: x.status === "CANCELLED" };
+  }
+  return {
+    date: deliveryKey(x.delivery_date),
+    open: isOpenStatus(x.status),
+    done: x.status === "COMPLETED",
+    cancelled: x.status === "CANCELLED",
+  };
+}
+
+export function matchesFilter(x: Filterable, filter: QuickFilter, today: string): boolean {
+  const { date: d, open, done, cancelled } = scheduleOf(x);
   switch (filter) {
     case "today":
-      // Giao hôm nay + đơn vừa ghi hôm nay chưa hẹn ngày + đơn TRỄ HẠN chưa
-      // xong (để đơn quên giao không bị rơi khỏi màn hình chính); bỏ đơn hủy.
-      return (
-        o.status !== "CANCELLED" &&
-        (d === today || (!d && createdDateKey(o.created_at) === today) || isOverdue(o, today))
-      );
+      // Hẹn hôm nay + vừa ghi hôm nay chưa hẹn ngày + TRỄ HẠN chưa xong (để
+      // việc quên làm không bị rơi khỏi màn hình chính); bỏ đơn/việc đã hủy.
+      return !cancelled && (d === today || (!d && createdDateKey(x.created_at) === today) || isOverdue(x, today));
     case "tomorrow":
-      return o.status !== "CANCELLED" && d === addDays(today, 1);
+      return !cancelled && d === addDays(today, 1);
     case "week": {
       const [start, end] = weekRange(today);
-      return o.status !== "CANCELLED" && !!d && d >= start && d <= end;
+      return !cancelled && !!d && d >= start && d <= end;
     }
     case "open":
-      return isOpenStatus(o.status);
+      return open;
     case "done":
-      return o.status === "COMPLETED";
+      return done;
   }
 }
 
-/** Đơn chưa xong mà ngày giao đã qua. */
-export function isOverdue(o: FilterableOrder, today: string): boolean {
-  const d = deliveryKey(o.delivery_date);
-  return !!d && d < today && isOpenStatus(o.status);
+/** Chưa xong mà ngày hẹn/ngày giao đã qua. */
+export function isOverdue(x: Filterable, today: string): boolean {
+  const { date, open } = scheduleOf(x);
+  return !!date && date < today && open;
+}
+
+/** Ngày hẹn ('YYYY-MM-DD') của đơn hoặc việc. */
+export function scheduledDate(x: Filterable): string | null {
+  return scheduleOf(x).date;
+}
+
+export function isOpenItem(x: Filterable): boolean {
+  return scheduleOf(x).open;
 }
 
 /** Số ngày trễ so với ngày giao (0 nếu không trễ). */
@@ -152,12 +179,12 @@ export function daysLate(deliveryDate: string, today: string): number {
  * Nhắc việc khi mở app: đơn chưa xong có ngày giao hôm nay, và đơn trễ hạn.
  * "Chưa xong" gồm cả Đã giao (SHIPPED) — vẫn cần bấm Hoàn thành.
  */
-export function dueSummary(orders: FilterableOrder[], today: string): { dueToday: number; overdue: number } {
+export function dueSummary(items: Filterable[], today: string): { dueToday: number; overdue: number } {
   let dueToday = 0;
   let overdue = 0;
-  for (const o of orders) {
-    if (!isOpenStatus(o.status)) continue;
-    const d = deliveryKey(o.delivery_date);
+  for (const x of items) {
+    const { date: d, open } = scheduleOf(x);
+    if (!open) continue;
     if (d === today) dueToday++;
     else if (d && d < today) overdue++;
   }
@@ -165,12 +192,12 @@ export function dueSummary(orders: FilterableOrder[], today: string): { dueToday
 }
 
 /** Đơn đang mở lên trước, rồi theo ngày giao (chưa hẹn xếp cuối), rồi mới ghi trước. */
-export function sortForList<T extends FilterableOrder>(orders: T[]): T[] {
-  return [...orders].sort((a, b) => {
-    const open = Number(isOpenStatus(b.status)) - Number(isOpenStatus(a.status));
+export function sortForList<T extends Filterable>(items: T[]): T[] {
+  return [...items].sort((a, b) => {
+    const open = Number(isOpenItem(b)) - Number(isOpenItem(a));
     if (open) return open;
-    const da = deliveryKey(a.delivery_date) ?? "9999-99-99";
-    const db = deliveryKey(b.delivery_date) ?? "9999-99-99";
+    const da = scheduledDate(a) ?? "9999-99-99";
+    const db = scheduledDate(b) ?? "9999-99-99";
     if (da !== db) return da < db ? -1 : 1;
     return b.created_at.localeCompare(a.created_at);
   });

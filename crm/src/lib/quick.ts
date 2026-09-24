@@ -73,7 +73,7 @@ export function isOpenStatus(status: OrderStatus): boolean {
  */
 export interface QuickAction {
   label: string;
-  path: "deliver" | "complete";
+  path: "deliver" | "complete" | "undeliver" | "reopen";
   confirm?: string;
 }
 
@@ -85,10 +85,29 @@ export function nextAction(status: OrderStatus): QuickAction | null {
       return {
         label: "Đã giao",
         path: "deliver",
-        confirm: "Đánh dấu ĐÃ GIAO? Kho sẽ bị trừ theo đơn này và không hoàn tác được.",
+        confirm: "Đánh dấu ĐÃ GIAO? Kho sẽ bị trừ theo đơn này (bấm nhầm thì dùng Hoàn lại).",
       };
     case "SHIPPED":
       return { label: "Hoàn thành", path: "complete" };
+    default:
+      return null;
+  }
+}
+
+/**
+ * "Hoàn lại" khi lỡ bấm: Đã giao → về Đã xác nhận (cộng trả kho, /undeliver);
+ * Hoàn thành → về Đã giao (/reopen).
+ */
+export function undoAction(status: OrderStatus): QuickAction | null {
+  switch (status) {
+    case "SHIPPED":
+      return {
+        label: "Hoàn lại",
+        path: "undeliver",
+        confirm: "Hoàn lại đơn về CHƯA GIAO? Kho sẽ được cộng trả lại số đã trừ.",
+      };
+    case "COMPLETED":
+      return { label: "Hoàn lại", path: "reopen", confirm: "Mở lại đơn về ĐÃ GIAO?" };
     default:
       return null;
   }

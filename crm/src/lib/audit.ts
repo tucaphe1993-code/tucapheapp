@@ -68,7 +68,9 @@ export type AuditAction =
   | "CONVERT_QUOTATION_TO_ORDER"
   | "CREATE_QUICK_JOB"
   | "UPDATE_QUICK_JOB"
-  | "DELETE_QUICK_JOB";
+  | "DELETE_QUICK_JOB"
+  | "REVERSE_DELIVERY"
+  | "REOPEN_ORDER";
 
 export async function writeAuditLog(params: {
   userId: string | null;

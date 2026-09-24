@@ -15,6 +15,8 @@ import {
   isOpenStatus,
   matchesFilter,
   nextAction,
+  undoAction,
+  type QuickAction,
   PENDING_STATUSES,
   QUICK_FILTERS,
   relativeDayLabel,
@@ -207,25 +209,33 @@ function OrderRow({ order, today }: { order: QuickOrder; today: string }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const action = nextAction(order.status);
+  const undo = undoAction(order.status);
   const open = isOpenStatus(order.status);
   const { qty, products } = summarize(order);
   const delivery = deliveryKey(order.delivery_date);
   const late = isOverdue(order, today) ? daysLate(delivery!, today) : 0;
   const remaining = order.total_amount - order.paid_amount;
 
-  async function runAction() {
-    if (!action) return;
-    if (action.confirm && !window.confirm(action.confirm)) return;
+  async function post(path: QuickAction["path"]): Promise<boolean> {
+    const res = await fetch(`/api/orders/${order.id}/${path}`, { method: "POST" });
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) toast.error(body.error ?? "Có lỗi xảy ra");
+    router.refresh();
+    return res.ok;
+  }
+
+  async function run(a: QuickAction) {
+    if (a.confirm && !window.confirm(a.confirm)) return;
     setBusy(true);
     try {
-      const res = await fetch(`/api/orders/${order.id}/${action.path}`, { method: "POST" });
-      const body = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        toast.error(body.error ?? "Có lỗi xảy ra");
-        return;
-      }
-      toast.success(`${order.customer_name}: ${action.label.toLowerCase()} ✓`);
-      router.refresh();
+      if (!(await post(a.path))) return;
+      // Bấm Đã giao / Hoàn thành xong có nút Hoàn tác ngay trên thông báo.
+      const inverse = a.path === "deliver" ? "undeliver" : a.path === "complete" ? "reopen" : null;
+      const message =
+        a.path === "undeliver" ? "đã hoàn lại về Chưa giao, kho được cộng trả" : a.path === "reopen" ? "đã mở lại" : `${a.label.toLowerCase()} ✓`;
+      toast.success(`${order.customer_name}: ${message}`, {
+        action: inverse ? { label: "Hoàn tác", onClick: () => void post(inverse) } : undefined,
+      });
     } finally {
       setBusy(false);
     }
@@ -255,24 +265,36 @@ function OrderRow({ order, today }: { order: QuickOrder; today: string }) {
           )}
         </p>
       </Link>
-      {action ? (
-        <button
-          type="button"
-          onClick={() => void runAction()}
-          disabled={busy}
-          className={`h-11 shrink-0 rounded-xl px-4 text-[15px] font-extrabold disabled:opacity-60 ${
-            action.path === "deliver"
-              ? "bg-moss-700 text-white active:bg-moss-800"
-              : "border-2 border-moss-600 bg-white text-moss-700 active:bg-moss-50"
-          }`}
-        >
-          {busy ? "…" : action.label}
-        </button>
-      ) : order.status === "COMPLETED" ? (
-        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-moss-600 text-white" aria-label="Hoàn thành">
-          <Check className="h-5 w-5" strokeWidth={3} />
-        </span>
-      ) : null}
+      <div className="flex shrink-0 flex-col items-end gap-1 py-2">
+        {action ? (
+          <button
+            type="button"
+            onClick={() => void run(action)}
+            disabled={busy}
+            className={`h-11 rounded-xl px-4 text-[15px] font-extrabold disabled:opacity-60 ${
+              action.path === "deliver"
+                ? "bg-moss-700 text-white active:bg-moss-800"
+                : "border-2 border-moss-600 bg-white text-moss-700 active:bg-moss-50"
+            }`}
+          >
+            {busy ? "…" : action.label}
+          </button>
+        ) : order.status === "COMPLETED" ? (
+          <span className="grid h-9 w-9 place-items-center rounded-full bg-moss-600 text-white" aria-label="Hoàn thành">
+            <Check className="h-5 w-5" strokeWidth={3} />
+          </span>
+        ) : null}
+        {undo && (
+          <button
+            type="button"
+            onClick={() => void run(undo)}
+            disabled={busy}
+            className="h-8 rounded-lg px-2 text-[13px] font-semibold text-stone-500 underline active:bg-stone-100"
+          >
+            ↩ {undo.label}
+          </button>
+        )}
+      </div>
     </li>
   );
 }

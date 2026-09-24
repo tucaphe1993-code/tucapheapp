@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { randomUUID } from "node:crypto";
 import { createTestDb } from "./d1-shim";
-import { issueInventoryForOrder, receiveInventory, adjustInventory } from "@/lib/services/inventory";
+import { issueInventoryForOrder, receiveInventory, adjustInventory, reverseInventoryForOrder } from "@/lib/services/inventory";
 
 let db: D1Database;
 let userId: string;
@@ -216,6 +216,61 @@ describe("issueInventoryForOrder — lối tắt Đã giao (direct, TÚ QUICK)",
     const order = await db.prepare(`SELECT status FROM orders WHERE id = ?`).bind(orderId).first<{ status: string }>();
     expect(order?.status).toBe("CONFIRMED");
     expect(await stock()).toBe(10);
+  });
+});
+
+describe("reverseInventoryForOrder — Hoàn lại Đã giao bấm nhầm", () => {
+  async function stock() {
+    const inv = await db
+      .prepare(`SELECT quantity_on_hand FROM inventory WHERE product_variant_id = ?`)
+      .bind(variantId)
+      .first<{ quantity_on_hand: number }>();
+    return inv?.quantity_on_hand;
+  }
+  async function issueRows(orderId: string) {
+    const r = await db
+      .prepare(
+        `SELECT COUNT(*) AS n FROM inventory_transactions t JOIN order_items oi ON oi.id = t.reference_id
+         WHERE oi.order_id = ? AND t.type = 'ISSUE'`
+      )
+      .bind(orderId)
+      .first<{ n: number }>();
+    return r?.n;
+  }
+
+  it("đưa đơn về Đã xác nhận, cộng trả kho, xoá dòng xuất kho", async () => {
+    const orderId = await seedOrder("CONFIRMED", 3);
+    await issueInventoryForOrder(orderId, userId, db, { direct: true });
+    expect(await stock()).toBe(7);
+
+    const { order, restored } = await reverseInventoryForOrder(orderId, db);
+    expect(order.status).toBe("CONFIRMED");
+    expect(order.inventory_issued_at).toBeNull();
+    expect(restored).toEqual([{ sku, quantity: 3 }]);
+    expect(await stock()).toBe(10);
+    expect(await issueRows(orderId)).toBe(0);
+  });
+
+  it("giao lại được sau khi hoàn lại (không vướng chặn xuất kho 2 lần)", async () => {
+    const orderId = await seedOrder("CONFIRMED", 2);
+    await issueInventoryForOrder(orderId, userId, db, { direct: true });
+    await reverseInventoryForOrder(orderId, db);
+    const { order } = await issueInventoryForOrder(orderId, userId, db, { direct: true });
+    expect(order.status).toBe("SHIPPED");
+    expect(await stock()).toBe(8);
+  });
+
+  it("bấm hoàn lại 2 lần chỉ cộng trả 1 lần", async () => {
+    const orderId = await seedOrder("CONFIRMED", 4);
+    await issueInventoryForOrder(orderId, userId, db, { direct: true });
+    await reverseInventoryForOrder(orderId, db);
+    await expect(reverseInventoryForOrder(orderId, db)).rejects.toThrow(/ĐÃ GIAO/);
+    expect(await stock()).toBe(10);
+  });
+
+  it("từ chối đơn chưa giao", async () => {
+    const orderId = await seedOrder("CONFIRMED", 1);
+    await expect(reverseInventoryForOrder(orderId, db)).rejects.toThrow(/ĐÃ GIAO/);
   });
 });
 

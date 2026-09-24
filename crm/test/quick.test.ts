@@ -11,6 +11,7 @@ import {
   pickDefaultVariant,
   sortForList,
   toDateKey,
+  undoAction,
   totalKg,
   variantLabel,
   weekRange,
@@ -82,6 +83,14 @@ describe("nextAction", () => {
     expect(nextAction("DRAFT")).toBeNull();
     expect(nextAction("COMPLETED")).toBeNull();
     expect(nextAction("CANCELLED")).toBeNull();
+  });
+});
+
+describe("undoAction", () => {
+  it("Hoàn lại: Đã giao → undeliver, Hoàn thành → reopen, còn lại không có", () => {
+    expect(undoAction("SHIPPED")).toMatchObject({ label: "Hoàn lại", path: "undeliver" });
+    expect(undoAction("COMPLETED")).toMatchObject({ label: "Hoàn lại", path: "reopen" });
+    for (const s of ["CONFIRMED", "PACKING", "PACKED", "CANCELLED", "DRAFT"] as const) expect(undoAction(s)).toBeNull();
   });
 });
 

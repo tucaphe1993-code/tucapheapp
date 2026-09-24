@@ -170,6 +170,59 @@ export async function issueInventoryForOrder(
   return { order: updated! };
 }
 
+/**
+ * Hoàn lại 1 lần bấm "Đã giao"/Xuất kho nhầm: SHIPPED → CONFIRMED, cộng trả
+ * đúng số đã trừ và XOÁ các dòng ISSUE của đơn (xuất kho không có thật →
+ * báo cáo "Xuất bán" không bị tính sai, và giao lại sau vẫn được vì index
+ * UNIQUE "issue once" được giải phóng). Audit log vẫn giữ vết ở tầng API.
+ * Compare-and-set trên orders nên bấm 2 lần cũng chỉ cộng trả 1 lần.
+ */
+export async function reverseInventoryForOrder(
+  orderId: string,
+  db: D1Database = getDb()
+): Promise<{ order: OrderRow; restored: { sku: string; quantity: number }[] }> {
+  const order = await db.prepare(`SELECT * FROM orders WHERE id = ?`).bind(orderId).first<OrderRow>();
+  if (!order) throw new NotFoundError("Không tìm thấy đơn hàng");
+  if (order.status !== "SHIPPED" || !order.inventory_issued_at) {
+    throw new ConflictError("Chỉ hoàn lại được đơn đang ở trạng thái ĐÃ GIAO");
+  }
+
+  const cas = await db
+    .prepare(
+      `UPDATE orders SET status = 'CONFIRMED', inventory_issued_at = NULL, updated_at = datetime('now')
+       WHERE id = ? AND status = 'SHIPPED' AND inventory_issued_at IS NOT NULL`
+    )
+    .bind(orderId)
+    .run();
+  if (!cas.meta.changes) throw new ConflictError("Đơn hàng đã được hoàn lại trước đó (double-submit)");
+
+  const { results: issues } = await db
+    .prepare(
+      `SELECT t.id, t.product_variant_id, t.sku, t.quantity FROM inventory_transactions t
+       JOIN order_items oi ON oi.id = t.reference_id
+       WHERE oi.order_id = ? AND t.type = 'ISSUE' AND t.reference_type = 'ORDER_ITEM'`
+    )
+    .bind(orderId)
+    .all<{ id: string; product_variant_id: string; sku: string; quantity: number }>();
+
+  if (issues.length) {
+    await db.batch(
+      issues.flatMap((t) => [
+        db
+          .prepare(
+            `UPDATE inventory SET quantity_on_hand = quantity_on_hand + ?, updated_at = datetime('now')
+             WHERE product_variant_id = ?`
+          )
+          .bind(-t.quantity, t.product_variant_id),
+        db.prepare(`DELETE FROM inventory_transactions WHERE id = ?`).bind(t.id),
+      ])
+    );
+  }
+
+  const updated = await db.prepare(`SELECT * FROM orders WHERE id = ?`).bind(orderId).first<OrderRow>();
+  return { order: updated!, restored: issues.map((t) => ({ sku: t.sku, quantity: -t.quantity })) };
+}
+
 export async function receiveInventory(
   params: {
     productVariantId: string;

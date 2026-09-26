@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import { createTestDb } from "./d1-shim";
 import { createProtocolFromOrder } from "@/lib/services/protocols";
 import { receiveDevices, sellDevice } from "@/lib/services/devices";
+import { createFreeformVariant } from "@/lib/services/products";
 
 let db: D1Database;
 let userId: string;
@@ -197,5 +198,39 @@ describe("createProtocolFromOrder", () => {
       .run();
 
     await expect(createProtocolFromOrder({ orderId: bareOrderId, createdBy: userId }, db)).rejects.toThrow();
+  });
+
+  it("includes a freeform (Đơn hàng tự do) line in the protocol's device list, no Serial required", async () => {
+    const freeform = await createFreeformVariant(db, {
+      name: "Máy pha cà phê Breville cũ 90%",
+      unitPrice: 3_500_000,
+      warrantyMonths: 3,
+    });
+
+    const freeformOrderId = randomUUID();
+    await db
+      .prepare(
+        `INSERT INTO orders (id, order_code, customer_id, status, total_amount, created_by) VALUES (?, 'DH-0003', ?, 'CONFIRMED', 3500000, ?)`
+      )
+      .bind(freeformOrderId, customerId, userId)
+      .run();
+    await db
+      .prepare(
+        `INSERT INTO order_items (id, order_id, product_variant_id, sku, product_name, quantity, unit_price, line_total)
+         VALUES (?, ?, ?, ?, ?, 1, 3500000, 3500000)`
+      )
+      .bind(randomUUID(), freeformOrderId, freeform.id, freeform.sku, freeform.product_name)
+      .run();
+
+    const { id: protocolId, created } = await createProtocolFromOrder({ orderId: freeformOrderId, createdBy: userId }, db);
+    expect(created).toBe(true);
+
+    const { results: devices } = await db
+      .prepare(`SELECT product_name, serial_number FROM handover_protocol_devices WHERE protocol_id = ?`)
+      .bind(protocolId)
+      .all<{ product_name: string; serial_number: string | null }>();
+    expect(devices).toHaveLength(1);
+    expect(devices[0].product_name).toBe("Máy pha cà phê Breville cũ 90%");
+    expect(devices[0].serial_number).toBeNull();
   });
 });

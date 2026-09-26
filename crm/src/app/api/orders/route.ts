@@ -5,8 +5,26 @@ import { newId, nextOrderCode } from "@/lib/db/id";
 import { requireRole } from "@/lib/auth/session";
 import { writeAuditLog } from "@/lib/audit";
 import { sellDevice } from "@/lib/services/devices";
+import { createFreeformVariant } from "@/lib/services/products";
 import { handleApiError, ConflictError, NotFoundError, ValidationError } from "@/lib/api/errors";
 import type { CustomerRow, DeviceRow, OrderRow, ProductVariantRow } from "@/types/db";
+
+const itemSchema = z
+  .object({
+    productVariantId: z.string().trim().optional(),
+    // Dòng "Đơn hàng tự do" (máy cũ/đã qua sử dụng, không có trong danh
+    // mục) — bắt buộc khi không chọn productVariantId. Xem createFreeformVariant.
+    freeformName: z.string().trim().min(1).optional(),
+    freeformUnitPrice: z.number().int().nonnegative().optional(),
+    freeformWarrantyMonths: z.number().int().nonnegative().optional(),
+    quantity: z.number().int().positive(),
+    deviceId: z.string().optional(),
+    discountPercent: z.number().min(0).max(100).optional(),
+    taxPercent: z.number().min(0).max(100).optional(),
+  })
+  .refine((v) => !!v.productVariantId || (!!v.freeformName && v.freeformUnitPrice !== undefined), {
+    message: "Mỗi dòng cần chọn sản phẩm có sẵn hoặc nhập tên + đơn giá (đơn hàng tự do)",
+  });
 
 const createSchema = z.object({
   customerId: z.string().min(1),
@@ -21,17 +39,7 @@ const createSchema = z.object({
   discountAmount: z.number().int().nonnegative().optional(),
   depositAmount: z.number().int().nonnegative().optional(),
   depositMethod: z.string().trim().optional(),
-  items: z
-    .array(
-      z.object({
-        productVariantId: z.string().min(1),
-        quantity: z.number().int().positive(),
-        deviceId: z.string().optional(),
-        discountPercent: z.number().min(0).max(100).optional(),
-        taxPercent: z.number().min(0).max(100).optional(),
-      })
-    )
-    .min(1, "Đơn hàng cần ít nhất 1 sản phẩm"),
+  items: z.array(itemSchema).min(1, "Đơn hàng cần ít nhất 1 sản phẩm"),
 });
 
 export async function GET(req: NextRequest) {
@@ -116,16 +124,28 @@ export async function POST(req: NextRequest) {
     let totalAmount = 0;
 
     for (const item of items) {
-      const variant = await db
-        .prepare(
-          `SELECT pv.*, p.name as product_name FROM product_variants pv
-           JOIN products p ON p.id = pv.product_id
-           WHERE pv.id = ? AND pv.is_active = 1`
-        )
-        .bind(item.productVariantId)
-        .first<ProductVariantRow & { product_name: string }>();
-      if (!variant) {
-        throw new ValidationError(`Không tìm thấy SKU cho sản phẩm đã chọn`);
+      let variant: (ProductVariantRow & { product_name: string }) | null;
+      if (item.productVariantId) {
+        variant = await db
+          .prepare(
+            `SELECT pv.*, p.name as product_name FROM product_variants pv
+             JOIN products p ON p.id = pv.product_id
+             WHERE pv.id = ? AND pv.is_active = 1`
+          )
+          .bind(item.productVariantId)
+          .first<ProductVariantRow & { product_name: string }>();
+        if (!variant) {
+          throw new ValidationError(`Không tìm thấy SKU cho sản phẩm đã chọn`);
+        }
+      } else {
+        // Đơn hàng tự do — tự sinh 1 SKU "ẩn" ngay lúc lưu đơn (xem
+        // createFreeformVariant). requires_serial luôn 0 nên nhánh Serial
+        // bên dưới không áp dụng cho dòng này.
+        variant = await createFreeformVariant(db, {
+          name: item.freeformName!,
+          unitPrice: item.freeformUnitPrice!,
+          warrantyMonths: item.freeformWarrantyMonths,
+        });
       }
 
       let deviceId: string | null = null;
@@ -151,7 +171,7 @@ export async function POST(req: NextRequest) {
       // a customer-specific price (customer_prices) wins over the default.
       const customPrice = await db
         .prepare(`SELECT unit_price FROM customer_prices WHERE customer_id = ? AND product_variant_id = ?`)
-        .bind(customerId, item.productVariantId)
+        .bind(customerId, variant.id)
         .first<{ unit_price: number }>();
       const unitPrice = customPrice?.unit_price ?? variant.unit_price;
       const discountPercent = item.discountPercent ?? 0;

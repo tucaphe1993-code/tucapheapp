@@ -1,7 +1,8 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { randomUUID } from "node:crypto";
 import { createTestDb } from "./d1-shim";
-import { variantsHaveHistory } from "@/lib/services/products";
+import { createFreeformVariant, variantsHaveHistory } from "@/lib/services/products";
+import type { ProductRow } from "@/types/db";
 
 let db: D1Database;
 let productId: string;
@@ -69,5 +70,38 @@ describe("variantsHaveHistory", () => {
       .bind(randomUUID(), orderId, variantId)
       .run();
     expect(await variantsHaveHistory(db, [variantId])).toBe(true);
+  });
+});
+
+describe("createFreeformVariant", () => {
+  it("creates a hidden EQUIPMENT product+variant carrying the given name/price/warranty", async () => {
+    const variant = await createFreeformVariant(db, {
+      name: "Máy pha cà phê Breville cũ 90%",
+      unitPrice: 3_500_000,
+      warrantyMonths: 3,
+    });
+
+    expect(variant.unit_price).toBe(3_500_000);
+    expect(variant.warranty_months).toBe(3);
+    expect(variant.requires_serial).toBe(0);
+    expect(variant.is_active).toBe(1);
+    expect(variant.product_name).toBe("Máy pha cà phê Breville cũ 90%");
+
+    const product = await db.prepare(`SELECT * FROM products WHERE id = ?`).bind(variant.product_id).first<ProductRow>();
+    expect(product?.product_type).toBe("EQUIPMENT");
+    expect(product?.is_freeform).toBe(1);
+  });
+
+  it("stores no warranty when warrantyMonths is omitted", async () => {
+    const variant = await createFreeformVariant(db, { name: "Máy xay cũ", unitPrice: 1_000_000 });
+    expect(variant.warranty_months).toBeNull();
+  });
+
+  it("gives every call a distinct product+sku even for the same name", async () => {
+    const a = await createFreeformVariant(db, { name: "Máy pha cũ", unitPrice: 1 });
+    const b = await createFreeformVariant(db, { name: "Máy pha cũ", unitPrice: 1 });
+    expect(a.id).not.toBe(b.id);
+    expect(a.product_id).not.toBe(b.product_id);
+    expect(a.sku).not.toBe(b.sku);
   });
 });

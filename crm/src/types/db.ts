@@ -149,6 +149,7 @@ export interface ProductRow {
   product_type: ProductType;
   coffee_stage: CoffeeStage;
   is_active: number;
+  is_freeform: number;
   created_at: string;
   updated_at: string;
 }

@@ -30,8 +30,11 @@ export async function GET() {
     const session = await requireRole("ADMIN", "EMPLOYEE");
     const db = getDb();
 
+    // is_freeform = SKU "ẩn" tự sinh cho Đơn hàng tự do (máy cũ) — không
+    // phải hàng thật trong danh mục, không hiện ở đây/trang Sản phẩm/mọi ô
+    // chọn sản phẩm có sẵn.
     const { results: products } = await db
-      .prepare(`SELECT * FROM products ORDER BY created_at DESC`)
+      .prepare(`SELECT * FROM products WHERE is_freeform = 0 ORDER BY created_at DESC`)
       .all<ProductRow>();
     const { results: variants } = await db
       .prepare(`SELECT * FROM product_variants ORDER BY weight_grams ASC`)

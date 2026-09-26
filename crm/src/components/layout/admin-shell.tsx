@@ -25,6 +25,7 @@ import {
   Truck,
   BarChart3,
   FileSignature,
+  Zap,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -40,6 +41,7 @@ const NAV_GROUPS = [
       { href: "/orders", label: "Đơn hàng", icon: ClipboardList },
       { href: "/orders/new", label: "Tạo đơn cà phê", icon: PlusCircle },
       { href: "/orders/new-equipment", label: "Tạo đơn thiết bị", icon: Wrench },
+      { href: "/orders/new-freeform", label: "Đơn hàng tự do", icon: Zap },
       { href: "/purchasing", label: "Mua hàng", icon: ShoppingCart },
       { href: "/tasks", label: "Công việc", icon: ListChecks },
       { href: "/installations", label: "Lắp đặt", icon: Wrench },

@@ -28,9 +28,11 @@ export default async function ProductsPage({ searchParams }: PageProps<"/product
   const { type, view } = await searchParams;
   const db = getDb();
 
+  // is_freeform = SKU "ẩn" tự sinh cho Đơn hàng tự do (máy cũ) — không hiện
+  // ở trang quản lý danh mục này.
   const stmt = type
-    ? db.prepare(`SELECT * FROM products WHERE product_type = ? ORDER BY created_at DESC`).bind(type)
-    : db.prepare(`SELECT * FROM products ORDER BY created_at DESC`);
+    ? db.prepare(`SELECT * FROM products WHERE product_type = ? AND is_freeform = 0 ORDER BY created_at DESC`).bind(type)
+    : db.prepare(`SELECT * FROM products WHERE is_freeform = 0 ORDER BY created_at DESC`);
   const { results: products } = await stmt.all<ProductRow>();
   const { results: variants } = await db
     .prepare(`SELECT * FROM product_variants ORDER BY weight_grams ASC`)

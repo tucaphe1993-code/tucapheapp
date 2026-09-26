@@ -1,0 +1,17 @@
+-- 026_freeform_products.sql
+-- "Đơn hàng tự do" — bán máy pha/máy xay cũ, đã qua sử dụng, không có
+-- trong danh mục: nhân viên tự gõ tên + giá + số tháng bảo hành cho từng
+-- dòng hàng. Thay vì nới lỏng ràng buộc order_items.product_variant_id
+-- (kéo theo phải dựng lại cả devices/device_history/installations/
+-- handover_protocol_devices đang REFERENCES devices(id) — rủi ro cao),
+-- mỗi dòng "tự do" tự động sinh 1 products + 1 product_variants "ẩn"
+-- ngay lúc lưu đơn. Nhờ vậy toàn bộ pipeline sẵn có (hoá đơn in, chi tiết
+-- đơn, phiếu bảo hành, biên bản bàn giao) chạy nguyên xi không cần sửa —
+-- với hệ thống đây chỉ là 1 SKU bình thường, product_type = 'EQUIPMENT'
+-- (không cần Serial vì product_variants.requires_serial để mặc định 0).
+--
+-- Cột is_freeform để ẩn các sản phẩm/SKU sinh tự động này khỏi trang
+-- Sản phẩm và mọi ô "chọn sản phẩm có sẵn" — chúng chỉ tồn tại để làm
+-- "neo" kỹ thuật cho 1 dòng order_items cụ thể, không phải hàng thật
+-- trong danh mục.
+ALTER TABLE products ADD COLUMN is_freeform INTEGER NOT NULL DEFAULT 0;

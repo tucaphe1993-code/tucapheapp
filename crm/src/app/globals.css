@@ -30,3 +30,18 @@ textarea {
     padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
   }
 }
+
+/* TÚ QUICK (/quick) — xanh rêu thương hiệu, chỉ dùng trong màn ghi đơn nhanh. */
+@theme {
+  --color-moss-50: #f3f6ee;
+  --color-moss-100: #e4ebd9;
+  --color-moss-200: #c9d7b3;
+  --color-moss-500: #5b7a3a;
+  --color-moss-600: #4a6a2c;
+  --color-moss-700: #3b5623;
+  --color-moss-800: #2e431c;
+}
+
+.pb-quick-nav {
+  padding-bottom: calc(5.5rem + env(safe-area-inset-bottom));
+}

@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { CustomerFormDialog } from "@/components/customers/customer-form-dialog";
 import { formatVnd } from "@/lib/utils";
 import type { CustomerRow, PaymentMethodRow } from "@/types/db";
@@ -23,6 +24,9 @@ interface FreeformLine {
   warrantyMonths: number;
   discountPercent: number;
   taxPercent: number;
+  // Tặng kèm — quà/dụng cụ đi kèm miễn phí (VD: tặng cây gạt nén, túi cà
+  // phê 250g...). Không tính vào tổng, không cần nhập giá.
+  isGift: boolean;
 }
 
 function emptyLine(): FreeformLine {
@@ -35,10 +39,12 @@ function emptyLine(): FreeformLine {
     warrantyMonths: 0,
     discountPercent: 0,
     taxPercent: 0,
+    isGift: false,
   };
 }
 
 function lineTotal(line: FreeformLine) {
+  if (line.isGift) return 0;
   const subtotal = line.unitPrice * line.quantity;
   const afterDiscount = subtotal * (1 - line.discountPercent / 100);
   return Math.round(afterDiscount * (1 + line.taxPercent / 100));
@@ -67,6 +73,7 @@ export function FreeformOrderBuilder() {
   const [lines, setLines] = useState<FreeformLine[]>([emptyLine()]);
   const [discountAmount, setDiscountAmount] = useState<number | "">(0);
   const [depositAmount, setDepositAmount] = useState<number | "">(0);
+  const [depositMethodCode, setDepositMethodCode] = useState("");
 
   useEffect(() => {
     fetch("/api/customers")
@@ -111,7 +118,7 @@ export function FreeformOrderBuilder() {
     if (!customerId) return toast.error("Vui lòng chọn khách hàng");
     if (lines.some((l) => !l.productName.trim())) return toast.error("Mỗi dòng cần có tên sản phẩm");
     if (lines.some((l) => l.quantity <= 0)) return toast.error("Số lượng phải lớn hơn 0");
-    if (lines.some((l) => l.unitPrice <= 0)) return toast.error("Đơn giá phải lớn hơn 0");
+    if (lines.some((l) => !l.isGift && l.unitPrice <= 0)) return toast.error("Đơn giá phải lớn hơn 0");
 
     setSubmitting(true);
     try {
@@ -127,14 +134,16 @@ export function FreeformOrderBuilder() {
           note: note || undefined,
           discountAmount: discount || undefined,
           depositAmount: deposit || undefined,
-          depositMethod: paymentMethods.find((m) => m.code === paymentMethodCode)?.name,
+          depositMethod: paymentMethods.find((m) => m.code === (depositMethodCode || paymentMethodCode))?.name,
           items: lines.map((l) => ({
-            freeformName: l.productName,
-            freeformUnitPrice: l.unitPrice,
-            freeformWarrantyMonths: l.warrantyMonths || undefined,
+            freeformName: l.isGift ? `${l.productName} (Tặng kèm)` : l.productName,
+            // Tặng kèm luôn giá 0 — không tính vào tổng đơn, không cần
+            // đơn giá thật (kể cả staff có lỡ gõ số vào ô đơn giá).
+            freeformUnitPrice: l.isGift ? 0 : l.unitPrice,
+            freeformWarrantyMonths: l.isGift ? undefined : l.warrantyMonths || undefined,
             quantity: l.quantity,
-            discountPercent: l.discountPercent || undefined,
-            taxPercent: l.taxPercent || undefined,
+            discountPercent: l.isGift ? undefined : l.discountPercent || undefined,
+            taxPercent: l.isGift ? undefined : l.taxPercent || undefined,
           })),
         }),
       });
@@ -226,6 +235,7 @@ export function FreeformOrderBuilder() {
                     <th className="py-1.5 pr-2 text-right">BH (tháng)</th>
                     <th className="py-1.5 pr-2 text-right">CK %</th>
                     <th className="py-1.5 pr-2 text-right">Thuế %</th>
+                    <th className="py-1.5 pr-2 text-center">Tặng kèm</th>
                     <th className="py-1.5 pr-2 text-right">Thành tiền</th>
                     <th className="py-1.5"></th>
                   </tr>
@@ -257,8 +267,9 @@ export function FreeformOrderBuilder() {
                         <Input
                           type="number"
                           min={0}
+                          disabled={line.isGift}
                           className="text-right"
-                          value={line.unitPrice}
+                          value={line.isGift ? 0 : line.unitPrice}
                           onChange={(e) => updateLine(line.key, { unitPrice: Number(e.target.value) || 0 })}
                         />
                       </td>
@@ -266,8 +277,9 @@ export function FreeformOrderBuilder() {
                         <Input
                           type="number"
                           min={0}
+                          disabled={line.isGift}
                           className="text-right"
-                          value={line.warrantyMonths}
+                          value={line.isGift ? 0 : line.warrantyMonths}
                           onChange={(e) => updateLine(line.key, { warrantyMonths: Number(e.target.value) || 0 })}
                         />
                       </td>
@@ -276,8 +288,9 @@ export function FreeformOrderBuilder() {
                           type="number"
                           min={0}
                           max={100}
+                          disabled={line.isGift}
                           className="text-right"
-                          value={line.discountPercent}
+                          value={line.isGift ? 0 : line.discountPercent}
                           onChange={(e) => updateLine(line.key, { discountPercent: Number(e.target.value) || 0 })}
                         />
                       </td>
@@ -286,12 +299,21 @@ export function FreeformOrderBuilder() {
                           type="number"
                           min={0}
                           max={100}
+                          disabled={line.isGift}
                           className="text-right"
-                          value={line.taxPercent}
+                          value={line.isGift ? 0 : line.taxPercent}
                           onChange={(e) => updateLine(line.key, { taxPercent: Number(e.target.value) || 0 })}
                         />
                       </td>
-                      <td className="py-2 pr-2 whitespace-nowrap text-right font-medium">{formatVnd(lineTotal(line))}</td>
+                      <td className="py-2 pr-2 text-center">
+                        <Checkbox
+                          checked={line.isGift}
+                          onCheckedChange={(v) => updateLine(line.key, { isGift: v === true })}
+                        />
+                      </td>
+                      <td className="py-2 pr-2 whitespace-nowrap text-right font-medium">
+                        {line.isGift ? <span className="text-emerald-700">Tặng kèm</span> : formatVnd(lineTotal(line))}
+                      </td>
                       <td className="py-2">
                         <button type="button" onClick={() => removeLine(line.key)} className="text-stone-400 hover:text-red-600">
                           <Trash2 className="h-4 w-4" />
@@ -307,7 +329,8 @@ export function FreeformOrderBuilder() {
             </Button>
             <p className="text-xs text-stone-400">
               Bảo hành 0 tháng = không bảo hành. Mỗi dòng vẫn vào được biên bản bàn giao/phiếu bảo hành như máy trong
-              danh mục, chỉ khác là không quản lý theo Serial.
+              danh mục, chỉ khác là không quản lý theo Serial. Tick &quot;Tặng kèm&quot; cho dụng cụ/phụ kiện cho không —
+              dòng đó không tính vào tổng đơn.
             </p>
           </CardContent>
         </Card>
@@ -346,7 +369,7 @@ export function FreeformOrderBuilder() {
               <span>{formatVnd(total)}</span>
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label className="text-xs text-stone-500">Đã cọc (đ)</Label>
+              <Label className="text-xs text-stone-500">Khách đã cọc (đ)</Label>
               <Input
                 type="number"
                 min={0}
@@ -354,12 +377,21 @@ export function FreeformOrderBuilder() {
                 onChange={(e) => setDepositAmount(e.target.value === "" ? "" : Number(e.target.value))}
               />
             </div>
-            {deposit > 0 && (
-              <div className="flex items-center justify-between text-sm font-medium text-red-600">
-                <span>Còn lại</span>
-                <span>{formatVnd(remaining)}</span>
-              </div>
-            )}
+            <div className="flex flex-col gap-1.5">
+              <Label className="text-xs text-stone-500">Hình thức cọc</Label>
+              <Select value={depositMethodCode} onChange={(e) => setDepositMethodCode(e.target.value)}>
+                <option value="">-- Giống phương thức thanh toán --</option>
+                {paymentMethods.map((m) => (
+                  <option key={m.code} value={m.code}>
+                    {m.name}
+                  </option>
+                ))}
+              </Select>
+            </div>
+            <div className="flex items-center justify-between text-sm font-medium text-red-600">
+              <span>Còn lại</span>
+              <span>{formatVnd(remaining)}</span>
+            </div>
             <Button size="lg" onClick={onSubmit} disabled={submitting} className="mt-2 w-full">
               {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
               Lưu đơn hàng

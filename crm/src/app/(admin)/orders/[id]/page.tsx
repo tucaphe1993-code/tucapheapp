@@ -350,7 +350,7 @@ export default async function OrderDetailPage({ params }: PageProps<"/orders/[id
                   </span>
                 </div>
                 <div className="flex flex-wrap gap-2 pt-1">
-                  {remaining > 0 && <RecordPaymentDialog orderId={order.id} />}
+                  {remaining > 0 && <RecordPaymentDialog orderId={order.id} orderTotal={order.total_amount} />}
                   <DueDateDialog orderId={order.id} currentDueDate={order.payment_due_date} />
                 </div>
                 {payments.length > 0 && (

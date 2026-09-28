@@ -18,11 +18,14 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { PAYMENT_METHODS } from "@/lib/constants";
+import { formatVnd } from "@/lib/utils";
 
-export function RecordPaymentDialog({ orderId }: { orderId: string }) {
+export function RecordPaymentDialog({ orderId, orderTotal }: { orderId: string; orderTotal: number }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [amount, setAmount] = useState("");
+  const depositThirtyPercent = Math.round(orderTotal * 0.3);
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -54,7 +57,13 @@ export function RecordPaymentDialog({ orderId }: { orderId: string }) {
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog
+      open={open}
+      onOpenChange={(next) => {
+        setOpen(next);
+        if (!next) setAmount("");
+      }}
+    >
       <DialogTrigger asChild>
         <Button size="sm">
           <Wallet className="h-4 w-4" /> Ghi nhận thu tiền
@@ -67,7 +76,24 @@ export function RecordPaymentDialog({ orderId }: { orderId: string }) {
         <form onSubmit={onSubmit} className="flex flex-col gap-3">
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="amount">Số tiền thu (đ) *</Label>
-            <Input id="amount" name="amount" type="number" min={1} required />
+            <Input
+              id="amount"
+              name="amount"
+              type="number"
+              min={1}
+              required
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+            />
+            {orderTotal > 0 && (
+              <button
+                type="button"
+                onClick={() => setAmount(String(depositThirtyPercent))}
+                className="self-start text-xs text-amber-800 hover:underline"
+              >
+                Đặt cọc 30% ({formatVnd(depositThirtyPercent)})
+              </button>
+            )}
           </div>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="paidAt">Ngày thu</Label>

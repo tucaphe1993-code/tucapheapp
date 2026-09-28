@@ -241,10 +241,19 @@ export async function convertQuotationToOrder(
     .prepare(`SELECT * FROM quotation_items WHERE quotation_id = ? ORDER BY sort_order ASC`)
     .bind(params.quotationId)
     .all<QuotationItemRow>();
-  // Dòng "chỉ tham khảo giá" không phải hàng đang bán trong báo giá này —
-  // bỏ qua, không đưa vào đơn hàng.
-  const items = allItems.filter((i) => !i.is_reference);
-  if (items.length === 0) throw new ValidationError("Báo giá chưa có sản phẩm nào (ngoài các dòng tham khảo giá)");
+  const sellableCount = allItems.filter((i) => !i.is_reference).length;
+  if (sellableCount === 0) throw new ValidationError("Báo giá chưa có sản phẩm nào (ngoài các dòng tham khảo giá)");
+
+  // Dòng "chỉ tham khảo giá" vẫn được đưa vào đơn hàng (khách có thể chốt
+  // mua thêm) — line_total tính lại theo đơn giá thật (CK%/VAT luôn 0 với
+  // dòng tham khảo, y hệt lúc tạo báo giá), nếu chưa có giá thì vẫn là 0đ.
+  const items = allItems.map((item) =>
+    item.is_reference ? { ...item, line_total: item.unit_price * item.quantity } : item
+  );
+  const referenceExtra = items
+    .filter((i) => i.is_reference)
+    .reduce((sum, i) => sum + i.line_total, 0);
+  const orderTotalAmount = quotation.total_amount + referenceExtra;
 
   // CAS: khóa slot "đang chuyển đơn" trước khi làm gì khác.
   const cas = await db
@@ -307,7 +316,7 @@ export async function convertQuotationToOrder(
       quotation.customer_phone_snapshot,
       quotation.customer_address_snapshot,
       [quotation.note, `Chuyển từ báo giá ${quotation.quote_code}`].filter(Boolean).join(" — "),
-      quotation.total_amount,
+      orderTotalAmount,
       quotation.discount_amount,
       params.actingUserId
     )

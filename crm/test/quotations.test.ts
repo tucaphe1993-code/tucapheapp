@@ -216,9 +216,9 @@ describe("convertQuotationToOrder", () => {
     await expect(convertQuotationToOrder(db, { quotationId, actingUserId: userId })).rejects.toThrow();
   });
 
-  it("excludes reference-only lines from the order — only the real, sellable line is copied", async () => {
+  it("still copies reference-only lines into the order, billing them for real at their entered price", async () => {
     const quotationId = await insertQuotation();
-    // Thêm 1 dòng "chỉ tham khảo giá" vào báo giá đã có sẵn dòng thật.
+    // Thêm 1 dòng "chỉ tham khảo giá" (đã có giá) vào báo giá có sẵn dòng thật.
     await db
       .prepare(
         `INSERT INTO quotation_items (id, quotation_id, product_name, unit, quantity, unit_price, line_total, sort_order, is_reference)
@@ -226,14 +226,44 @@ describe("convertQuotationToOrder", () => {
       )
       .bind(randomUUID(), quotationId)
       .run();
+    const quotationBefore = await db
+      .prepare(`SELECT total_amount FROM quotations WHERE id = ?`)
+      .bind(quotationId)
+      .first<{ total_amount: number }>();
 
     const { order } = await convertQuotationToOrder(db, { quotationId, actingUserId: userId });
 
-    const { results: items } = await db.prepare(`SELECT product_name FROM order_items WHERE order_id = ?`).bind(order.id).all<{
+    const { results: items } = await db.prepare(`SELECT product_name, line_total FROM order_items WHERE order_id = ?`).bind(order.id).all<{
       product_name: string;
+      line_total: number;
     }>();
-    expect(items).toHaveLength(1);
-    expect(items[0].product_name).toBe("Cà phê Classic");
+    expect(items).toHaveLength(2);
+    const referenceItem = items.find((i) => i.product_name === "Honey Reserve (giá tham khảo)");
+    expect(referenceItem?.line_total).toBe(260_000);
+    // Đơn hàng cộng thêm đúng giá trị dòng tham khảo vào tổng tiền.
+    expect(order.total_amount).toBe(quotationBefore!.total_amount + 260_000);
+  });
+
+  it("still lets a reference line with no price yet through the order at 0đ", async () => {
+    const quotationId = await insertQuotation();
+    await db
+      .prepare(
+        `INSERT INTO quotation_items (id, quotation_id, product_name, unit, quantity, unit_price, line_total, sort_order, is_reference)
+         VALUES (?, ?, 'Bộ lọc 3 cấp', 'Cái', 1, 0, 0, 1, 1)`
+      )
+      .bind(randomUUID(), quotationId)
+      .run();
+
+    const { order } = await convertQuotationToOrder(db, { quotationId, actingUserId: userId });
+
+    const { results: items } = await db.prepare(`SELECT product_name, unit_price, line_total FROM order_items WHERE order_id = ?`).bind(order.id).all<{
+      product_name: string;
+      unit_price: number;
+      line_total: number;
+    }>();
+    const zeroItem = items.find((i) => i.product_name === "Bộ lọc 3 cấp");
+    expect(zeroItem?.unit_price).toBe(0);
+    expect(zeroItem?.line_total).toBe(0);
   });
 
   it("auto-creates a hidden freeform SKU for a line typed by hand (no productVariantId), instead of blocking the conversion", async () => {

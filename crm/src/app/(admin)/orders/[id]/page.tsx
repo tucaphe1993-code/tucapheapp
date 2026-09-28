@@ -8,6 +8,7 @@ import { OrderActions } from "@/components/orders/order-actions";
 import { DebtStatusBadge } from "@/components/orders/debt-status-badge";
 import { RecordPaymentDialog } from "@/components/orders/record-payment-dialog";
 import { EditItemPriceDialog } from "@/components/orders/edit-item-price-dialog";
+import { EditOrderDiscountDialog } from "@/components/orders/edit-order-discount-dialog";
 import { DueDateDialog } from "@/components/orders/due-date-dialog";
 import { InstallationDialog } from "@/components/orders/installation-dialog";
 import { InstallationStatusBadge } from "@/components/installations/installation-status-badge";
@@ -319,12 +320,17 @@ export default async function OrderDetailPage({ params }: PageProps<"/orders/[id
                 <DebtStatusBadge status={debtStatus} />
               </CardHeader>
               <CardContent className="flex flex-col gap-2 text-sm">
-                {order.discount_amount > 0 && (
-                  <div className="flex justify-between">
-                    <span className="text-stone-500">Giảm giá</span>
-                    <span className="font-medium text-red-600">-{formatVnd(order.discount_amount)}</span>
-                  </div>
-                )}
+                <div className="flex items-center justify-between">
+                  <span className="flex items-center gap-1 text-stone-500">
+                    Giảm giá
+                    {order.status !== "COMPLETED" && (
+                      <EditOrderDiscountDialog orderId={order.id} currentDiscountAmount={order.discount_amount} />
+                    )}
+                  </span>
+                  <span className={order.discount_amount > 0 ? "font-medium text-red-600" : "font-medium"}>
+                    {order.discount_amount > 0 ? `-${formatVnd(order.discount_amount)}` : "—"}
+                  </span>
+                </div>
                 <div className="flex justify-between">
                   <span className="text-stone-500">Tổng tiền</span>
                   <span className="font-medium">{formatVnd(order.total_amount)}</span>

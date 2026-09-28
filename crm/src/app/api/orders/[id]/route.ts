@@ -59,6 +59,7 @@ const updateSchema = z.object({
   deliveryDate: z.string().trim().optional().nullable(),
   deliveryMethod: z.string().trim().optional().nullable(),
   note: z.string().trim().optional().nullable(),
+  discountAmount: z.number().int().nonnegative().optional(),
 });
 
 export async function PATCH(req: NextRequest, ctx: RouteContext<"/api/orders/[id]">) {
@@ -78,14 +79,28 @@ export async function PATCH(req: NextRequest, ctx: RouteContext<"/api/orders/[id
       throw new ValidationError("Không thể sửa đơn đã hủy hoặc đã hoàn thành");
     }
 
+    let discountAmount = order.discount_amount;
+    let totalAmount = order.total_amount;
+    if (parsed.data.discountAmount !== undefined) {
+      const { results: items } = await db
+        .prepare(`SELECT line_total FROM order_items WHERE order_id = ?`)
+        .bind(id)
+        .all<{ line_total: number }>();
+      const itemsTotal = items.reduce((sum, i) => sum + i.line_total, 0);
+      discountAmount = Math.min(parsed.data.discountAmount, itemsTotal);
+      totalAmount = itemsTotal - discountAmount;
+    }
+
     await db
       .prepare(
-        `UPDATE orders SET delivery_date = ?, delivery_method = ?, note = ?, updated_at = datetime('now') WHERE id = ?`
+        `UPDATE orders SET delivery_date = ?, delivery_method = ?, note = ?, discount_amount = ?, total_amount = ?, updated_at = datetime('now') WHERE id = ?`
       )
       .bind(
         parsed.data.deliveryDate ?? order.delivery_date,
         parsed.data.deliveryMethod ?? order.delivery_method,
         parsed.data.note ?? order.note,
+        discountAmount,
+        totalAmount,
         id
       )
       .run();

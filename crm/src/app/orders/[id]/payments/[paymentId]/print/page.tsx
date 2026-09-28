@@ -36,6 +36,7 @@ export default async function DepositReceiptPrintPage({
     db.prepare(`SELECT * FROM users WHERE id = ?`).bind(payment.created_by).first<UserRow>(),
   ]);
 
+  const subtotal = items.reduce((sum, i) => sum + i.line_total, 0);
   const totalPaid = allPayments.reduce((sum, p) => sum + p.amount, 0);
   const remaining = Math.max(0, order.total_amount - totalPaid);
 
@@ -150,6 +151,16 @@ export default async function DepositReceiptPrintPage({
         {/* Order total summary */}
         <div className="mb-4 flex flex-col gap-1 border-t border-dashed border-stone-300 pt-2 text-[11px]">
           <div className="flex justify-between">
+            <span className="text-stone-500">Tạm tính</span>
+            <span>{formatVnd(subtotal)}</span>
+          </div>
+          {order.discount_amount > 0 && (
+            <div className="flex justify-between">
+              <span className="text-stone-500">Giảm giá</span>
+              <span className="text-red-600">-{formatVnd(order.discount_amount)}</span>
+            </div>
+          )}
+          <div className="flex justify-between font-semibold">
             <span className="text-stone-500">Tổng tiền đơn hàng</span>
             <span>{formatVnd(order.total_amount)}</span>
           </div>

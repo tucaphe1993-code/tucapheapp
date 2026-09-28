@@ -141,9 +141,18 @@ export default async function QuotationPrintPage({ params }: PageProps<"/bao-gia
                 <tr key={item.id}>
                   <td className="border border-stone-300 p-1.5 text-center">{idx + 1}</td>
                   <td className="border border-stone-300 p-1.5">
-                    {item.product_name}
-                    {item.is_reference === 1 && <span className="ml-1 text-[9px] italic text-stone-400">(tham khảo)</span>}
-                    {item.description && <div className="text-[9px] text-stone-500">{item.description}</div>}
+                    <div className="flex items-start gap-1.5">
+                      {item.image_url && (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={item.image_url} alt="" className="h-9 w-9 shrink-0 rounded border border-stone-200 object-cover" />
+                      )}
+                      <div>
+                        {item.product_name}
+                        {item.is_reference === 1 && <span className="ml-1 text-[9px] italic text-stone-400">(tham khảo)</span>}
+                        {item.description && <div className="text-[9px] text-stone-500">{item.description}</div>}
+                        {item.specs && <div className="text-[9px] text-stone-500">{item.specs}</div>}
+                      </div>
+                    </div>
                   </td>
                   <td className="border border-stone-300 p-1.5 text-center">{item.unit}</td>
                   <td className="border border-stone-300 p-1.5 text-center">{item.quantity}</td>

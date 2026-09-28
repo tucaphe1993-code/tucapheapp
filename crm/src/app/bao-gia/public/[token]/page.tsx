@@ -78,7 +78,16 @@ export default async function PublicQuotationPage({ params }: PageProps<"/bao-gi
           {items.map((item) => (
             <div key={item.id} className="rounded-xl border border-stone-200 p-3">
               <div className="flex items-start justify-between gap-2">
-                <div>
+                <div className="flex items-start gap-2">
+                  {item.image_url && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={item.image_url}
+                      alt=""
+                      className="h-12 w-12 shrink-0 rounded-lg border border-stone-200 object-cover"
+                    />
+                  )}
+                  <div>
                   <div className="font-semibold text-stone-900">
                     {item.product_name}
                     {item.is_reference === 1 && (
@@ -86,6 +95,7 @@ export default async function PublicQuotationPage({ params }: PageProps<"/bao-gi
                     )}
                   </div>
                   {item.description && <div className="text-xs text-stone-500">{item.description}</div>}
+                  {item.specs && <div className="text-xs text-stone-500">{item.specs}</div>}
                   {item.is_reference === 1 ? (
                     <div className="mt-0.5 text-xs text-stone-500">Giá tham khảo: {formatVnd(item.unit_price)} / {item.unit}</div>
                   ) : (
@@ -93,6 +103,7 @@ export default async function PublicQuotationPage({ params }: PageProps<"/bao-gi
                       {item.quantity} {item.unit} × {formatVnd(item.unit_price)}
                     </div>
                   )}
+                  </div>
                 </div>
                 {item.is_reference !== 1 && <div className="shrink-0 font-semibold text-stone-900">{formatVnd(item.line_total)}</div>}
               </div>

@@ -128,15 +128,28 @@ export default async function QuotationDetailPage({ params }: PageProps<"/bao-gi
                   <tr key={item.id} className="border-b border-stone-100">
                     <td className="py-1.5 pr-2">{idx + 1}</td>
                     <td className="py-1.5 pr-2">
-                      <div>
-                        {item.product_name}
-                        {item.is_reference === 1 && (
-                          <span className="ml-1.5 rounded bg-stone-100 px-1.5 py-0.5 text-[10px] font-medium text-stone-500">
-                            Tham khảo
-                          </span>
+                      <div className="flex items-start gap-2">
+                        {item.image_url && (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={item.image_url}
+                            alt=""
+                            className="h-10 w-10 shrink-0 rounded-lg border border-stone-200 object-cover"
+                          />
                         )}
+                        <div>
+                          <div>
+                            {item.product_name}
+                            {item.is_reference === 1 && (
+                              <span className="ml-1.5 rounded bg-stone-100 px-1.5 py-0.5 text-[10px] font-medium text-stone-500">
+                                Tham khảo
+                              </span>
+                            )}
+                          </div>
+                          {item.description && <div className="text-xs text-stone-500">{item.description}</div>}
+                          {item.specs && <div className="text-xs text-stone-500">{item.specs}</div>}
+                        </div>
                       </div>
-                      {item.description && <div className="text-xs text-stone-500">{item.description}</div>}
                     </td>
                     <td className="py-1.5 pr-2">{item.unit}</td>
                     <td className="py-1.5 pr-2 text-right">{item.quantity}</td>

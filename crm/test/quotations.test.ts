@@ -59,6 +59,21 @@ describe("computeQuoteTotals", () => {
     expect(totals.items[1].lineTotal).toBe(0);
     expect(totals.items[1].productName).toBe("Honey Reserve (giá tham khảo)");
   });
+
+  it("carries imageUrl and specs through to the computed line", () => {
+    const totals = computeQuoteTotals([
+      {
+        productName: "Máy pha cà phê cũ",
+        unit: "Cái",
+        quantity: 1,
+        unitPrice: 5_000_000,
+        imageUrl: "data:image/jpeg;base64,abc123",
+        specs: "2 group, bơm điện, đã bảo trì",
+      },
+    ]);
+    expect(totals.items[0].imageUrl).toBe("data:image/jpeg;base64,abc123");
+    expect(totals.items[0].specs).toBe("2 group, bơm điện, đã bảo trì");
+  });
 });
 
 let db: D1Database;

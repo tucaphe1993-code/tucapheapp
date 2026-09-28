@@ -8,6 +8,8 @@ import { computeQuoteTotals, recordQuotationEvent } from "@/lib/services/quotati
 import { handleApiError, ConflictError, NotFoundError, ValidationError } from "@/lib/api/errors";
 import type { CustomerRow, QuotationEventRow, QuotationItemRow, QuotationRow } from "@/types/db";
 
+const MAX_ITEM_IMAGE_BYTES = 1_200_000;
+
 const lineSchema = z.object({
   productVariantId: z.string().trim().optional(),
   productName: z.string().trim().min(1, "Vui lòng nhập tên sản phẩm"),
@@ -19,6 +21,13 @@ const lineSchema = z.object({
   discountAmount: z.number().int().nonnegative().optional(),
   vatPercent: z.number().min(0).max(100).optional(),
   isReference: z.boolean().optional(),
+  imageUrl: z
+    .string()
+    .trim()
+    .regex(/^data:image\/(jpeg|png|webp);base64,/, "Định dạng ảnh không hợp lệ (chỉ nhận JPEG/PNG/WebP)")
+    .max(MAX_ITEM_IMAGE_BYTES, "Ảnh quá lớn, vui lòng thử lại")
+    .optional(),
+  specs: z.string().trim().max(2000).optional(),
 });
 
 const updateSchema = z.object({
@@ -101,6 +110,8 @@ export async function PATCH(req: NextRequest, ctx: RouteContext<"/api/quotations
         discountAmount: i.discountAmount,
         vatPercent: i.vatPercent,
         isReference: i.isReference,
+        imageUrl: i.imageUrl,
+        specs: i.specs,
       })),
       data.shippingFee ?? existing.shipping_fee
     );
@@ -143,8 +154,8 @@ export async function PATCH(req: NextRequest, ctx: RouteContext<"/api/quotations
           .prepare(
             `INSERT INTO quotation_items
                (id, quotation_id, product_variant_id, product_name, description, unit, quantity, unit_price,
-                discount_percent, discount_amount, vat_percent, line_total, sort_order, is_reference)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+                discount_percent, discount_amount, vat_percent, line_total, sort_order, is_reference, image_url, specs)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
           )
           .bind(
             newId(),
@@ -160,7 +171,9 @@ export async function PATCH(req: NextRequest, ctx: RouteContext<"/api/quotations
             item.vatPercent,
             item.lineTotal,
             idx,
-            item.isReference ? 1 : 0
+            item.isReference ? 1 : 0,
+            item.imageUrl ?? null,
+            item.specs ?? null
           )
       )
     );

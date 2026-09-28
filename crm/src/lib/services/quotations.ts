@@ -15,6 +15,9 @@ export interface QuoteLineInput {
   // Dòng "chỉ để tham khảo giá" — hiển thị tên + đơn giá cho khách biết,
   // không cộng vào Tạm tính/Tổng cộng, không có "Thành tiền".
   isReference?: boolean;
+  // Ảnh (base64 data URL, đã nén phía trình duyệt) + thông số kỹ thuật.
+  imageUrl?: string | null;
+  specs?: string | null;
 }
 
 export interface QuoteLineComputed extends QuoteLineInput {
@@ -170,8 +173,8 @@ export async function duplicateQuotation(
           .prepare(
             `INSERT INTO quotation_items
                (id, quotation_id, product_variant_id, product_name, description, unit, quantity, unit_price,
-                discount_percent, discount_amount, vat_percent, line_total, sort_order, is_reference)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+                discount_percent, discount_amount, vat_percent, line_total, sort_order, is_reference, image_url, specs)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
           )
           .bind(
             newId(),
@@ -187,7 +190,9 @@ export async function duplicateQuotation(
             item.vat_percent,
             item.line_total,
             item.sort_order,
-            item.is_reference
+            item.is_reference,
+            item.image_url,
+            item.specs
           )
       )
     );

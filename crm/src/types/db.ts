@@ -646,6 +646,8 @@ export interface QuotationItemRow {
   line_total: number;
   sort_order: number;
   is_reference: number;
+  image_url: string | null;
+  specs: string | null;
 }
 
 export interface QuotationEventRow {

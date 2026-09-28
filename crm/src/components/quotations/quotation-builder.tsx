@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { PlusCircle, Trash2, Loader2 } from "lucide-react";
+import { PlusCircle, Trash2, Loader2, ImagePlus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,6 +13,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CustomerFormDialog } from "@/components/customers/customer-form-dialog";
 import { formatVnd } from "@/lib/utils";
+import { resizeImageToDataUrl } from "@/lib/image-resize";
 import { EQUIPMENT_PRODUCT_TYPES } from "@/lib/constants";
 import type { CustomerRow, ProductRow, ProductVariantRow, QuotationItemRow, QuotationRow, QuotePriceType, UserRow } from "@/types/db";
 
@@ -40,6 +41,10 @@ interface QuoteLine {
   // Dòng "chỉ để tham khảo giá" — cho khách biết đơn giá loại này, không
   // cộng vào Tạm tính/Tổng cộng, không hiện Thành tiền.
   isReference: boolean;
+  // Ảnh (base64 data URL, đã nén phía trình duyệt) + thông số kỹ thuật.
+  imageUrl: string;
+  specs: string;
+  uploadingImage: boolean;
 }
 
 function emptyLine(): QuoteLine {
@@ -55,6 +60,9 @@ function emptyLine(): QuoteLine {
     discountAmount: 0,
     vatPercent: 0,
     isReference: false,
+    imageUrl: "",
+    specs: "",
+    uploadingImage: false,
   };
 }
 
@@ -112,6 +120,9 @@ export function QuotationBuilder({ initial }: { initial?: QuotationBuilderInitia
           discountAmount: it.discount_amount,
           vatPercent: it.vat_percent,
           isReference: it.is_reference === 1,
+          imageUrl: it.image_url ?? "",
+          specs: it.specs ?? "",
+          uploadingImage: false,
         }))
       : [emptyLine()]
   );
@@ -176,6 +187,8 @@ export function QuotationBuilder({ initial }: { initial?: QuotationBuilderInitia
       productName: variant.productName,
       unit: variant.unit || "Cái",
       unitPrice: variant.unit_price,
+      imageUrl: variant.image_url ?? "",
+      specs: variant.specs ?? "",
     });
   }
 
@@ -185,6 +198,19 @@ export function QuotationBuilder({ initial }: { initial?: QuotationBuilderInitia
 
   function removeLine(key: string) {
     setLines((cur) => (cur.length > 1 ? cur.filter((l) => l.key !== key) : cur));
+  }
+
+  async function onPickImage(key: string, file: File | undefined) {
+    if (!file) return;
+    updateLine(key, { uploadingImage: true });
+    try {
+      const dataUrl = await resizeImageToDataUrl(file);
+      updateLine(key, { imageUrl: dataUrl });
+    } catch {
+      toast.error("Không xử lý được ảnh này, thử ảnh khác");
+    } finally {
+      updateLine(key, { uploadingImage: false });
+    }
   }
 
   const sellableLines = lines.filter((l) => !l.isReference);
@@ -204,6 +230,7 @@ export function QuotationBuilder({ initial }: { initial?: QuotationBuilderInitia
     if (!customerId) return toast.error("Vui lòng chọn khách hàng");
     if (lines.some((l) => !l.productName.trim())) return toast.error("Mỗi dòng cần có tên sản phẩm");
     if (lines.some((l) => l.quantity <= 0)) return toast.error("Số lượng phải lớn hơn 0");
+    if (lines.some((l) => l.uploadingImage)) return toast.error("Đang xử lý ảnh, vui lòng đợi");
 
     setSubmitting(true);
     try {
@@ -232,6 +259,8 @@ export function QuotationBuilder({ initial }: { initial?: QuotationBuilderInitia
           discountAmount: l.discountAmount || undefined,
           vatPercent: l.vatPercent || undefined,
           isReference: l.isReference || undefined,
+          imageUrl: l.imageUrl || undefined,
+          specs: l.specs.trim() || undefined,
         })),
       };
 
@@ -399,6 +428,45 @@ export function QuotationBuilder({ initial }: { initial?: QuotationBuilderInitia
                           onChange={(e) => updateLine(line.key, { description: e.target.value })}
                           className="mb-1"
                         />
+                        <div className="mb-1 flex items-center gap-2">
+                          {line.imageUrl ? (
+                            <div className="relative">
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img src={line.imageUrl} alt="" className="h-12 w-12 rounded-lg border border-stone-200 object-cover" />
+                              <button
+                                type="button"
+                                onClick={() => updateLine(line.key, { imageUrl: "" })}
+                                className="absolute -right-1.5 -top-1.5 rounded-full bg-stone-800 p-0.5 text-white hover:bg-red-600"
+                                aria-label="Xoá ảnh"
+                              >
+                                <X className="h-3 w-3" />
+                              </button>
+                            </div>
+                          ) : (
+                            <label className="flex h-12 w-12 shrink-0 cursor-pointer flex-col items-center justify-center gap-0.5 rounded-lg border border-dashed border-stone-300 text-stone-400 hover:border-amber-700 hover:text-amber-700">
+                              {line.uploadingImage ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <>
+                                  <ImagePlus className="h-3.5 w-3.5" />
+                                  <span className="text-[8px]">Ảnh</span>
+                                </>
+                              )}
+                              <input
+                                type="file"
+                                accept="image/jpeg,image/png,image/webp"
+                                className="hidden"
+                                onChange={(e) => onPickImage(line.key, e.target.files?.[0])}
+                              />
+                            </label>
+                          )}
+                          <Input
+                            placeholder="Thông số kỹ thuật (VD: 1350W, 15 bar...)"
+                            value={line.specs}
+                            onChange={(e) => updateLine(line.key, { specs: e.target.value })}
+                            className="text-xs"
+                          />
+                        </div>
                         <div className="flex items-center gap-1.5">
                           <Checkbox
                             id={`ref-${line.key}`}

@@ -354,7 +354,16 @@ export default async function OrderDetailPage({ params }: PageProps<"/orders/[id
                         <span className="text-stone-500">
                           {formatDate(p.paid_at)} {p.method ? `· ${p.method}` : ""}
                         </span>
-                        <span className="font-medium">{formatVnd(p.amount)}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium">{formatVnd(p.amount)}</span>
+                          <Link
+                            href={`/orders/${order.id}/payments/${p.id}/print`}
+                            target="_blank"
+                            className="text-amber-800 hover:underline"
+                          >
+                            In phiếu
+                          </Link>
+                        </div>
                       </div>
                     ))}
                   </div>

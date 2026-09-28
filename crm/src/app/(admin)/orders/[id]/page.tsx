@@ -7,6 +7,7 @@ import { OrderStatusBadge } from "@/components/orders/order-status-badge";
 import { OrderActions } from "@/components/orders/order-actions";
 import { DebtStatusBadge } from "@/components/orders/debt-status-badge";
 import { RecordPaymentDialog } from "@/components/orders/record-payment-dialog";
+import { EditItemPriceDialog } from "@/components/orders/edit-item-price-dialog";
 import { DueDateDialog } from "@/components/orders/due-date-dialog";
 import { InstallationDialog } from "@/components/orders/installation-dialog";
 import { InstallationStatusBadge } from "@/components/installations/installation-status-badge";
@@ -205,7 +206,17 @@ export default async function OrderDetailPage({ params }: PageProps<"/orders/[id
                         </td>
                         <td className="py-1.5 pr-3">{item.quantity}</td>
                         <td className="py-1.5 pr-3">
-                          {formatVnd(item.unit_price)}
+                          <div className="flex items-center gap-1">
+                            {formatVnd(item.unit_price)}
+                            {order.status !== "CANCELLED" && order.status !== "COMPLETED" && (
+                              <EditItemPriceDialog
+                                orderId={order.id}
+                                itemId={item.id}
+                                productName={item.product_name}
+                                currentUnitPrice={item.unit_price}
+                              />
+                            )}
+                          </div>
                           {(item.discount_percent > 0 || item.tax_percent > 0) && (
                             <div className="text-xs text-stone-400">
                               {item.discount_percent > 0 && <>CK {item.discount_percent}% </>}

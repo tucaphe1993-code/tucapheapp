@@ -9,6 +9,7 @@ import { DebtStatusBadge } from "@/components/orders/debt-status-badge";
 import { RecordPaymentDialog } from "@/components/orders/record-payment-dialog";
 import { EditItemPriceDialog } from "@/components/orders/edit-item-price-dialog";
 import { EditOrderDiscountDialog } from "@/components/orders/edit-order-discount-dialog";
+import { AddOrderItemDialog } from "@/components/orders/add-order-item-dialog";
 import { DueDateDialog } from "@/components/orders/due-date-dialog";
 import { InstallationDialog } from "@/components/orders/installation-dialog";
 import { InstallationStatusBadge } from "@/components/installations/installation-status-badge";
@@ -153,8 +154,11 @@ export default async function OrderDetailPage({ params }: PageProps<"/orders/[id
       <div className="grid gap-4 lg:grid-cols-3">
         <div className="flex flex-col gap-4 lg:col-span-2">
           <Card>
-            <CardHeader>
+            <CardHeader className="flex-row items-center justify-between space-y-0">
               <CardTitle className="text-base">Sản phẩm</CardTitle>
+              {order.status !== "CANCELLED" && order.status !== "COMPLETED" && (
+                <AddOrderItemDialog orderId={order.id} />
+              )}
             </CardHeader>
             <CardContent>
               <div className="overflow-x-auto">

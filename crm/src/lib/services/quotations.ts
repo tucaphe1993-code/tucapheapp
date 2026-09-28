@@ -1,5 +1,6 @@
 import { newId, nextOrderCode, nextQuoteCode } from "@/lib/db/id";
 import { ConflictError, NotFoundError, ValidationError } from "@/lib/api/errors";
+import { createFreeformVariant } from "@/lib/services/products";
 import type { OrderRow, QuotationItemRow, QuotationRow } from "@/types/db";
 
 export interface QuoteLineInput {
@@ -244,12 +245,6 @@ export async function convertQuotationToOrder(
   // bỏ qua, không đưa vào đơn hàng.
   const items = allItems.filter((i) => !i.is_reference);
   if (items.length === 0) throw new ValidationError("Báo giá chưa có sản phẩm nào (ngoài các dòng tham khảo giá)");
-  const missingSku = items.find((i) => !i.product_variant_id);
-  if (missingSku) {
-    throw new ValidationError(
-      `Dòng "${missingSku.product_name}" chưa gắn mã hàng có trong danh mục — sửa lại báo giá (chọn đúng sản phẩm trong danh mục) trước khi chuyển đơn`
-    );
-  }
 
   // CAS: khóa slot "đang chuyển đơn" trước khi làm gì khác.
   const cas = await db
@@ -265,15 +260,36 @@ export async function convertQuotationToOrder(
   }
 
   // Cần sku thật (order_items.sku NOT NULL) — quotation_items không lưu
-  // sku riêng, tra lại từ product_variants (đã đảm bảo mọi dòng đều có
-  // product_variant_id ở bước validate phía trên).
-  const variantIds = [...new Set(items.map((i) => i.product_variant_id as string))];
+  // sku riêng, tra lại từ product_variants.
+  const variantIds = [...new Set(items.filter((i) => i.product_variant_id).map((i) => i.product_variant_id as string))];
   const placeholders = variantIds.map(() => "?").join(",");
-  const { results: variants } = await db
-    .prepare(`SELECT id, sku, form, packaging, weight_grams FROM product_variants WHERE id IN (${placeholders})`)
-    .bind(...variantIds)
-    .all<{ id: string; sku: string; form: string | null; packaging: string | null; weight_grams: number | null }>();
-  const variantById = new Map(variants.map((v) => [v.id, v]));
+  const { results: variants } =
+    variantIds.length > 0
+      ? await db
+          .prepare(`SELECT id, sku, form, packaging, weight_grams FROM product_variants WHERE id IN (${placeholders})`)
+          .bind(...variantIds)
+          .all<{ id: string; sku: string; form: string | null; packaging: string | null; weight_grams: number | null }>()
+      : { results: [] };
+  const variantById = new Map<
+    string,
+    { id: string; sku: string; form: string | null; packaging: string | null; weight_grams: number | null }
+  >(variants.map((v) => [v.id, v]));
+
+  // Dòng chưa gắn sản phẩm trong danh mục (khách hàng gõ tay tên máy khi
+  // tạo báo giá, ví dụ máy pha/xay cà phê cũ) — tự tạo sản phẩm/biến thể
+  // ẩn (is_freeform) y hệt Đơn hàng tự do, thay vì chặn không cho chuyển
+  // đơn. Chạy SAU khi CAS đã khóa để chỉ request "thắng" mới tạo dữ liệu.
+  for (const item of items) {
+    if (item.product_variant_id) continue;
+    const freeform = await createFreeformVariant(db, {
+      name: item.product_name,
+      unitPrice: item.unit_price,
+      imageUrl: item.image_url,
+      specs: item.specs,
+    });
+    item.product_variant_id = freeform.id;
+    variantById.set(freeform.id, { id: freeform.id, sku: freeform.sku, form: null, packaging: null, weight_grams: null });
+  }
 
   const orderId = newId();
   const orderCode = await nextOrderCode(db);

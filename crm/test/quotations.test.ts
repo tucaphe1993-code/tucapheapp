@@ -235,4 +235,36 @@ describe("convertQuotationToOrder", () => {
     expect(items).toHaveLength(1);
     expect(items[0].product_name).toBe("Cà phê Classic");
   });
+
+  it("auto-creates a hidden freeform SKU for a line typed by hand (no productVariantId), instead of blocking the conversion", async () => {
+    const quotationId = await insertQuotation();
+    // Dòng máy cũ gõ tay khi tạo báo giá — không chọn từ danh mục.
+    await db
+      .prepare(
+        `INSERT INTO quotation_items
+           (id, quotation_id, product_name, unit, quantity, unit_price, line_total, sort_order, image_url, specs)
+         VALUES (?, ?, 'Máy pha cà phê WEGA PEGASO 1 Group', 'Cái', 1, 52_500_000, 52_500_000, 1, ?, 'Chính hãng, màu trắng')`
+      )
+      .bind(randomUUID(), quotationId, "data:image/jpeg;base64,abc123")
+      .run();
+
+    const { order } = await convertQuotationToOrder(db, { quotationId, actingUserId: userId });
+
+    const { results: items } = await db.prepare(`SELECT sku, product_variant_id, product_name FROM order_items WHERE order_id = ?`).bind(order.id).all<{
+      sku: string;
+      product_variant_id: string;
+      product_name: string;
+    }>();
+    expect(items).toHaveLength(2);
+    const freeformItem = items.find((i) => i.product_name === "Máy pha cà phê WEGA PEGASO 1 Group");
+    expect(freeformItem).toBeDefined();
+    expect(freeformItem?.product_variant_id).toBeTruthy();
+    expect(freeformItem?.sku).toMatch(/^TUDO-/);
+
+    const hiddenProduct = await db
+      .prepare(`SELECT is_freeform FROM products p JOIN product_variants pv ON pv.product_id = p.id WHERE pv.id = ?`)
+      .bind(freeformItem!.product_variant_id)
+      .first<{ is_freeform: number }>();
+    expect(hiddenProduct?.is_freeform).toBe(1);
+  });
 });

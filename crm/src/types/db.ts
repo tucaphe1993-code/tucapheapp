@@ -177,6 +177,10 @@ export interface ProductVariantRow {
   category: string | null;
   barcode: string | null;
   note: string | null;
+  // Ảnh (base64 data URL) + thông số kỹ thuật — chủ yếu dùng cho dòng
+  // "Đơn hàng tự do" (máy cũ), nhưng để dùng chung được cho mọi SKU.
+  image_url: string | null;
+  specs: string | null;
   is_active: number;
   created_at: string;
   updated_at: string;

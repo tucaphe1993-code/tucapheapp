@@ -46,13 +46,13 @@ export default async function OrderDetailPage({ params }: PageProps<"/orders/[id
       db.prepare(`SELECT * FROM customers WHERE id = ?`).bind(order.customer_id).first<CustomerRow>(),
       db
         .prepare(
-          `SELECT oi.*, p.product_type FROM order_items oi
+          `SELECT oi.*, p.product_type, pv.image_url, pv.specs FROM order_items oi
            JOIN product_variants pv ON pv.id = oi.product_variant_id
            JOIN products p ON p.id = pv.product_id
            WHERE oi.order_id = ?`
         )
         .bind(id)
-        .all<OrderItemRow & { product_type: string }>(),
+        .all<OrderItemRow & { product_type: string; image_url: string | null; specs: string | null }>(),
       db.prepare(`SELECT * FROM tasks WHERE order_id = ? ORDER BY created_at DESC`).bind(id).all<TaskRow>(),
       db.prepare(`SELECT * FROM payments WHERE order_id = ? ORDER BY paid_at DESC`).bind(id).all<PaymentRow>(),
       db
@@ -169,25 +169,38 @@ export default async function OrderDetailPage({ params }: PageProps<"/orders/[id
                     {items.map((item) => (
                       <tr key={item.id} className="border-b border-stone-100">
                         <td className="py-1.5 pr-3">
-                          {item.product_name}
-                          <div className="text-xs text-stone-400">
-                            {item.device_id ? (
-                              <>
-                                Serial:{" "}
-                                <Link href={`/devices/${item.device_id}`} className="text-amber-800 hover:underline">
-                                  {deviceSerials.get(item.device_id) ?? "—"}
-                                </Link>
-                              </>
-                            ) : item.form ? (
-                              <>
-                                {FORM_LABEL[item.form]} · {PACKAGING_LABEL[item.packaging!]} ·{" "}
-                                {item.weight_grams! >= 1000
-                                  ? `${item.weight_grams! / 1000}kg`
-                                  : `${item.weight_grams}g`}
-                              </>
-                            ) : (
-                              item.sku
+                          <div className="flex items-start gap-2">
+                            {item.image_url && (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img
+                                src={item.image_url}
+                                alt=""
+                                className="h-12 w-12 shrink-0 rounded-lg border border-stone-200 object-cover"
+                              />
                             )}
+                            <div>
+                              {item.product_name}
+                              <div className="text-xs text-stone-400">
+                                {item.device_id ? (
+                                  <>
+                                    Serial:{" "}
+                                    <Link href={`/devices/${item.device_id}`} className="text-amber-800 hover:underline">
+                                      {deviceSerials.get(item.device_id) ?? "—"}
+                                    </Link>
+                                  </>
+                                ) : item.form ? (
+                                  <>
+                                    {FORM_LABEL[item.form]} · {PACKAGING_LABEL[item.packaging!]} ·{" "}
+                                    {item.weight_grams! >= 1000
+                                      ? `${item.weight_grams! / 1000}kg`
+                                      : `${item.weight_grams}g`}
+                                  </>
+                                ) : (
+                                  item.sku
+                                )}
+                              </div>
+                              {item.specs && <div className="mt-0.5 text-xs text-stone-500">{item.specs}</div>}
+                            </div>
                           </div>
                         </td>
                         <td className="py-1.5 pr-3">{item.quantity}</td>

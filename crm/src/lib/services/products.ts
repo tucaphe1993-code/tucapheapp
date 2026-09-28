@@ -13,7 +13,13 @@ import type { ProductVariantRow } from "@/types/db";
  */
 export async function createFreeformVariant(
   db: D1Database,
-  params: { name: string; unitPrice: number; warrantyMonths?: number | null }
+  params: {
+    name: string;
+    unitPrice: number;
+    warrantyMonths?: number | null;
+    imageUrl?: string | null;
+    specs?: string | null;
+  }
 ): Promise<ProductVariantRow & { product_name: string }> {
   const productId = newId();
   const variantId = newId();
@@ -27,10 +33,18 @@ export async function createFreeformVariant(
       .bind(productId, params.name, slug, code),
     db
       .prepare(
-        `INSERT INTO product_variants (id, product_id, sku, unit_price, warranty_months, requires_serial, is_active)
-         VALUES (?, ?, ?, ?, ?, 0, 1)`
+        `INSERT INTO product_variants (id, product_id, sku, unit_price, warranty_months, image_url, specs, requires_serial, is_active)
+         VALUES (?, ?, ?, ?, ?, ?, ?, 0, 1)`
       )
-      .bind(variantId, productId, code, params.unitPrice, params.warrantyMonths ?? null),
+      .bind(
+        variantId,
+        productId,
+        code,
+        params.unitPrice,
+        params.warrantyMonths ?? null,
+        params.imageUrl ?? null,
+        params.specs ?? null
+      ),
   ]);
 
   const variant = await db

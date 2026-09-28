@@ -11,6 +11,7 @@ const PACKAGING_LABEL: Record<string, string> = { TUI_XANH: "Túi Xanh", TUI_ZIP
 
 interface OrderItemJoined extends OrderItemRow {
   unit: string;
+  specs: string | null;
 }
 
 export default async function OrderReceiptPrintPage({ params }: PageProps<"/orders/[id]/print">) {
@@ -28,7 +29,7 @@ export default async function OrderReceiptPrintPage({ params }: PageProps<"/orde
     db.prepare(`SELECT * FROM customers WHERE id = ?`).bind(order.customer_id).first<CustomerRow>(),
     db
       .prepare(
-        `SELECT oi.*, pv.unit FROM order_items oi
+        `SELECT oi.*, pv.unit, pv.specs FROM order_items oi
          JOIN product_variants pv ON pv.id = oi.product_variant_id
          WHERE oi.order_id = ?`
       )
@@ -173,6 +174,7 @@ export default async function OrderReceiptPrintPage({ params }: PageProps<"/orde
                       {item.weight_grams! >= 1000 ? `${item.weight_grams! / 1000}kg` : `${item.weight_grams}g`}
                     </div>
                   ) : null}
+                  {item.specs && <div className="text-[10px] text-stone-500">{item.specs}</div>}
                 </td>
                 <td className="border border-stone-300 p-1.5 text-center">{item.unit}</td>
                 <td className="border border-stone-300 p-1.5 text-center">{item.quantity}</td>

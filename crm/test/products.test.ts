@@ -97,6 +97,21 @@ describe("createFreeformVariant", () => {
     expect(variant.warranty_months).toBeNull();
   });
 
+  it("stores the image and specs when given, null otherwise", async () => {
+    const withMedia = await createFreeformVariant(db, {
+      name: "Máy pha cà phê cũ",
+      unitPrice: 2_000_000,
+      imageUrl: "data:image/jpeg;base64,AAAA",
+      specs: "1350W, 15 bar, bình 1.5L",
+    });
+    expect(withMedia.image_url).toBe("data:image/jpeg;base64,AAAA");
+    expect(withMedia.specs).toBe("1350W, 15 bar, bình 1.5L");
+
+    const withoutMedia = await createFreeformVariant(db, { name: "Máy xay cũ", unitPrice: 500_000 });
+    expect(withoutMedia.image_url).toBeNull();
+    expect(withoutMedia.specs).toBeNull();
+  });
+
   it("gives every call a distinct product+sku even for the same name", async () => {
     const a = await createFreeformVariant(db, { name: "Máy pha cũ", unitPrice: 1 });
     const b = await createFreeformVariant(db, { name: "Máy pha cũ", unitPrice: 1 });

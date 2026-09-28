@@ -9,6 +9,10 @@ import { createFreeformVariant } from "@/lib/services/products";
 import { handleApiError, ConflictError, NotFoundError, ValidationError } from "@/lib/api/errors";
 import type { CustomerRow, DeviceRow, OrderRow, ProductVariantRow } from "@/types/db";
 
+// Ảnh máy lưu base64 data URL thẳng trong D1 (R2 chưa bật) — giới hạn
+// kích thước ở đây, cùng cách report-images đang làm.
+const MAX_FREEFORM_IMAGE_BYTES = 1_200_000;
+
 const itemSchema = z
   .object({
     productVariantId: z.string().trim().optional(),
@@ -17,6 +21,13 @@ const itemSchema = z
     freeformName: z.string().trim().min(1).optional(),
     freeformUnitPrice: z.number().int().nonnegative().optional(),
     freeformWarrantyMonths: z.number().int().nonnegative().optional(),
+    freeformImageUrl: z
+      .string()
+      .trim()
+      .regex(/^data:image\/(jpeg|png|webp);base64,/, "Định dạng ảnh không hợp lệ (chỉ nhận JPEG/PNG/WebP)")
+      .max(MAX_FREEFORM_IMAGE_BYTES, "Ảnh quá lớn, vui lòng thử lại")
+      .optional(),
+    freeformSpecs: z.string().trim().max(2000).optional(),
     quantity: z.number().int().positive(),
     deviceId: z.string().optional(),
     discountPercent: z.number().min(0).max(100).optional(),
@@ -145,6 +156,8 @@ export async function POST(req: NextRequest) {
           name: item.freeformName!,
           unitPrice: item.freeformUnitPrice!,
           warrantyMonths: item.freeformWarrantyMonths,
+          imageUrl: item.freeformImageUrl,
+          specs: item.freeformSpecs,
         });
       }
 

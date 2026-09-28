@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { PlusCircle, Trash2, Loader2 } from "lucide-react";
+import { PlusCircle, Trash2, Loader2, ImagePlus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,6 +13,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { CustomerFormDialog } from "@/components/customers/customer-form-dialog";
 import { formatVnd } from "@/lib/utils";
+import { resizeImageToDataUrl } from "@/lib/image-resize";
 import type { CustomerRow, PaymentMethodRow } from "@/types/db";
 
 interface FreeformLine {
@@ -27,6 +28,10 @@ interface FreeformLine {
   // Tặng kèm — quà/dụng cụ đi kèm miễn phí (VD: tặng cây gạt nén, túi cà
   // phê 250g...). Không tính vào tổng, không cần nhập giá.
   isGift: boolean;
+  // Ảnh máy (data URL, đã nén phía trình duyệt) + thông số kỹ thuật tự do.
+  imageUrl: string;
+  specs: string;
+  uploadingImage: boolean;
 }
 
 function emptyLine(): FreeformLine {
@@ -40,6 +45,9 @@ function emptyLine(): FreeformLine {
     discountPercent: 0,
     taxPercent: 0,
     isGift: false,
+    imageUrl: "",
+    specs: "",
+    uploadingImage: false,
   };
 }
 
@@ -108,6 +116,19 @@ export function FreeformOrderBuilder() {
     setLines((cur) => (cur.length > 1 ? cur.filter((l) => l.key !== key) : cur));
   }
 
+  async function onPickImage(key: string, file: File | undefined) {
+    if (!file) return;
+    updateLine(key, { uploadingImage: true });
+    try {
+      const dataUrl = await resizeImageToDataUrl(file);
+      updateLine(key, { imageUrl: dataUrl });
+    } catch {
+      toast.error("Không xử lý được ảnh này, thử ảnh khác");
+    } finally {
+      updateLine(key, { uploadingImage: false });
+    }
+  }
+
   const subtotal = lines.reduce((sum, l) => sum + lineTotal(l), 0);
   const discount = Math.min(Number(discountAmount) || 0, subtotal);
   const total = subtotal - discount;
@@ -119,6 +140,7 @@ export function FreeformOrderBuilder() {
     if (lines.some((l) => !l.productName.trim())) return toast.error("Mỗi dòng cần có tên sản phẩm");
     if (lines.some((l) => l.quantity <= 0)) return toast.error("Số lượng phải lớn hơn 0");
     if (lines.some((l) => !l.isGift && l.unitPrice <= 0)) return toast.error("Đơn giá phải lớn hơn 0");
+    if (lines.some((l) => l.uploadingImage)) return toast.error("Đang xử lý ảnh, vui lòng đợi");
 
     setSubmitting(true);
     try {
@@ -141,6 +163,8 @@ export function FreeformOrderBuilder() {
             // đơn giá thật (kể cả staff có lỡ gõ số vào ô đơn giá).
             freeformUnitPrice: l.isGift ? 0 : l.unitPrice,
             freeformWarrantyMonths: l.isGift ? undefined : l.warrantyMonths || undefined,
+            freeformImageUrl: l.imageUrl || undefined,
+            freeformSpecs: l.specs.trim() || undefined,
             quantity: l.quantity,
             discountPercent: l.isGift ? undefined : l.discountPercent || undefined,
             taxPercent: l.isGift ? undefined : l.taxPercent || undefined,
@@ -244,11 +268,52 @@ export function FreeformOrderBuilder() {
                   {lines.map((line, idx) => (
                     <tr key={line.key} className="border-b border-stone-100 align-top">
                       <td className="py-2 pr-2 text-stone-500">{idx + 1}</td>
-                      <td className="py-2 pr-2" style={{ minWidth: 200 }}>
+                      <td className="py-2 pr-2" style={{ minWidth: 240 }}>
                         <Input
                           placeholder="VD: Máy pha cà phê Breville cũ 90%"
                           value={line.productName}
                           onChange={(e) => updateLine(line.key, { productName: e.target.value })}
+                          className="mb-1.5"
+                        />
+                        <div className="mb-1.5 flex items-center gap-2">
+                          {line.imageUrl ? (
+                            <div className="relative">
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img src={line.imageUrl} alt="" className="h-14 w-14 rounded-lg border border-stone-200 object-cover" />
+                              <button
+                                type="button"
+                                onClick={() => updateLine(line.key, { imageUrl: "" })}
+                                className="absolute -right-1.5 -top-1.5 rounded-full bg-stone-800 p-0.5 text-white hover:bg-red-600"
+                                aria-label="Xoá ảnh"
+                              >
+                                <X className="h-3 w-3" />
+                              </button>
+                            </div>
+                          ) : (
+                            <label className="flex h-14 w-14 shrink-0 cursor-pointer flex-col items-center justify-center gap-0.5 rounded-lg border border-dashed border-stone-300 text-stone-400 hover:border-amber-700 hover:text-amber-700">
+                              {line.uploadingImage ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <>
+                                  <ImagePlus className="h-4 w-4" />
+                                  <span className="text-[9px]">Ảnh</span>
+                                </>
+                              )}
+                              <input
+                                type="file"
+                                accept="image/jpeg,image/png,image/webp"
+                                className="hidden"
+                                onChange={(e) => onPickImage(line.key, e.target.files?.[0])}
+                              />
+                            </label>
+                          )}
+                        </div>
+                        <Textarea
+                          placeholder="Thông số kỹ thuật (VD: 1350W, 15 bar, bình 1.5L...)"
+                          value={line.specs}
+                          onChange={(e) => updateLine(line.key, { specs: e.target.value })}
+                          rows={2}
+                          className="text-xs"
                         />
                       </td>
                       <td className="py-2 pr-2" style={{ minWidth: 70 }}>
